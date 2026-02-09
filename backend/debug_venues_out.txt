@@ -1,0 +1,10 @@
+
+=== Venues ===
+ID: 1 | Name: Skybar Lounge
+ID: 2 | Name: Neon Nights
+ID: 3 | Name: The Purple Room
+ID: 4 | Name: Electric Dreams
+
+=== Bartenders ===
+Email: bartender@example.com | Name: Bob the Bartender | Venue ID: 1 (Skybar Lounge)
+Email: anishghanwat2003@gmail.com | Name: Anish Ghanwat | Venue ID: None (None)

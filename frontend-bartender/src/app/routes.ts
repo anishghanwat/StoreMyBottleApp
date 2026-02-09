@@ -1,0 +1,39 @@
+import { createBrowserRouter } from "react-router";
+import BartenderLogin from "./pages/BartenderLogin";
+import PendingApproval from "./pages/PendingApproval";
+import BartenderHome from "./pages/BartenderHome";
+import ScanQR from "./pages/ScanQR";
+import DrinkDetails from "./pages/DrinkDetails";
+import Stats from "./pages/Stats";
+import NotFound from "./pages/NotFound";
+
+export const router = createBrowserRouter([
+  {
+    path: "/",
+    Component: BartenderLogin,
+  },
+  {
+    path: "/pending-approval",
+    Component: PendingApproval,
+  },
+  {
+    path: "/home",
+    Component: BartenderHome,
+  },
+  {
+    path: "/scan",
+    Component: ScanQR,
+  },
+  {
+    path: "/drink-details",
+    Component: DrinkDetails,
+  },
+  {
+    path: "/stats",
+    Component: Stats,
+  },
+  {
+    path: "*",
+    Component: NotFound,
+  },
+]);

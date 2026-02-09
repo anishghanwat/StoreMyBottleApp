@@ -1,0 +1,75 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* Mobile-only constraint for StoreMyBottle */
+body {
+  max-width: 375px;
+  margin: 0 auto;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent text selection for better mobile UX */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Glassmorphism utility */
+.glass-card {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Neon glow effects for premium nightlife feel */
+.neon-glow-purple {
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3),
+              0 0 40px rgba(168, 85, 247, 0.2),
+              0 0 60px rgba(168, 85, 247, 0.1);
+}
+
+.neon-glow-pink {
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.3),
+              0 0 40px rgba(236, 72, 153, 0.2),
+              0 0 60px rgba(236, 72, 153, 0.1);
+}
+
+.neon-glow-green {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3),
+              0 0 40px rgba(34, 197, 94, 0.2),
+              0 0 60px rgba(34, 197, 94, 0.1);
+}
+
+/* Text glow for better readability in dark environments */
+.text-glow {
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+/* Hide scrollbar but keep functionality */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ensure touch targets are large enough for bar environment */
+button {
+  min-height: 44px;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
