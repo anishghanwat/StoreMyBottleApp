@@ -22,9 +22,11 @@ import { Users } from "@/components/Users"
 import { Purchases } from "@/components/Purchases"
 import { Redemptions } from "@/components/Redemptions"
 import { Bartenders } from "@/components/Bartenders"
+import { Reports } from "@/components/Reports"
+import { VenueAnalytics } from "@/components/VenueAnalytics"
 import { Settings } from "@/components/Settings"
 import { Promotions } from "@/components/Promotions"
-import { SupportTickets } from "@/components/SupportTickets"
+// import { SupportTickets } from "@/components/SupportTickets"
 import { InventoryAuditLogs } from "@/components/InventoryAuditLogs"
 import { Login } from "@/components/Login"
 import { authService } from "@/services/api"
@@ -41,16 +43,24 @@ export default function App() {
     const checkAuth = async () => {
       const token = localStorage.getItem('admin_token')
       const storedUser = localStorage.getItem('admin_user')
+
       if (token && storedUser) {
         try {
-          // Determine if token is expired? 
-          // For now, assume valid or let API reject it
-          setIsAuthenticated(true)
-          setUser(JSON.parse(storedUser))
+          const parsedUser = JSON.parse(storedUser)
+          // Verify user is admin
+          if (parsedUser.role === 'admin') {
+            setIsAuthenticated(true)
+            setUser(parsedUser)
+          } else {
+            // Not an admin, clear storage
+            authService.logout()
+          }
         } catch (e) {
+          // Invalid stored data, clear it
           authService.logout()
         }
       }
+
       setLoading(false)
     }
     checkAuth()
@@ -83,12 +93,16 @@ export default function App() {
         return <Redemptions />
       case "bartenders":
         return <Bartenders />
+      case "reports":
+        return <Reports />
+      case "venue-analytics":
+        return <VenueAnalytics />
       case "settings":
         return <Settings />
       case "promotions":
         return <Promotions />
-      case "tickets":
-        return <SupportTickets />
+      // case "tickets":
+      //   return <SupportTickets />
       case "logs":
         return <InventoryAuditLogs />
       default:

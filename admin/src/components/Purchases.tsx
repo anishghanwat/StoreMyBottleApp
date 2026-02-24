@@ -1,7 +1,7 @@
 import * as React from "react"
-import { Search, Filter, Calendar as CalendarIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { ShoppingCart } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -10,21 +10,105 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-const purchasesData = [
-  { id: "P-8832", user: "Alice Johnson", venue: "Sky Bar", bottle: "Black Label 12Y", status: "Paid", remaining: "750ml", date: "2023-10-25" },
-  { id: "P-8833", user: "Evan Brown", venue: "Ocean Club", bottle: "Grey Goose", status: "Pending", remaining: "1000ml", date: "2023-10-24" },
-  { id: "P-8834", user: "Charlie Davis", venue: "High Spirits", bottle: "Glenfiddich 12Y", status: "Paid", remaining: "350ml", date: "2023-10-23" },
-  { id: "P-8835", user: "Alice Johnson", venue: "The Vault", bottle: "Bombay Sapphire", status: "Failed", remaining: "0ml", date: "2023-10-22" },
-  { id: "P-8836", user: "Dana Wilson", venue: "Neon Lounge", bottle: "Hennessy VS", status: "Paid", remaining: "700ml", date: "2023-10-21" },
-]
+import { adminService } from "@/services/api"
+import { toast } from "sonner"
+import { TableSkeletonLoader } from "@/components/ui/skeleton-loader"
+import { EmptyState } from "@/components/ui/empty-state"
+import { SearchFilterBar } from "@/components/ui/search-filter-bar"
+import { formatDate } from "@/lib/utils"
 
 export function Purchases() {
+  const [purchases, setPurchases] = React.useState<any[]>([])
+  const [venues, setVenues] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [refreshing, setRefreshing] = React.useState(false)
+  const [searchQuery, setSearchQuery] = React.useState("")
+  const [statusFilter, setStatusFilter] = React.useState("all")
+  const [venueFilter, setVenueFilter] = React.useState("all")
+
+  React.useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true)
+    else setRefreshing(true)
+
+    try {
+      const [purchasesData, venuesData] = await Promise.all([
+        adminService.getPurchases(),
+        adminService.getVenues()
+      ])
+      setPurchases(purchasesData.purchases)
+      setVenues(venuesData)
+    } catch (error) {
+      console.error("Failed to load purchases", error)
+      toast.error("Failed to load purchases")
+    } finally {
+      if (!silent) setLoading(false)
+      else setRefreshing(false)
+    }
+  }
+
+  const handleFilterChange = async () => {
+    setRefreshing(true)
+    try {
+      const filters: any = {}
+      if (statusFilter !== "all") filters.status = statusFilter
+      if (venueFilter !== "all") filters.venue_id = venueFilter
+
+      const data = await adminService.getPurchases(filters)
+      setPurchases(data.purchases)
+    } catch (error) {
+      console.error("Failed to filter purchases", error)
+      toast.error("Failed to filter purchases")
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  React.useEffect(() => {
+    if (statusFilter !== "all" || venueFilter !== "all") {
+      handleFilterChange()
+    }
+  }, [statusFilter, venueFilter])
+
+  const filteredPurchases = purchases.filter(purchase => {
+    const matchesSearch =
+      purchase.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      purchase.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (purchase.user_email && purchase.user_email.toLowerCase().includes(searchQuery.toLowerCase()))
+    return matchesSearch
+  })
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case "confirmed":
+        return "default"
+      case "pending":
+        return "secondary"
+      case "failed":
+        return "destructive"
+      default:
+        return "outline"
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "confirmed":
+        return "Paid"
+      case "pending":
+        return "Pending"
+      case "failed":
+        return "Failed"
+      default:
+        return status
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Purchase History</h2>
       </div>
@@ -35,70 +119,105 @@ export function Purchases() {
           <CardDescription>View all bottle purchases made by users.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-            <div className="relative flex-1 w-full md:max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search Transaction ID or User..."
-                className="pl-8"
-              />
-            </div>
-            <div className="flex items-center gap-2 w-full md:w-auto ml-auto">
-                <Select defaultValue="all">
-                    <SelectTrigger className="w-[150px]">
-                        <SelectValue placeholder="Payment Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="failed">Failed</SelectItem>
-                    </SelectContent>
-                </Select>
-                <Button variant="outline" size="icon">
-                    <CalendarIcon className="h-4 w-4" />
-                </Button>
-            </div>
-          </div>
+          <SearchFilterBar
+            searchPlaceholder="Search by ID, user name, or email..."
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            filters={[
+              {
+                id: "venue",
+                label: "All Venues",
+                value: venueFilter,
+                onChange: setVenueFilter,
+                options: [
+                  { value: "all", label: "All Venues" },
+                  ...venues.map(v => ({ value: v.id, label: v.name }))
+                ]
+              },
+              {
+                id: "status",
+                label: "Payment Status",
+                value: statusFilter,
+                onChange: setStatusFilter,
+                options: [
+                  { value: "all", label: "All Statuses" },
+                  { value: "confirmed", label: "Paid" },
+                  { value: "pending", label: "Pending" },
+                  { value: "failed", label: "Failed" }
+                ]
+              }
+            ]}
+            onRefresh={() => loadData(true)}
+            refreshing={refreshing}
+          />
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Purchase ID</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Venue</TableHead>
-                  <TableHead>Bottle</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead className="text-right">Remaining</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {purchasesData.map((purchase) => (
-                  <TableRow key={purchase.id}>
-                    <TableCell className="font-mono text-xs">{purchase.id}</TableCell>
-                    <TableCell className="font-medium">{purchase.user}</TableCell>
-                    <TableCell>{purchase.venue}</TableCell>
-                    <TableCell>{purchase.bottle}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{purchase.date}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={
-                            purchase.status === "Paid" ? "default" :
-                            purchase.status === "Pending" ? "secondary" : "destructive"
-                        }
-                      >
-                        {purchase.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{purchase.remaining}</TableCell>
+          {loading ? (
+            <TableSkeletonLoader rows={5} columns={8} />
+          ) : filteredPurchases.length === 0 ? (
+            <EmptyState
+              icon={ShoppingCart}
+              title="No purchases found"
+              description={searchQuery || statusFilter !== "all" || venueFilter !== "all"
+                ? "Try adjusting your search or filters"
+                : "No purchases have been made yet"}
+            />
+          ) : (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Purchase ID</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Venue</TableHead>
+                    <TableHead>Bottle</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead className="text-right">Remaining</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredPurchases.map((purchase) => (
+                    <TableRow key={purchase.id}>
+                      <TableCell className="font-mono text-xs">
+                        {purchase.id.substring(0, 8)}...
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <div>
+                          <div>{purchase.user_name}</div>
+                          {purchase.user_email && (
+                            <div className="text-xs text-muted-foreground">{purchase.user_email}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{purchase.venue_name}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{purchase.bottle_name}</div>
+                          <div className="text-xs text-muted-foreground">{purchase.bottle_brand}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>₹{purchase.purchase_price}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {formatDate(purchase.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(purchase.payment_status)}>
+                          {getStatusLabel(purchase.payment_status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div>
+                          <div className="font-medium">{purchase.remaining_ml}ml</div>
+                          <div className="text-xs text-muted-foreground">of {purchase.total_ml}ml</div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

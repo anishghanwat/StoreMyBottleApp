@@ -11,6 +11,8 @@ import {
   Percent,
   MessageSquare,
   FileText,
+  FileBarChart,
+  BarChart3,
 } from "lucide-react"
 
 import {
@@ -64,15 +66,25 @@ const navItems = [
     id: "bartenders",
   },
   {
+    title: "Reports",
+    icon: FileBarChart,
+    id: "reports",
+  },
+  {
+    title: "Venue Analytics",
+    icon: BarChart3,
+    id: "venue-analytics",
+  },
+  {
     title: "Promotions",
     icon: Percent,
     id: "promotions",
   },
-  {
-    title: "Support Tickets",
-    icon: MessageSquare,
-    id: "tickets",
-  },
+  // {
+  //   title: "Support Tickets",
+  //   icon: MessageSquare,
+  //   id: "tickets",
+  // },
   {
     title: "Audit Logs",
     icon: FileText,

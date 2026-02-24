@@ -1,6 +1,20 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://192.168.31.5:8000';
+// Auto-detect API URL based on environment
+// Always use HTTPS for backend (required for camera access)
+const getApiUrl = () => {
+    const hostname = window.location.hostname;
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        // Accessing from same machine - use https
+        return 'https://localhost:8000';
+    } else {
+        // Accessing from network - use https
+        return `https://${hostname}:8000`;
+    }
+};
+
+const API_URL = getApiUrl();
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({

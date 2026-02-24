@@ -239,6 +239,53 @@ def get_redemption_history(
     )
 
 
+@router.get("/venue/{venue_id}/recent", response_model=RedemptionHistoryList)
+def get_venue_recent_redemptions(
+    venue_id: str,
+    limit: int = 10,
+    current_user: User = Depends(get_current_active_bartender),
+    db: Session = Depends(get_db)
+):
+    """Get recent redemptions at a venue (bartender endpoint)"""
+    # Verify bartender is assigned to this venue
+    if current_user.venue_id != venue_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to view this venue's redemptions"
+        )
+    
+    redemptions = db.query(Redemption).filter(
+        Redemption.venue_id == venue_id,
+        Redemption.status == RedemptionStatus.REDEEMED
+    ).order_by(Redemption.redeemed_at.desc()).limit(limit).all()
+    
+    # Transform to history items
+    history_items = []
+    for redemption in redemptions:
+        purchase = redemption.purchase
+        bottle = purchase.bottle
+        venue = purchase.venue
+        user = purchase.user
+        
+        history_item = RedemptionHistoryItem(
+            id=redemption.id,
+            bottle_name=bottle.name,
+            bottle_brand=bottle.brand,
+            venue_name=venue.name,
+            peg_size_ml=redemption.peg_size_ml,
+            status=redemption.status,
+            redeemed_at=redemption.redeemed_at,
+            created_at=redemption.created_at,
+            user_name=user.name
+        )
+        history_items.append(history_item)
+    
+    return RedemptionHistoryList(
+        redemptions=history_items,
+        total=len(history_items)
+    )
+
+
 @router.get("/{redemption_id}", response_model=RedemptionResponse)
 def get_redemption(
     redemption_id: str,

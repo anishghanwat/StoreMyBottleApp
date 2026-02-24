@@ -77,6 +77,16 @@ def generate_qr_token() -> str:
     # but UUID is fine. Let's make it a bit more "token-like"
     return base64.urlsafe_b64encode(uuid.uuid4().bytes).decode().rstrip("=")
 
+
+def get_password_hash(password: str) -> str:
+    """Hash a password using bcrypt"""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against a hash"""
+    return pwd_context.verify(plain_password, hashed_password)
+
 # ============ Google Auth ============
 
 def verify_google_token(token: str) -> Optional[dict]:

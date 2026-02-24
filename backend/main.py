@@ -31,6 +31,7 @@ app.add_middleware(
         "https://192.168.31.5:5174",
         "http://192.168.31.5:5174",
         "http://localhost:3000",
+        "https://localhost:3000",
         "http://localhost:5175",
         "http://localhost:5176"
     ],
@@ -116,4 +117,12 @@ app.include_router(admin.router)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # Use HTTPS for all connections (required for camera access on phones)
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=8000, 
+        reload=True,
+        ssl_keyfile="key.pem",
+        ssl_certfile="cert.pem"
+    )

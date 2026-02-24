@@ -141,16 +141,6 @@ export default function Payment() {
     );
   }
 
-  // QR code data for bartender to scan
-  const qrData = JSON.stringify({
-    type: "payment",
-    purchaseId: purchase?.id,
-    venueId: venue.id,
-    bottleId: bottle.id,
-    amount: bottle.price,
-    timestamp: Date.now(),
-  });
-
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
       {/* Status Badge */}
@@ -158,30 +148,19 @@ export default function Payment() {
         <div className="relative inline-flex items-center gap-2 px-5 py-2.5 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full backdrop-blur-xl">
           {!isConfirmed && <Loader2 className="w-4 h-4 animate-spin" />}
           <span className="text-sm font-medium">
-            {isConfirmed ? "Confirmed!" : "Waiting for confirmation"}
+            {isConfirmed ? "Payment Confirmed!" : "Waiting for payment confirmation"}
           </span>
         </div>
       </div>
 
       {/* Title */}
       <h1 className="text-2xl font-bold mb-2 text-center">Pay at Counter</h1>
-      <p className="text-gray-400 text-sm mb-8 text-center">Show this QR to bartender</p>
+      <p className="text-gray-400 text-sm mb-8 text-center max-w-sm">
+        Please proceed to the counter and complete your payment. The bartender will confirm your purchase.
+      </p>
 
-      {/* QR Code */}
-      <div className="relative mb-8">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-3xl blur-2xl opacity-30 animate-pulse" />
-        <div className="relative bg-white p-8 rounded-3xl shadow-2xl">
-          <QRCodeSVG
-            value={qrData}
-            size={240}
-            level="H"
-            includeMargin={false}
-          />
-        </div>
-      </div>
-
-      {/* Payment Info */}
-      <div className="w-full max-w-sm bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 backdrop-blur-xl border border-zinc-800/50 rounded-3xl p-6 space-y-4">
+      {/* Payment Info Card */}
+      <div className="w-full max-w-sm bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 backdrop-blur-xl border border-zinc-800/50 rounded-3xl p-6 space-y-4 mb-8">
         <div>
           <p className="text-xs text-purple-400 font-medium mb-1">{bottle.brand}</p>
           <h3 className="text-xl font-semibold">{bottle.name}</h3>
@@ -194,19 +173,49 @@ export default function Payment() {
 
         <div className="flex items-center justify-between py-3 border-t border-zinc-800">
           <span className="text-gray-400">Volume</span>
-          <span className="font-medium">{bottle.volume_ml} ml</span>
+          <span className="font-medium">{purchase?.total_ml || bottle.volume_ml} ml</span>
         </div>
 
         <div className="flex items-center justify-between py-3 border-t border-zinc-800">
-          <span className="text-gray-400 text-lg">Total</span>
+          <span className="text-gray-400 text-lg">Total Amount</span>
           <span className="text-2xl font-bold text-white">₹{bottle.price.toLocaleString()}</span>
         </div>
       </div>
 
-      {/* Payment Methods */}
-      <p className="text-gray-500 text-xs mt-6 text-center">
-        Pay via UPI, Cash, or Card at the counter
-      </p>
+      {/* Payment Instructions */}
+      <div className="w-full max-w-sm space-y-4">
+        <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/50 rounded-2xl p-4">
+          <h3 className="text-sm font-semibold mb-3 text-purple-400">Payment Methods Accepted</h3>
+          <div className="space-y-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+              <span>UPI / QR Code Payment</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+              <span>Credit / Debit Card</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+              <span>Cash</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-blue-500/10 backdrop-blur-xl border border-blue-500/30 rounded-2xl p-4">
+          <p className="text-xs text-blue-400 text-center">
+            💡 After payment confirmation, your bottle will appear in "My Bottles" with a QR code for redemption
+          </p>
+        </div>
+      </div>
+
+      {/* Cancel Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="mt-6 px-6 py-2 text-gray-400 hover:text-white transition-colors text-sm"
+      >
+        Cancel Purchase
+      </button>
     </div>
   );
 }

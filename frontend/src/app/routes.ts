@@ -1,6 +1,8 @@
 import { createBrowserRouter } from "react-router";
 import VenueSelection from "./screens/VenueSelection";
+import VenueDetails from "./screens/VenueDetails";
 import BottleMenu from "./screens/BottleMenu";
+import BottleDetails from "./screens/BottleDetails";
 import Login from "./screens/Login";
 import Payment from "./screens/Payment";
 import PaymentSuccess from "./screens/PaymentSuccess";
@@ -15,8 +17,16 @@ export const router = createBrowserRouter([
     Component: VenueSelection,
   },
   {
+    path: "/venue/:venueId/details",
+    Component: VenueDetails,
+  },
+  {
     path: "/venue/:venueId",
     Component: BottleMenu,
+  },
+  {
+    path: "/venue/:venueId/bottle/:bottleId",
+    Component: BottleDetails,
   },
   {
     path: "/login",

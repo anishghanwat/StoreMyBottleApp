@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Numeric, Boolean, DateTime, ForeignKey, Enum as SQLEnum
+   from sqlalchemy import Column, String, Integer, Numeric, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -38,6 +38,45 @@ class UserRole(str, enum.Enum):
     CUSTOMER = "customer"
     BARTENDER = "bartender"
     ADMIN = "admin"
+
+
+class PromotionType(str, enum.Enum):
+    """Promotion type enum"""
+    PERCENTAGE = "percentage"  # e.g., 10% off
+    FIXED_AMOUNT = "fixed_amount"  # e.g., ₹100 off
+    FREE_PEG = "free_peg"  # Free peg with purchase
+
+
+class PromotionStatus(str, enum.Enum):
+    """Promotion status enum"""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    EXPIRED = "expired"
+
+
+class TicketStatus(str, enum.Enum):
+    """Support ticket status enum"""
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
+
+class TicketPriority(str, enum.Enum):
+    """Support ticket priority enum"""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
+
+class TicketCategory(str, enum.Enum):
+    """Support ticket category enum"""
+    TECHNICAL = "technical"
+    BILLING = "billing"
+    ACCOUNT = "account"
+    REDEMPTION = "redemption"
+    GENERAL = "general"
 
 
 class User(Base):
@@ -111,6 +150,8 @@ class Purchase(Base):
     total_ml = Column(Integer, nullable=False)
     remaining_ml = Column(Integer, nullable=False)
     purchase_price = Column(Numeric(10, 2), nullable=False)
+    promotion_code = Column(String(50), nullable=True)  # Applied promotion code
+    discount_amount = Column(Numeric(10, 2), default=0, nullable=False)  # Discount applied
     payment_status = Column(SQLEnum(PaymentStatus), default=PaymentStatus.PENDING, nullable=False)
     payment_method = Column(SQLEnum(PaymentMethod), nullable=True)
     purchased_at = Column(DateTime(timezone=True), nullable=True)
@@ -157,3 +198,129 @@ class OTP(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+
+class Promotion(Base):
+    """Promotions and discount codes"""
+    __tablename__ = "promotions"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    code = Column(String(50), unique=True, nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(String(500), nullable=True)
+    type = Column(SQLEnum(PromotionType), nullable=False)
+    value = Column(Numeric(10, 2), nullable=False)  # Percentage or amount
+    min_purchase_amount = Column(Numeric(10, 2), nullable=True)  # Minimum purchase required
+    max_discount_amount = Column(Numeric(10, 2), nullable=True)  # Max discount cap
+    usage_limit = Column(Integer, nullable=True)  # Total usage limit (null = unlimited)
+    usage_count = Column(Integer, default=0, nullable=False)  # Current usage count
+    per_user_limit = Column(Integer, nullable=True)  # Usage limit per user
+    venue_id = Column(String(36), ForeignKey("venues.id"), nullable=True)  # Null = all venues
+    valid_from = Column(DateTime(timezone=True), nullable=False)
+    valid_until = Column(DateTime(timezone=True), nullable=False)
+    status = Column(SQLEnum(PromotionStatus), default=PromotionStatus.ACTIVE, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    venue = relationship("Venue", backref="promotions")
+
+
+
+class SupportTicket(Base):
+    """Support tickets for customer issues"""
+    __tablename__ = "support_tickets"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    ticket_number = Column(String(20), unique=True, nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    subject = Column(String(255), nullable=False)
+    description = Column(String(2000), nullable=False)
+    category = Column(SQLEnum(TicketCategory), nullable=False)
+    priority = Column(SQLEnum(TicketPriority), default=TicketPriority.MEDIUM, nullable=False)
+    status = Column(SQLEnum(TicketStatus), default=TicketStatus.OPEN, nullable=False)
+    assigned_to_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    closed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id], backref="tickets")
+    assigned_to = relationship("User", foreign_keys=[assigned_to_id], backref="assigned_tickets")
+    comments = relationship("TicketComment", back_populates="ticket", cascade="all, delete-orphan")
+
+
+class TicketComment(Base):
+    """Comments/replies on support tickets"""
+    __tablename__ = "ticket_comments"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    ticket_id = Column(String(36), ForeignKey("support_tickets.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    comment = Column(String(2000), nullable=False)
+    is_internal = Column(Boolean, default=False, nullable=False)  # Internal notes not visible to customer
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    ticket = relationship("SupportTicket", back_populates="comments")
+    user = relationship("User", backref="ticket_comments")
+
+
+# ============ Support Ticket Models ============
+
+class TicketStatus(str, enum.Enum):
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
+class TicketPriority(str, enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
+class TicketCategory(str, enum.Enum):
+    TECHNICAL = "technical"
+    BILLING = "billing"
+    ACCOUNT = "account"
+    REDEMPTION = "redemption"
+    GENERAL = "general"
+
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    ticket_number = Column(String(20), unique=True, nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    subject = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    category = Column(SQLEnum(TicketCategory), nullable=False)
+    priority = Column(SQLEnum(TicketPriority), default=TicketPriority.MEDIUM, nullable=False)
+    status = Column(SQLEnum(TicketStatus), default=TicketStatus.OPEN, nullable=False)
+    assigned_to_id = Column(String(36), ForeignKey("users.id"), nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    closed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id], backref="support_tickets")
+    assigned_to = relationship("User", foreign_keys=[assigned_to_id], backref="assigned_tickets")
+    comments = relationship("TicketComment", back_populates="ticket", cascade="all, delete-orphan")
+
+class TicketComment(Base):
+    __tablename__ = "ticket_comments"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    ticket_id = Column(String(36), ForeignKey("support_tickets.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    comment = Column(Text, nullable=False)
+    is_internal = Column(Boolean, default=False, nullable=False)  # Internal notes for staff only
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    ticket = relationship("SupportTicket", back_populates="comments")
+    user = relationship("User", backref="ticket_comments")

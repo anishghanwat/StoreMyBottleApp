@@ -104,3 +104,50 @@ def get_venue_stats(venue_id: str, db: Session = Depends(get_db)):
         served_today=served_today,
         active_bottles=active_bottles
     )
+
+
+@router.get("/{venue_id}/promotions")
+def get_venue_promotions(
+    venue_id: str,
+    limit: int = 5,
+    db: Session = Depends(get_db)
+):
+    """Get active promotions for a venue (public endpoint)"""
+    from models import Promotion, PromotionStatus
+    from datetime import datetime
+    
+    # Check venue exists
+    venue = db.query(Venue).filter(Venue.id == venue_id).first()
+    if not venue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Venue not found"
+        )
+    
+    # Get active promotions for this venue or global promotions
+    now = datetime.utcnow()
+    promotions = db.query(Promotion).filter(
+        Promotion.status == PromotionStatus.ACTIVE,
+        Promotion.valid_from <= now,
+        Promotion.valid_until >= now,
+        (Promotion.venue_id == venue_id) | (Promotion.venue_id == None)
+    ).limit(limit).all()
+    
+    result = []
+    for promo in promotions:
+        result.append({
+            "id": promo.id,
+            "code": promo.code,
+            "description": promo.description,
+            "discount_type": promo.type.value,
+            "discount_value": promo.discount_value,
+            "valid_from": promo.valid_from.isoformat(),
+            "valid_until": promo.valid_until.isoformat(),
+            "venue_id": promo.venue_id
+        })
+    
+    return {
+        "promotions": result,
+        "total": len(result)
+    }
+
