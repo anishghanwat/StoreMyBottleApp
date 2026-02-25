@@ -199,9 +199,8 @@ def create_admin_user():
             name="Admin",
             email="admin@storemybottle.com",
             phone="+1234567890",
-            password_hash=password_hash,
-            role="admin",
-            is_active=True
+            hashed_password=password_hash,
+            role="admin"
         )
         
         db.add(admin)
