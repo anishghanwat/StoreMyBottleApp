@@ -74,7 +74,28 @@ async def startup_event():
     print("🚀 Starting StoreMyBottle API...")
     print(f"📝 Environment: {settings.ENVIRONMENT}")
     print(f"🌐 Frontend URL: {settings.FRONTEND_URL}")
-    print(f"📚 API Docs: http://localhost:8000/docs")
+    
+    # Auto-initialize database on startup (for production deployments)
+    try:
+        print("🗄️  Checking database connection...")
+        # Test connection
+        from database import SessionLocal
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        print("✅ Database connection successful")
+        
+        # Create tables if they don't exist
+        print("📊 Creating database tables if needed...")
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables ready")
+        
+    except Exception as e:
+        print(f"⚠️  Database initialization warning: {e}")
+        print("⚠️  Some features may not work until database is properly configured")
+    
+    print(f"📚 API Docs: /docs")
+    print("✅ StoreMyBottle API is ready!")
 
 
 # Shutdown event
@@ -104,6 +125,33 @@ def root():
         "docs": "/docs",
         "health": "/health"
     }
+
+
+# Database initialization endpoint (for production setup)
+@app.post("/api/init-db")
+def initialize_database():
+    """Initialize database tables - call this once after deployment"""
+    try:
+        from database import SessionLocal
+        
+        # Test connection
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        
+        # Create all tables
+        Base.metadata.create_all(bind=engine)
+        
+        return {
+            "status": "success",
+            "message": "Database initialized successfully",
+            "tables_created": True
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Database initialization failed: {str(e)}"
+        }
 
 
 # Register routers
