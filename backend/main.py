@@ -154,6 +154,57 @@ def initialize_database():
         }
 
 
+# Create admin user endpoint (for production setup)
+@app.post("/api/create-admin")
+def create_admin_user():
+    """Create default admin user - call this once after database initialization"""
+    try:
+        from database import SessionLocal
+        from models import User
+        from passlib.context import CryptContext
+        
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        
+        db = SessionLocal()
+        
+        # Check if admin already exists
+        existing_admin = db.query(User).filter(User.email == "admin@storemybottle.com").first()
+        if existing_admin:
+            db.close()
+            return {
+                "status": "info",
+                "message": "Admin user already exists",
+                "email": "admin@storemybottle.com"
+            }
+        
+        # Create admin user
+        admin = User(
+            name="Admin",
+            email="admin@storemybottle.com",
+            phone="+1234567890",
+            password_hash=pwd_context.hash("admin123"),
+            role="admin",
+            is_active=True
+        )
+        
+        db.add(admin)
+        db.commit()
+        db.close()
+        
+        return {
+            "status": "success",
+            "message": "Admin user created successfully",
+            "email": "admin@storemybottle.com",
+            "password": "admin123",
+            "warning": "Please change the password immediately after first login!"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Admin creation failed: {str(e)}"
+        }
+
+
 # Register routers
 app.include_router(venues.router)
 app.include_router(auth.router)
