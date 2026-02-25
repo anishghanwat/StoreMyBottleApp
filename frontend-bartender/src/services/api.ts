@@ -1,18 +1,21 @@
 import axios from 'axios';
 import { sessionManager } from '../utils/session';
 
-// Auto-detect API URL based on environment
-// All connections use HTTPS now (backend has SSL)
+// Use environment variable for API URL, fallback to auto-detect for local dev
 const getApiUrl = () => {
-    const hostname = window.location.hostname;
-
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        // Accessing from same machine - use https
-        return 'https://localhost:8000/api';
-    } else {
-        // Accessing from network (phone, etc.) - use https
-        return `https://${hostname}:8000/api`;
+    // Check if VITE_API_URL is set (production)
+    if (import.meta.env.VITE_API_URL) {
+        return `${import.meta.env.VITE_API_URL}/api`;
     }
+
+    // Fallback for local development
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:8000/api';
+    }
+
+    // Default fallback
+    return 'http://localhost:8000/api';
 };
 
 const API_URL = getApiUrl();

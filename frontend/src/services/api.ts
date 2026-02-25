@@ -1,18 +1,21 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { sessionManager } from '../utils/session';
 
-// Auto-detect API URL based on environment
-// Always use HTTPS for backend (required for camera access)
+// Use environment variable for API URL, fallback to auto-detect for local dev
 const getApiUrl = () => {
-    const hostname = window.location.hostname;
-
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        // Accessing from same machine - use https
-        return 'https://localhost:8000';
-    } else {
-        // Accessing from network - use https
-        return `https://${hostname}:8000`;
+    // Check if VITE_API_URL is set (production)
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
     }
+
+    // Fallback for local development
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:8000';
+    }
+
+    // Default fallback
+    return 'http://localhost:8000';
 };
 
 const API_URL = getApiUrl();
