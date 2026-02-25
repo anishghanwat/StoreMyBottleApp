@@ -80,8 +80,9 @@ async def startup_event():
         print("🗄️  Checking database connection...")
         # Test connection
         from database import SessionLocal
+        from sqlalchemy import text
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db.close()
         print("✅ Database connection successful")
         
@@ -133,10 +134,11 @@ def initialize_database():
     """Initialize database tables - call this once after deployment"""
     try:
         from database import SessionLocal
+        from sqlalchemy import text
         
         # Test connection
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db.close()
         
         # Create all tables
