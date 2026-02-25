@@ -165,7 +165,8 @@ def create_admin_user():
         from models import User
         from passlib.context import CryptContext
         
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        # Use bcrypt with proper configuration
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
         
         db = SessionLocal()
         
@@ -179,12 +180,16 @@ def create_admin_user():
                 "email": "admin@storemybottle.com"
             }
         
+        # Create admin user with a simple password
+        # Bcrypt has a 72 byte limit, so we use a short password
+        simple_password = "admin123"
+        
         # Create admin user
         admin = User(
             name="Admin",
             email="admin@storemybottle.com",
             phone="+1234567890",
-            password_hash=pwd_context.hash("admin123"),
+            password_hash=pwd_context.hash(simple_password),
             role="admin",
             is_active=True
         )
@@ -197,7 +202,7 @@ def create_admin_user():
             "status": "success",
             "message": "Admin user created successfully",
             "email": "admin@storemybottle.com",
-            "password": "admin123",
+            "password": simple_password,
             "warning": "Please change the password immediately after first login!"
         }
     except Exception as e:
