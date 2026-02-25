@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy.orm import Session
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -13,14 +13,22 @@ from config import settings
 from database import get_db
 from models import User, OTP
 
-# Password hashing context
-# Bcrypt has a 72-byte limit, so we configure it properly
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__ident="2b",  # Use bcrypt 2b variant
-    bcrypt__rounds=12     # 12 rounds is secure and fast
-)
+# Password hashing and verification functions using bcrypt directly
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt"""
+    password_bytes = password.encode('utf-8')[:72]  # Bcrypt 72 byte limit
+    salt = bcrypt.gensalt(rounds=12)
+    return bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against a hash using bcrypt"""
+    try:
+        password_bytes = plain_password.encode('utf-8')[:72]  # Bcrypt 72 byte limit
+        hashed_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(password_bytes, hashed_bytes)
+    except Exception as e:
+        print(f"Password verification error: {e}")
+        return False
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
@@ -182,13 +190,8 @@ def generate_qr_token() -> str:
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password using bcrypt"""
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against a hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Hash a password using bcrypt - wrapper for compatibility"""
+    return hash_password(password)
 
 # ============ Google Auth ============
 
