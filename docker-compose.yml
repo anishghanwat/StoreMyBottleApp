@@ -17,29 +17,38 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
+    networks:
+      - storemybottle_network
 
   # Backend API
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: storemybottle_backend
     restart: always
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: mysql+pymysql://storemybottle_user:storemybottle_pass@db:3306/storemybottle
-      JWT_SECRET_KEY: dev-secret-key-change-in-production
+      JWT_SECRET_KEY: dev-secret-key-change-in-production-12345
       JWT_ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
-      FRONTEND_URL: http://localhost:5173
+      RESEND_API_KEY: re_49oNXB8Z_FuYdRhfry9mruG44YEsdQbbE
+      FROM_EMAIL: onboarding@resend.dev
+      FRONTEND_URL: "*"
       ENVIRONMENT: development
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - /app/__pycache__
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - storemybottle_network
 
-  # Frontend (Vite)
+  # Customer Frontend
   frontend:
     build:
       context: ./frontend
@@ -54,8 +63,10 @@ services:
     environment:
       VITE_API_URL: http://localhost:8000
     command: npm run dev -- --host 0.0.0.0
+    networks:
+      - storemybottle_network
 
-  # Bartender Frontend (Vite)
+  # Bartender Frontend
   bartender:
     build:
       context: ./frontend-bartender
@@ -70,7 +81,30 @@ services:
     environment:
       VITE_API_URL: http://localhost:8000
     command: npm run dev -- --host 0.0.0.0
+    networks:
+      - storemybottle_network
+
+  # Admin Portal
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    container_name: storemybottle_admin
+    restart: always
+    ports:
+      - "5175:5173"
+    volumes:
+      - ./admin:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8000
+    command: npm run dev -- --host 0.0.0.0
+    networks:
+      - storemybottle_network
 
 volumes:
   mysql_data:
 
+networks:
+  storemybottle_network:
+    driver: bridge

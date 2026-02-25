@@ -66,22 +66,42 @@ StoreMyBottle/
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- MySQL 8.0+
+### Option 1: Docker (Recommended)
 
-### Backend Setup
+**Prerequisites:** Docker Desktop installed and running
+
+```bash
+# Start all services with one command
+docker-start.bat
+
+# Or manually
+docker-compose up -d
+```
+
+Access the applications:
+- Customer App: http://localhost:5173
+- Bartender App: http://localhost:5174
+- Admin Portal: http://localhost:5175
+- Backend API: http://localhost:8000
+
+See `docs/DOCKER_GUIDE.md` for complete Docker documentation.
+
+### Option 2: Manual Setup
+
+**Prerequisites:** Python 3.11+, Node.js 18+, MySQL 8.0+
+
+#### Backend Setup
 ```bash
 cd backend
 pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your configuration
 python init_db.py
+python create_admin.py
 python main.py
 ```
 
-### Frontend Setup
+#### Frontend Setup
 ```bash
 # Customer Portal
 cd frontend
@@ -101,10 +121,27 @@ npm run dev
 
 ## 🌐 Deployment
 
-See `DEPLOY_NOW.md` for free deployment guide using:
+### Docker Deployment
+
+```bash
+# Production mode
+copy .env.docker .env.production
+# Edit .env.production with your values
+docker-start.bat prod
+```
+
+### Cloud Deployment (Free)
+
+See `docs/FREE_DEPLOYMENT_GUIDE.md` and `docs/DEPLOY_NOW.md` for:
 - **Database:** Railway (Free)
 - **Backend:** Render (Free)
 - **Frontends:** Vercel (Free)
+
+### Documentation
+- `docs/DOCKER_GUIDE.md` - Complete Docker guide
+- `docs/FREE_DEPLOYMENT_GUIDE.md` - Cloud deployment options
+- `docs/DEPLOY_NOW.md` - Quick deployment steps
+- `docs/DEPLOYMENT_CHECKLIST.md` - Pre-deployment checklist
 
 ## 📧 Email Configuration
 
@@ -179,12 +216,14 @@ python test_token_refresh.py
 
 ## 📝 Documentation
 
-- `FREE_DEPLOYMENT_GUIDE.md` - Complete deployment guide
-- `DEPLOY_NOW.md` - Quick start deployment
-- `EMAIL_SERVICE_COMPARISON.md` - Email service options
-- `RESEND_EMAIL_SETUP_COMPLETE.md` - Email setup guide
-- `PASSWORD_RESET_COMPLETE.md` - Password reset implementation
-- `TOKEN_REFRESH_COMPLETE.md` - Token refresh implementation
+- `docs/DOCKER_GUIDE.md` - Complete Docker deployment guide
+- `docs/FREE_DEPLOYMENT_GUIDE.md` - Cloud deployment options
+- `docs/DEPLOY_NOW.md` - Quick start deployment
+- `docs/DEPLOYMENT_CHECKLIST.md` - Pre-deployment checklist
+- `docs/EMAIL_SERVICE_COMPARISON.md` - Email service options
+- `docs/RESEND_EMAIL_SETUP_COMPLETE.md` - Email setup guide
+- `docs/PASSWORD_RESET_COMPLETE.md` - Password reset implementation
+- `docs/TOKEN_REFRESH_COMPLETE.md` - Token refresh implementation
 
 ## 🤝 Contributing
 
