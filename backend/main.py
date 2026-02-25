@@ -163,7 +163,7 @@ def create_admin_user():
     try:
         from database import SessionLocal
         from models import User
-        import hashlib
+        import bcrypt
         
         db = SessionLocal()
         
@@ -177,16 +177,16 @@ def create_admin_user():
                 "email": "admin@storemybottle.com"
             }
         
-        # Import auth module for password hashing
-        from auth import pwd_context
-        
         # Create admin user with a simple password
-        # Bcrypt has a 72 byte limit, ensure password is short
+        # Use bcrypt directly to avoid any passlib issues
         simple_password = "admin123"
         
-        # Hash the password
+        # Hash the password using bcrypt directly
         try:
-            password_hash = pwd_context.hash(simple_password)
+            # Ensure password is bytes and within bcrypt's 72 byte limit
+            password_bytes = simple_password.encode('utf-8')[:72]
+            salt = bcrypt.gensalt(rounds=12)
+            password_hash = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
         except Exception as hash_error:
             db.close()
             return {
@@ -216,9 +216,11 @@ def create_admin_user():
             "warning": "Please change the password immediately after first login!"
         }
     except Exception as e:
+        import traceback
         return {
             "status": "error",
-            "message": f"Admin creation failed: {str(e)}"
+            "message": f"Admin creation failed: {str(e)}",
+            "traceback": traceback.format_exc()
         }
 
 
