@@ -31,6 +31,7 @@ env/
 !.env.example
 !.env.docker
 .env.production
+DEPLOYMENT_CREDENTIALS.md
 
 # IDE
 .vscode/
