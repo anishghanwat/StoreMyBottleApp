@@ -4,6 +4,8 @@ import VenueDetails from "./screens/VenueDetails";
 import BottleMenu from "./screens/BottleMenu";
 import BottleDetails from "./screens/BottleDetails";
 import Login from "./screens/Login";
+import ForgotPassword from "./screens/ForgotPassword";
+import ResetPassword from "./screens/ResetPassword";
 import Payment from "./screens/Payment";
 import PaymentSuccess from "./screens/PaymentSuccess";
 import MyBottles from "./screens/MyBottles";
@@ -31,6 +33,14 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     Component: Login,
+  },
+  {
+    path: "/forgot-password",
+    Component: ForgotPassword,
+  },
+  {
+    path: "/reset-password",
+    Component: ResetPassword,
   },
   {
     path: "/payment",

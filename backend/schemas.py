@@ -1,8 +1,18 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_serializer
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from models import PaymentStatus, PaymentMethod, RedemptionStatus
+
+
+def ensure_timezone_aware(dt: Optional[datetime]) -> Optional[datetime]:
+    """Ensure datetime is timezone-aware (UTC)"""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        # Assume UTC if no timezone info
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 # ============ Venue Schemas ============
@@ -19,6 +29,10 @@ class VenueBase(BaseModel):
 class VenueResponse(VenueBase):
     id: str
     created_at: datetime
+    
+    @field_serializer('created_at')
+    def serialize_created_at(self, dt: datetime, _info):
+        return ensure_timezone_aware(dt)
     
     class Config:
         from_attributes = True
@@ -128,6 +142,19 @@ class PhoneVerifyOTPRequest(BaseModel):
     otp_code: str = Field(..., min_length=6, max_length=6)
 
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)
+
+
 class UserResponse(BaseModel):
     id: str
     email: Optional[str] = None
@@ -144,6 +171,7 @@ class UserResponse(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
     user: UserResponse
 
@@ -172,6 +200,10 @@ class PurchaseResponse(BaseModel):
     purchased_at: Optional[datetime] = None
     created_at: datetime
     
+    @field_serializer('purchased_at', 'created_at')
+    def serialize_dt(self, dt: Optional[datetime], _info):
+        return ensure_timezone_aware(dt)
+    
     class Config:
         from_attributes = True
 
@@ -187,6 +219,10 @@ class UserBottleResponse(BaseModel):
     remaining_ml: int = Field(alias="remainingMl")
     image_url: str = Field(alias="image")
     expires_at: datetime = Field(alias="expiresAt")
+    
+    @field_serializer('expires_at')
+    def serialize_expires_at(self, dt: datetime, _info):
+        return ensure_timezone_aware(dt)
     
     class Config:
         from_attributes = True
@@ -274,6 +310,10 @@ class RedemptionResponse(BaseModel):
     remaining_ml: Optional[int] = None
     total_ml: Optional[int] = None
     
+    @field_serializer('qr_expires_at', 'created_at')
+    def serialize_dt(self, dt: Optional[datetime], _info):
+        return ensure_timezone_aware(dt)
+    
     class Config:
         from_attributes = True
 
@@ -298,6 +338,10 @@ class RedemptionHistoryItem(BaseModel):
     redeemed_at: Optional[datetime] = None
     created_at: datetime
     user_name: Optional[str] = None  # Customer name for bartender view
+    
+    @field_serializer('redeemed_at', 'created_at')
+    def serialize_dt(self, dt: Optional[datetime], _info):
+        return ensure_timezone_aware(dt)
     
     class Config:
         from_attributes = True

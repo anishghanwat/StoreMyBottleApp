@@ -1,4 +1,4 @@
-   from sqlalchemy import Column, String, Integer, Numeric, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Text
+from sqlalchemy import Column, String, Integer, Numeric, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -268,59 +268,70 @@ class TicketComment(Base):
     user = relationship("User", backref="ticket_comments")
 
 
-# ============ Support Ticket Models ============
-
-class TicketStatus(str, enum.Enum):
-    OPEN = "open"
-    IN_PROGRESS = "in_progress"
-    RESOLVED = "resolved"
-    CLOSED = "closed"
-
-class TicketPriority(str, enum.Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    URGENT = "urgent"
-
-class TicketCategory(str, enum.Enum):
-    TECHNICAL = "technical"
-    BILLING = "billing"
-    ACCOUNT = "account"
-    REDEMPTION = "redemption"
-    GENERAL = "general"
-
-class SupportTicket(Base):
-    __tablename__ = "support_tickets"
+class AuditLog(Base):
+    """Audit logs for tracking admin actions"""
+    __tablename__ = "audit_logs"
     
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    ticket_number = Column(String(20), unique=True, nullable=False, index=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    subject = Column(String(255), nullable=False)
-    description = Column(Text, nullable=False)
-    category = Column(SQLEnum(TicketCategory), nullable=False)
-    priority = Column(SQLEnum(TicketPriority), default=TicketPriority.MEDIUM, nullable=False)
-    status = Column(SQLEnum(TicketStatus), default=TicketStatus.OPEN, nullable=False)
-    assigned_to_id = Column(String(36), ForeignKey("users.id"), nullable=True)
-    resolved_at = Column(DateTime(timezone=True), nullable=True)
-    closed_at = Column(DateTime(timezone=True), nullable=True)
+    user_id = Column(String(36), nullable=True, index=True)
+    user_name = Column(String(255), nullable=True)
+    action = Column(String(50), nullable=False, index=True)  # CREATE, UPDATE, DELETE, LOGIN, etc.
+    entity_type = Column(String(50), nullable=False, index=True)  # Table name: users, venues, bottles, etc.
+    entity_id = Column(String(36), nullable=True)  # ID of the affected record
+    details = Column(Text, nullable=True)  # JSON string with additional details
+    ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
+    user_agent = Column(Text, nullable=True)  # Browser/client info
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class SystemSetting(Base):
+    """System-wide configuration settings"""
+    __tablename__ = "system_settings"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    setting_key = Column(String(100), unique=True, nullable=False, index=True)
+    setting_value = Column(Text, nullable=True)
+    category = Column(String(50), nullable=False, index=True)  # general, payment, notification, etc.
+    description = Column(String(500), nullable=True)
+    data_type = Column(String(20), default="string", nullable=False)  # string, number, boolean, json
+    is_public = Column(Boolean, default=False, nullable=False)  # Whether setting is visible to non-admins
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
-    # Relationships
-    user = relationship("User", foreign_keys=[user_id], backref="support_tickets")
-    assigned_to = relationship("User", foreign_keys=[assigned_to_id], backref="assigned_tickets")
-    comments = relationship("TicketComment", back_populates="ticket", cascade="all, delete-orphan")
 
-class TicketComment(Base):
-    __tablename__ = "ticket_comments"
+
+class UserSession(Base):
+    """User sessions for tracking active logins"""
+    __tablename__ = "user_sessions"
     
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    ticket_id = Column(String(36), ForeignKey("support_tickets.id"), nullable=False)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    comment = Column(Text, nullable=False)
-    is_internal = Column(Boolean, default=False, nullable=False)  # Internal notes for staff only
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    refresh_token = Column(String(500), unique=True, nullable=False, index=True)
+    access_token = Column(String(500), nullable=False)
+    device_info = Column(String(500), nullable=True)  # Browser, OS, device type
+    ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
+    user_agent = Column(Text, nullable=True)  # Full user agent string
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    last_activity = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    ticket = relationship("SupportTicket", back_populates="comments")
-    user = relationship("User", backref="ticket_comments")
+    user = relationship("User", backref="sessions")
+
+
+
+
+
+class PasswordResetToken(Base):
+    """Password reset tokens for forgot password functionality"""
+    __tablename__ = "password_reset_tokens"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token = Column(String(100), unique=True, nullable=False, index=True)
+    is_used = Column(Boolean, default=False, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    user = relationship("User", backref="password_reset_tokens")

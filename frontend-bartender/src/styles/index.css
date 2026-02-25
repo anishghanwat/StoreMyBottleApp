@@ -1,6 +1,7 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+@import './bartender.css';
 
 /* Mobile-only constraint for StoreMyBottle */
 body {
@@ -12,7 +13,8 @@ body {
 }
 
 /* Prevent text selection for better mobile UX */
-button, a {
+button,
+a {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
@@ -26,20 +28,20 @@ button, a {
 /* Neon glow effects for premium nightlife feel */
 .neon-glow-purple {
   box-shadow: 0 0 20px rgba(168, 85, 247, 0.3),
-              0 0 40px rgba(168, 85, 247, 0.2),
-              0 0 60px rgba(168, 85, 247, 0.1);
+    0 0 40px rgba(168, 85, 247, 0.2),
+    0 0 60px rgba(168, 85, 247, 0.1);
 }
 
 .neon-glow-pink {
   box-shadow: 0 0 20px rgba(236, 72, 153, 0.3),
-              0 0 40px rgba(236, 72, 153, 0.2),
-              0 0 60px rgba(236, 72, 153, 0.1);
+    0 0 40px rgba(236, 72, 153, 0.2),
+    0 0 60px rgba(236, 72, 153, 0.1);
 }
 
 .neon-glow-green {
   box-shadow: 0 0 20px rgba(34, 197, 94, 0.3),
-              0 0 40px rgba(34, 197, 94, 0.2),
-              0 0 60px rgba(34, 197, 94, 0.1);
+    0 0 40px rgba(34, 197, 94, 0.2),
+    0 0 60px rgba(34, 197, 94, 0.1);
 }
 
 /* Text glow for better readability in dark environments */

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { sessionManager } from '../utils/session';
 
 // Auto-detect API URL and protocol based on environment
 // Always use HTTPS for backend (required for camera access)
@@ -23,26 +24,95 @@ const api = axios.create({
     },
 });
 
-// Add token to requests
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('admin_token');
+// Flag to prevent multiple refresh attempts
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+// Subscribe to token refresh
+const subscribeTokenRefresh = (cb: (token: string) => void) => {
+    refreshSubscribers.push(cb);
+};
+
+// Notify all subscribers when token is refreshed
+const onTokenRefreshed = (token: string) => {
+    refreshSubscribers.forEach(cb => cb(token));
+    refreshSubscribers = [];
+};
+
+// Refresh access token
+const refreshAccessToken = async (): Promise<string | null> => {
+    const refreshToken = sessionManager.getRefreshToken();
+    if (!refreshToken) return null;
+
+    try {
+        const response = await axios.post(`${API_URL}/api/auth/refresh`, { refresh_token: refreshToken });
+        const { access_token, refresh_token: new_refresh_token, user } = response.data;
+
+        // Save new session
+        sessionManager.saveSession(access_token, new_refresh_token, user);
+
+        return access_token;
+    } catch (error) {
+        // Refresh failed, clear session
+        sessionManager.clearSession();
+        window.location.href = '/login';
+        return null;
+    }
+};
+
+// Add token to requests and auto-refresh if needed
+api.interceptors.request.use(async (config) => {
+    // Check if token needs refresh
+    if (sessionManager.shouldRefreshToken() && !isRefreshing) {
+        isRefreshing = true;
+        const newToken = await refreshAccessToken();
+        isRefreshing = false;
+
+        if (newToken) {
+            onTokenRefreshed(newToken);
+        }
+    }
+
+    const token = sessionManager.getAccessToken();
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 });
 
-// Handle 401 errors globally - auto logout
+// Handle 401 errors globally - try to refresh token
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            // Token is invalid or expired, clear storage and reload
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('admin_user');
-            // Reload to show login page
-            if (!window.location.pathname.includes('/login')) {
-                window.location.reload();
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                // Wait for token refresh to complete
+                return new Promise((resolve) => {
+                    subscribeTokenRefresh((token: string) => {
+                        originalRequest.headers.Authorization = `Bearer ${token}`;
+                        resolve(axios(originalRequest));
+                    });
+                });
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            const newToken = await refreshAccessToken();
+            isRefreshing = false;
+
+            if (newToken) {
+                onTokenRefreshed(newToken);
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return axios(originalRequest);
+            } else {
+                // Refresh failed, redirect to login
+                sessionManager.clearSession();
+                if (!window.location.pathname.includes('/login')) {
+                    window.location.href = '/login';
+                }
             }
         }
         return Promise.reject(error);
@@ -52,6 +122,11 @@ api.interceptors.response.use(
 export const authService = {
     login: async (email, password) => {
         const response = await api.post('/api/auth/login', { email, password });
+        const { access_token, refresh_token, user } = response.data;
+
+        // Save session
+        sessionManager.saveSession(access_token, refresh_token, user);
+
         return response.data;
     },
 
@@ -60,9 +135,48 @@ export const authService = {
         return response.data;
     },
 
-    logout: () => {
-        localStorage.removeItem('admin_token');
-        localStorage.removeItem('admin_user');
+    logout: async () => {
+        const refreshToken = sessionManager.getRefreshToken();
+        if (refreshToken) {
+            try {
+                await api.post('/api/auth/logout', { refresh_token: refreshToken });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+        sessionManager.clearSession();
+    },
+
+    logoutAllDevices: async () => {
+        try {
+            await api.post('/api/auth/logout-all');
+        } catch (error) {
+            console.error('Logout all devices error:', error);
+        }
+        sessionManager.clearSession();
+    },
+
+    getSessions: async () => {
+        const response = await api.get('/api/auth/sessions');
+        return response.data;
+    },
+
+    forgotPassword: async (email: string) => {
+        const response = await api.post('/api/auth/forgot-password', { email });
+        return response.data;
+    },
+
+    resetPassword: async (token: string, newPassword: string) => {
+        const response = await api.post('/api/auth/reset-password', {
+            token,
+            new_password: newPassword
+        });
+        return response.data;
+    },
+
+    verifyResetToken: async (token: string) => {
+        const response = await api.post('/api/auth/verify-reset-token', { token });
+        return response.data;
     }
 };
 

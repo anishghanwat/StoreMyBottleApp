@@ -69,11 +69,11 @@ def confirm_purchase(
     db: Session = Depends(get_db)
 ):
     """Confirm payment for a purchase"""
-    # Get purchase
+    # Get purchase with row lock
     purchase = db.query(Purchase).filter(
         Purchase.id == purchase_id,
         Purchase.user_id == current_user.id
-    ).first()
+    ).with_for_update().first()
     
     if not purchase:
         raise HTTPException(
@@ -84,15 +84,23 @@ def confirm_purchase(
     if purchase.payment_status != PaymentStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Purchase already processed"
+            detail=f"Purchase already processed with status: {purchase.payment_status.value}"
         )
     
-    # Update purchase
+    # Update purchase atomically
     purchase.payment_status = PaymentStatus.CONFIRMED
     purchase.payment_method = request.payment_method
     purchase.purchased_at = datetime.now(timezone.utc)
     
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to confirm purchase: {str(e)}"
+        )
+    
     db.refresh(purchase)
     
     return purchase
@@ -248,7 +256,10 @@ def process_purchase(
     db: Session = Depends(get_db)
 ):
     """Confirm or reject a purchase request"""
-    purchase = db.query(Purchase).filter(Purchase.id == purchase_id).first()
+    # Get purchase with row lock
+    purchase = db.query(Purchase).filter(
+        Purchase.id == purchase_id
+    ).with_for_update().first()
     
     if not purchase:
         raise HTTPException(
@@ -259,7 +270,7 @@ def process_purchase(
     if purchase.payment_status != PaymentStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Purchase already processed"
+            detail=f"Purchase already processed with status: {purchase.payment_status.value}"
         )
         
     if request.action == "confirm":
@@ -274,8 +285,21 @@ def process_purchase(
         
     elif request.action == "reject":
         purchase.payment_status = PaymentStatus.FAILED
-        
-    db.commit()
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid action. Must be 'confirm' or 'reject'"
+        )
+    
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process purchase: {str(e)}"
+        )
+    
     db.refresh(purchase)
     
     return purchase

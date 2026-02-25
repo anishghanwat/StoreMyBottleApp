@@ -1,5 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import BartenderLogin from "./pages/BartenderLogin";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import PendingApproval from "./pages/PendingApproval";
 import BartenderHome from "./pages/BartenderHome";
 import ScanQR from "./pages/ScanQR";
@@ -14,6 +16,14 @@ export const router = createBrowserRouter([
   {
     path: "/",
     Component: BartenderLogin,
+  },
+  {
+    path: "/forgot-password",
+    Component: ForgotPassword,
+  },
+  {
+    path: "/reset-password",
+    Component: ResetPassword,
   },
   {
     path: "/pending-approval",

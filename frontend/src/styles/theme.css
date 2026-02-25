@@ -2,80 +2,98 @@
 
 :root {
   --font-size: 16px;
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #18181b;
-  --card-foreground: #ffffff;
-  --popover: #18181b;
-  --popover-foreground: #ffffff;
-  --primary: #a855f7;
+
+  /* === Nightlife Palette === */
+  --background: #09090F;
+  --foreground: #F4F4FF;
+  --card: #111118;
+  --card-foreground: #F4F4FF;
+  --popover: #111118;
+  --popover-foreground: #F4F4FF;
+
+  /* Primary: Electric Violet */
+  --primary: #7C3AED;
   --primary-foreground: #ffffff;
-  --secondary: #ec4899;
+  --primary-glow: #9F5FFF;
+
+  /* Secondary: Magenta-Pink */
+  --secondary: #C026D3;
   --secondary-foreground: #ffffff;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --accent: #a855f7;
+
+  /* Gold accent for prices/prizes */
+  --gold: #F5C518;
+  --gold-muted: rgba(245, 197, 24, 0.15);
+
+  --muted: #1A1A26;
+  --muted-foreground: #7171A0;
+  --accent: #7C3AED;
   --accent-foreground: #ffffff;
-  --destructive: #ef4444;
+  --destructive: #EF4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.1);
+  --success: #22C55E;
+  --border: rgba(255, 255, 255, 0.07);
   --input: rgba(255, 255, 255, 0.05);
   --input-background: rgba(255, 255, 255, 0.05);
   --switch-background: #27272a;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #a855f7;
-  --chart-1: #a855f7;
-  --chart-2: #ec4899;
-  --chart-3: #8b5cf6;
-  --chart-4: #d946ef;
-  --chart-5: #f472b6;
+  --ring: #7C3AED;
+
+  /* Charts */
+  --chart-1: #7C3AED;
+  --chart-2: #C026D3;
+  --chart-3: #8B5CF6;
+  --chart-4: #F5C518;
+  --chart-5: #22C55E;
+
   --radius: 1rem;
-  --sidebar: #18181b;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #a855f7;
+
+  /* Sidebar */
+  --sidebar: #0D0D16;
+  --sidebar-foreground: #F4F4FF;
+  --sidebar-primary: #7C3AED;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #27272a;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #a855f7;
+  --sidebar-accent: #1A1A26;
+  --sidebar-accent-foreground: #F4F4FF;
+  --sidebar-border: rgba(255, 255, 255, 0.07);
+  --sidebar-ring: #7C3AED;
 }
 
 .dark {
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #18181b;
-  --card-foreground: #ffffff;
-  --popover: #18181b;
-  --popover-foreground: #ffffff;
-  --primary: #a855f7;
+  --background: #09090F;
+  --foreground: #F4F4FF;
+  --card: #111118;
+  --card-foreground: #F4F4FF;
+  --popover: #111118;
+  --popover-foreground: #F4F4FF;
+  --primary: #7C3AED;
   --primary-foreground: #ffffff;
-  --secondary: #ec4899;
+  --secondary: #C026D3;
   --secondary-foreground: #ffffff;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --accent: #a855f7;
+  --muted: #1A1A26;
+  --muted-foreground: #7171A0;
+  --accent: #7C3AED;
   --accent-foreground: #ffffff;
-  --destructive: #ef4444;
+  --destructive: #EF4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.1);
+  --border: rgba(255, 255, 255, 0.07);
   --input: rgba(255, 255, 255, 0.05);
-  --ring: #a855f7;
+  --ring: #7C3AED;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: #a855f7;
-  --chart-2: #ec4899;
-  --chart-3: #8b5cf6;
-  --chart-4: #d946ef;
-  --chart-5: #f472b6;
-  --sidebar: #18181b;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #a855f7;
+  --chart-1: #7C3AED;
+  --chart-2: #C026D3;
+  --chart-3: #8B5CF6;
+  --chart-4: #F5C518;
+  --chart-5: #22C55E;
+  --sidebar: #0D0D16;
+  --sidebar-foreground: #F4F4FF;
+  --sidebar-primary: #7C3AED;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #27272a;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #a855f7;
+  --sidebar-accent: #1A1A26;
+  --sidebar-accent-foreground: #F4F4FF;
+  --sidebar-border: rgba(255, 255, 255, 0.07);
+  --sidebar-ring: #7C3AED;
 }
 
 @theme inline {
@@ -126,12 +144,8 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
   }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
 
   html {
     font-size: var(--font-size);
@@ -139,25 +153,27 @@
 
   h1 {
     font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
   }
 
   h2 {
     font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
   }
 
   h3 {
     font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-weight: 600;
+    line-height: 1.4;
   }
 
   h4 {
     font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
+    font-weight: 600;
     line-height: 1.5;
   }
 

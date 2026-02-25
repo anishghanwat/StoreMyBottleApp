@@ -1,0 +1,113 @@
+{
+  "customer_flow": [
+    {
+      "test": "Backend Health Check",
+      "status": "PASS",
+      "message": "Service: StoreMyBottle API, Version: 1.0.0",
+      "timestamp": "2026-02-25T11:21:03.101907"
+    },
+    {
+      "test": "Send OTP",
+      "status": "PASS",
+      "message": "OTP: 123456",
+      "timestamp": "2026-02-25T11:21:05.202994"
+    },
+    {
+      "test": "Verify OTP",
+      "status": "PASS",
+      "message": "User: Test User",
+      "timestamp": "2026-02-25T11:21:08.306509"
+    },
+    {
+      "test": "Get Venues",
+      "status": "PASS",
+      "message": "Found 7 venues",
+      "timestamp": "2026-02-25T11:21:10.414949"
+    },
+    {
+      "test": "Get Bottle Menu",
+      "status": "PASS",
+      "message": "Found 6 bottles",
+      "timestamp": "2026-02-25T11:21:12.521881"
+    },
+    {
+      "test": "Create Purchase",
+      "status": "PASS",
+      "message": "Purchase ID: 44707650-720b-4881-8cd1-d867463387c9",
+      "timestamp": "2026-02-25T11:21:14.610204"
+    },
+    {
+      "test": "Confirm Purchase",
+      "status": "PASS",
+      "message": "Status: confirmed",
+      "timestamp": "2026-02-25T11:21:17.201021"
+    },
+    {
+      "test": "Get My Bottles",
+      "status": "PASS",
+      "message": "Found 4 bottles",
+      "timestamp": "2026-02-25T11:21:19.293733"
+    },
+    {
+      "test": "Generate QR Code",
+      "status": "PASS",
+      "message": "QR Token: DuQhDS5qQqKB_KaBq58x...",
+      "timestamp": "2026-02-25T11:21:21.750907"
+    }
+  ],
+  "bartender_flow": [
+    {
+      "test": "Bartender Login",
+      "status": "PASS",
+      "message": "User: Bob the Bartender",
+      "timestamp": "2026-02-25T11:21:24.248094"
+    },
+    {
+      "test": "Validate QR Code",
+      "status": "PASS",
+      "message": "Success: True, Message: Successfully redeemed 30 ml",
+      "timestamp": "2026-02-25T11:21:26.441756"
+    }
+  ],
+  "admin_flow": [
+    {
+      "test": "Admin Login",
+      "status": "PASS",
+      "message": "User: Admin User",
+      "timestamp": "2026-02-25T11:21:39.385490"
+    },
+    {
+      "test": "Get Dashboard Stats",
+      "status": "PASS",
+      "message": "Total Revenue: \u20b935700.0",
+      "timestamp": "2026-02-25T11:21:41.490195"
+    }
+  ],
+  "edge_cases": [
+    {
+      "test": "Double Redemption Prevention",
+      "status": "PASS",
+      "message": "Correctly prevented: QR code already used",
+      "timestamp": "2026-02-25T11:21:28.538479"
+    },
+    {
+      "test": "Insufficient Volume Test",
+      "status": "SKIP",
+      "message": "No bottles with low volume found",
+      "timestamp": "2026-02-25T11:21:30.667011"
+    },
+    {
+      "test": "Invalid Phone Number",
+      "status": "PASS",
+      "message": "Correctly rejected invalid phone",
+      "timestamp": "2026-02-25T11:21:32.737469"
+    },
+    {
+      "test": "Invalid Peg Size",
+      "status": "PASS",
+      "message": "Correctly rejected invalid peg size",
+      "timestamp": "2026-02-25T11:21:36.930471"
+    }
+  ],
+  "bugs_found": []
+}

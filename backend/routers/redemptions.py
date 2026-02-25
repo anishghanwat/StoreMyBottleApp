@@ -152,18 +152,41 @@ def validate_redemption_qr(
     # Get purchase and update remaining ml with row locking to prevent race conditions
     purchase = db.query(Purchase).filter(Purchase.id == redemption.purchase_id).with_for_update().first()
     
+    if not purchase:
+        return QRValidationResponse(
+            success=False,
+            message="Purchase not found"
+        )
+    
     if purchase.remaining_ml < redemption.peg_size_ml:
         return QRValidationResponse(
             success=False,
             message="Insufficient volume in bottle"
         )
     
-    # Redeem
+    # Double-check redemption status hasn't changed (race condition protection)
+    db.refresh(redemption)
+    if redemption.status != RedemptionStatus.PENDING:
+        return QRValidationResponse(
+            success=False,
+            message=f"QR code status changed to {redemption.status.value}"
+        )
+    
+    # Redeem - Update both records atomically
     purchase.remaining_ml -= redemption.peg_size_ml
     redemption.status = RedemptionStatus.REDEEMED
     redemption.redeemed_at = datetime.now(timezone.utc)
+    redemption.redeemed_by_staff_id = current_user.id
     
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process redemption: {str(e)}"
+        )
+    
     db.refresh(redemption)
     
     try:

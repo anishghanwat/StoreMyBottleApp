@@ -1,26 +1,39 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* Mobile-first optimizations for StoreMyBottle */
+/* ── Mobile-first nightlife app ── */
 body {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
   overscroll-behavior-y: none;
+  background: #09090F;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Constrain to mobile width */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Constrain to mobile width with ambient glow */
 #root {
-  max-width: 375px;
+  max-width: 390px;
   margin: 0 auto;
   min-height: 100vh;
-  background: #000;
-  box-shadow: 0 0 50px rgba(168, 85, 247, 0.15);
+  background: #09090F;
+  position: relative;
+  /* Ambient side glow */
+  box-shadow:
+    -20px 0 80px rgba(124, 58, 237, 0.08),
+    20px 0 80px rgba(124, 58, 237, 0.08);
 }
 
-/* Active scale utility */
+/* ── Tap feedback ── */
 .active\:scale-98:active {
   transform: scale(0.98);
 }
@@ -29,10 +42,260 @@ body {
   transform: scale(0.95);
 }
 
-/* Glassmorphism backdrop blur support */
+/* ── Glassmorphism ── */
 @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
-  .backdrop-blur-xl {
+  .glass {
+    background: rgba(255, 255, 255, 0.04);
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
   }
+
+  .glass-dark {
+    background: rgba(9, 9, 15, 0.85);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+}
+
+/* ── Shimmer skeleton loader ── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg,
+      #1A1A26 0%,
+      #252535 50%,
+      #1A1A26 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ── Neon glow pulse ── */
+@keyframes glow-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.3), 0 0 40px rgba(124, 58, 237, 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.5), 0 0 60px rgba(124, 58, 237, 0.2);
+  }
+}
+
+.glow-pulse {
+  animation: glow-pulse 2.5s ease-in-out infinite;
+}
+
+/* ── QR ring countdown ── */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-slow {
+  animation: spin-slow 4s linear infinite;
+}
+
+/* ── Slide up animation ── */
+@keyframes slide-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
+
+/* ── Float animation for orbs ── */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px) scale(1);
+  }
+
+  50% {
+    transform: translateY(-20px) scale(1.05);
+  }
+}
+
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.float-delayed {
+  animation: float 6s ease-in-out 3s infinite;
+}
+
+/* ── Amber/gold text ── */
+.text-gold {
+  color: #F5C518;
+}
+
+.bg-gold {
+  background-color: #F5C518;
+}
+
+/* ── Violet gradient text ── */
+.gradient-text {
+  background: linear-gradient(135deg, #9F5FFF 0%, #C026D3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Primary gradient button ── */
+.btn-primary {
+  background: linear-gradient(135deg, #7C3AED 0%, #9F1BDE 100%);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #8B45F5 0%, #AE20E8 100%);
+  box-shadow: 0 6px 28px rgba(124, 58, 237, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+/* ── Card surface ── */
+.card-surface {
+  background: #111118;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+}
+
+/* ── Bottom nav blur ── */
+.bottom-nav {
+  background: rgba(9, 9, 15, 0.92);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* ── Input field ── */
+.input-nightlife {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  color: #F4F4FF;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-nightlife:focus {
+  border-color: rgba(124, 58, 237, 0.6);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+  outline: none;
+}
+
+.input-nightlife::placeholder {
+  color: #4A4A6A;
+}
+
+/* ── Pill chip ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.chip-active {
+  background: rgba(124, 58, 237, 0.18);
+  border-color: rgba(124, 58, 237, 0.5);
+  color: #9F5FFF;
+}
+
+.chip-inactive {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #7171A0;
+}
+
+.chip-green {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #4ADE80;
+}
+
+/* ── Progress bar ── */
+.progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7C3AED, #C026D3);
+  transition: width 0.6s ease;
+}
+
+/* ── Venue card open dot ── */
+.open-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22C55E;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  display: inline-block;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 0;
+}
+
+/* ── No-scrollbar utility ── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Focus visible ring ── */
+:focus-visible {
+  outline: 2px solid rgba(124, 58, 237, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Fade-in animation ── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in {
+  animation: fade-in 0.2s ease-out forwards;
 }

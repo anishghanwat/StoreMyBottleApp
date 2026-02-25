@@ -2,10 +2,11 @@ import apiClient from './api';
 import { Venue, Bottle } from '../types/api.types';
 
 export const venueService = {
-    // Get all venues
-    // Get all venues with optional search
-    async getVenues(search?: string): Promise<Venue[]> {
-        const params = search ? { search } : {};
+    // Get all venues with optional search and city filter
+    async getVenues(search?: string, city?: string): Promise<Venue[]> {
+        const params: any = {};
+        if (search) params.search = search;
+        if (city) params.city = city;
         const response = await apiClient.get<{ venues: Venue[]; total: number }>('/venues', { params });
         return response.data.venues;
     },

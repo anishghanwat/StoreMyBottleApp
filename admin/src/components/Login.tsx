@@ -81,7 +81,16 @@ export function Login({ onLogin }: LoginProps) {
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password">Password</Label>
+                                <button
+                                    type="button"
+                                    onClick={() => window.location.hash = 'forgot-password'}
+                                    className="text-sm text-primary hover:underline"
+                                >
+                                    Forgot password?
+                                </button>
+                            </div>
                             <Input
                                 id="password"
                                 type="password"

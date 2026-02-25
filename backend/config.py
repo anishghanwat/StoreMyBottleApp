@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     TWILIO_AUTH_TOKEN: Optional[str] = None
     TWILIO_PHONE_NUMBER: Optional[str] = None
     
+    # Resend (Email Service)
+    RESEND_API_KEY: Optional[str] = None
+    FROM_EMAIL: str = "onboarding@resend.dev"
+    
     # Frontend
     FRONTEND_URL: str = "http://localhost:5173"
     

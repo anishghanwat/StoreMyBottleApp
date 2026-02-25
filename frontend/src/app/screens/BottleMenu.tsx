@@ -1,9 +1,11 @@
 import { useParams, Link, useNavigate } from "react-router";
-import { ArrowLeft, Home, Wine as BottleIcon, User, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowLeft, Wine as BottleIcon, Search, SlidersHorizontal, X } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { venueService } from "../../services/venue.service";
 import { Venue, Bottle } from "../../types/api.types";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { motion } from "motion/react";
+import { BottomNav } from "../components/ui/BottomNav";
 
 // Bottle categories
 const CATEGORIES = [
@@ -103,21 +105,19 @@ export default function BottleMenu() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4 shadow-lg shadow-purple-500/20"></div>
-          <p className="text-gray-400 font-medium animate-pulse">Fetching menu...</p>
-        </div>
+      <div className="min-h-screen bg-[#09090F] text-white flex flex-col items-center justify-center gap-4">
+        <div className="w-14 h-14 border-[3px] border-violet-600 border-t-transparent rounded-full animate-spin shadow-lg shadow-violet-500/20" />
+        <p className="text-[#7171A0] text-sm font-medium animate-pulse">Fetching menu...</p>
       </div>
     );
   }
 
   if (error || !venue) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+      <div className="min-h-screen bg-[#09090F] text-white flex items-center justify-center px-6">
         <div className="text-center">
-          <p className="text-red-400 mb-4">{error || "Venue not found"}</p>
-          <Link to="/" className="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl transition-colors inline-block">
+          <p className="text-red-400 mb-4 text-sm">{error || "Venue not found"}</p>
+          <Link to="/" className="btn-primary px-6 py-3 rounded-2xl text-sm font-bold text-white inline-block">
             Back to Venues
           </Link>
         </div>
@@ -126,52 +126,49 @@ export default function BottleMenu() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-xl border-b border-zinc-800/50">
-        <div className="px-6 py-4 flex items-center gap-4">
-          <Link to="/" className="p-2 -ml-2 hover:bg-zinc-800/50 rounded-full transition-colors">
-            <ArrowLeft className="w-6 h-6" />
+    <div className="min-h-screen bg-[#09090F] text-white pb-24">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 glass-dark border-b border-white/[0.07]">
+        <div className="px-5 py-4 flex items-center gap-4">
+          <Link to="/" className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors">
+            <ArrowLeft className="w-5 h-5 text-[#7171A0]" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-xl font-semibold">{venue.name}</h1>
-            <p className="text-sm text-gray-400">{venue.location}</p>
+            <h1 className="text-base font-semibold tracking-tight">{venue.name}</h1>
+            <p className="text-xs text-[#7171A0]">{venue.location}</p>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="px-6 pb-4">
+        <div className="px-5 pb-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A4A6A]" />
             <input
               type="text"
               placeholder="Search bottles or brands..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl pl-12 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 transition-colors"
+              className="input-nightlife w-full pl-11 pr-11 py-3.5 text-sm"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-800 rounded-full transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-white/5 rounded-full transition-colors"
               >
-                <X className="w-4 h-4 text-gray-400" />
+                <X className="w-4 h-4 text-[#4A4A6A]" />
               </button>
             )}
           </div>
         </div>
 
         {/* Category Chips */}
-        <div className="px-6 pb-4 overflow-x-auto scrollbar-hide">
+        <div className="px-5 pb-4 overflow-x-auto no-scrollbar">
           <div className="flex gap-2 min-w-max">
             {CATEGORIES.map((category) => (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${selectedCategory === category.id
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-500/25"
-                  : "bg-zinc-900/50 text-gray-400 hover:bg-zinc-800 border border-zinc-800"
-                  }`}
+                className={`chip whitespace-nowrap ${selectedCategory === category.id ? "chip-active" : "chip-inactive"}`}
               >
                 {category.label}
               </button>
@@ -180,18 +177,18 @@ export default function BottleMenu() {
         </div>
 
         {/* Filter Button & Active Filters */}
-        <div className="px-6 pb-4 flex items-center gap-3">
+        <div className="px-5 pb-4 flex items-center gap-3">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${showFilters || activeFilterCount > 0
-              ? "bg-purple-600 text-white"
-              : "bg-zinc-900/50 text-gray-400 hover:bg-zinc-800 border border-zinc-800"
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${showFilters || activeFilterCount > 0
+              ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25"
+              : "bg-[#111118] text-[#7171A0] hover:text-white border border-white/[0.07]"
               }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="bg-white text-purple-600 text-xs font-bold px-2 py-0.5 rounded-full">
+              <span className="bg-white text-violet-600 text-xs font-bold px-2 py-0.5 rounded-full">
                 {activeFilterCount}
               </span>
             )}
@@ -200,31 +197,30 @@ export default function BottleMenu() {
           {activeFilterCount > 0 && (
             <button
               onClick={clearFilters}
-              className="text-sm text-purple-400 hover:text-purple-300 font-medium transition-colors"
+              className="text-sm text-violet-400 hover:text-violet-300 font-medium transition-colors"
             >
               Clear all
             </button>
           )}
 
-          <div className="flex-1 text-right text-sm text-gray-400">
+          <div className="flex-1 text-right text-xs text-[#7171A0]">
             {filteredBottles.length} {filteredBottles.length === 1 ? "bottle" : "bottles"}
           </div>
         </div>
 
-        {/* Expandable Filters Panel */}
+        {/* Price Range Filter Panel */}
         {showFilters && (
-          <div className="px-6 pb-4 space-y-4 border-t border-zinc-800/50 pt-4">
-            {/* Price Range Filter */}
+          <div className="px-5 pb-4 space-y-4 border-t border-white/[0.07] pt-4">
             <div>
-              <label className="text-sm font-medium text-gray-300 mb-2 block">Price Range</label>
+              <label className="text-xs font-semibold text-[#7171A0] mb-2 block uppercase tracking-wider">Price Range</label>
               <div className="grid grid-cols-2 gap-2">
                 {PRICE_RANGES.map((range) => (
                   <button
                     key={range.id}
                     onClick={() => setSelectedPriceRange(range.id)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${selectedPriceRange === range.id
-                      ? "bg-purple-600 text-white"
-                      : "bg-zinc-900/50 text-gray-400 hover:bg-zinc-800 border border-zinc-800"
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${selectedPriceRange === range.id
+                      ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white"
+                      : "bg-[#111118] text-[#7171A0] hover:text-white border border-white/[0.07]"
                       }`}
                   >
                     {range.label}
@@ -237,27 +233,29 @@ export default function BottleMenu() {
       </div>
 
       {/* Bottle Grid */}
-      <div className="px-6 py-6">
+      <div className="px-5 py-5">
         {filteredBottles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <BottleIcon className="w-16 h-16 text-gray-600 mb-4 opacity-50" />
-            <h3 className="text-xl font-semibold text-gray-400 mb-2">
+            <div className="w-16 h-16 rounded-full bg-[#111118] border border-white/[0.07] flex items-center justify-center mb-4">
+              <BottleIcon className="w-8 h-8 text-[#2A2A3A]" />
+            </div>
+            <h3 className="text-base font-semibold mb-1">
               {bottles.length === 0 ? "No Bottles Available" : "No Matching Bottles"}
             </h3>
-            <p className="text-gray-500 max-w-xs mb-6">
+            <p className="text-[#7171A0] text-xs max-w-xs mb-6">
               {bottles.length === 0
-                ? "It seems this venue hasn't stocked up yet. Try checking another venue!"
-                : "Try adjusting your filters or search to find what you're looking for."
+                ? "This venue hasn't stocked up yet. Try another venue!"
+                : "Try adjusting your filters or search."
               }
             </p>
             {bottles.length === 0 ? (
-              <Link to="/" className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors">
+              <Link to="/" className="btn-primary px-6 py-3 rounded-2xl text-sm font-bold text-white inline-block">
                 Explore Venues
               </Link>
             ) : (
               <button
                 onClick={clearFilters}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-colors"
+                className="btn-primary px-6 py-3 rounded-2xl text-sm font-bold text-white"
               >
                 Clear Filters
               </button>
@@ -265,18 +263,22 @@ export default function BottleMenu() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filteredBottles.map((bottle) => (
-              <div
+            {filteredBottles.map((bottle, i) => (
+              <motion.div
                 key={bottle.id}
-                className="bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 backdrop-blur-xl border border-zinc-800/50 rounded-2xl overflow-hidden hover:border-purple-500/50 transition-all duration-300"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                whileTap={{ scale: 0.98 }}
+                className="card-surface overflow-hidden hover:border-violet-500/30 transition-all duration-300 group"
               >
                 {/* Bottle Image */}
                 <Link to={`/venue/${venueId}/bottle/${bottle.id}`} state={{ bottle, venue }}>
-                  <div className="relative h-48 bg-zinc-900/50 flex items-center justify-center p-4">
+                  <div className="relative h-44 bg-gradient-to-br from-violet-900/10 to-[#1A1A26] flex items-center justify-center p-4">
                     <ImageWithFallback
                       src={bottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
                       alt={bottle.name}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                 </Link>
@@ -285,13 +287,13 @@ export default function BottleMenu() {
                 <div className="p-4 space-y-3">
                   <Link to={`/venue/${venueId}/bottle/${bottle.id}`} state={{ bottle, venue }}>
                     <div>
-                      <p className="text-xs text-purple-400 font-medium mb-1">{bottle.brand}</p>
-                      <h3 className="text-base font-semibold leading-tight">{bottle.name}</h3>
+                      <p className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider mb-0.5">{bottle.brand}</p>
+                      <h3 className="text-sm font-bold leading-tight">{bottle.name}</h3>
                     </div>
 
-                    <div className="flex items-center justify-between text-sm text-gray-400 mt-2">
-                      <span>{bottle.volume_ml}ml</span>
-                      <span className="text-xl font-bold text-white">₹{bottle.price.toLocaleString()}</span>
+                    <div className="flex items-center justify-between text-sm mt-2">
+                      <span className="text-[#7171A0] text-xs">{bottle.volume_ml}ml</span>
+                      <span className="text-xl font-black text-gold">₹{bottle.price.toLocaleString()}</span>
                     </div>
                   </Link>
 
@@ -305,42 +307,27 @@ export default function BottleMenu() {
                           navigate('/login', { state: { bottle, venue } });
                         }
                       }}
-                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white py-2.5 rounded-lg font-medium text-sm text-center transition-all duration-300 active:scale-95"
+                      className="flex-1 btn-primary py-2.5 rounded-xl font-bold text-sm text-center text-white"
                     >
                       Buy
                     </button>
                     <Link
                       to={`/venue/${venueId}/bottle/${bottle.id}`}
                       state={{ bottle, venue }}
-                      className="px-4 bg-zinc-800 hover:bg-zinc-700 text-white py-2.5 rounded-lg font-medium text-sm transition-all duration-300 active:scale-95 flex items-center justify-center"
+                      className="px-4 bg-[#1A1A26] hover:bg-[#222233] text-[#7171A0] hover:text-white py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center"
                     >
                       Info
                     </Link>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800/50 px-6 py-4">
-        <div className="flex items-center justify-around max-w-md mx-auto">
-          <Link to="/" className="flex flex-col items-center gap-1 text-purple-400">
-            <Home className="w-6 h-6" />
-            <span className="text-xs font-medium">Home</span>
-          </Link>
-          <Link to="/my-bottles" className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors">
-            <BottleIcon className="w-6 h-6" />
-            <span className="text-xs font-medium">My Bottles</span>
-          </Link>
-          <Link to="/profile" className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors">
-            <User className="w-6 h-6" />
-            <span className="text-xs font-medium">Profile</span>
-          </Link>
-        </div>
-      </div>
+      <BottomNav active="home" />
     </div>
   );
 }

@@ -1,10 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { QRCodeSVG } from "qrcode.react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CreditCard, Smartphone, Banknote, ArrowLeft } from "lucide-react";
 import { purchaseService } from "../../services/purchase.service";
 import { authService } from "../../services/auth.service";
 import { Bottle, Venue, Purchase } from "../../types/api.types";
+import { motion } from "motion/react";
+import { toast } from "sonner";
+
+const PAYMENT_METHODS = [
+  { icon: Smartphone, label: "UPI / QR Code", hint: "Google Pay, PhonePe, Paytm" },
+  { icon: CreditCard, label: "Credit / Debit Card", hint: "Visa, Mastercard, Rupay" },
+  { icon: Banknote, label: "Cash", hint: "Pay at counter" },
+];
 
 export default function Payment() {
   const navigate = useNavigate();
@@ -16,206 +23,160 @@ export default function Payment() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check authentication
-    if (!authService.isAuthenticated()) {
-      navigate("/login");
-      return;
-    }
-
-    // Check if we have the required data
-    if (!bottle || !venue) {
-      navigate("/");
-      return;
-    }
-
-    // Create purchase on mount
+    if (!authService.isAuthenticated()) { navigate("/login"); return; }
+    if (!bottle || !venue) { navigate("/"); return; }
     createPurchase();
   }, []);
 
   const createPurchase = async () => {
     try {
       setIsCreatingPurchase(true);
-      // Create purchase in backend
       const newPurchase = await purchaseService.createPurchase(bottle!.id, venue!.id);
       setPurchase(newPurchase);
       setIsCreatingPurchase(false);
-
-      // Poll for status
-      const intervalInfo = { id: 0 };
-      const checkStatus = async () => {
-        try {
-          const updated = await purchaseService.getPurchase(newPurchase.id);
-          if (updated.payment_status === 'confirmed') {
-            setIsConfirmed(true);
-            clearInterval(intervalInfo.id);
-            // Navigate to success screen
-            setTimeout(() => {
-              navigate("/payment-success", {
-                state: {
-                  purchase: updated,
-                  bottle,
-                  venue
-                }
-              });
-            }, 500);
-          } else if (updated.payment_status === 'failed') {
-            setError("Payment was rejected by the venue.");
-            clearInterval(intervalInfo.id);
-          }
-        } catch (e) {
-          console.error("Polling error", e);
-        }
-      };
-
-      // Check every 3 seconds
-      intervalInfo.id = window.setInterval(checkStatus, 3000);
-
-      // Cleanup on unmount (needs ref or useEffect cleanup, but this is a simplified approach)
-      return () => clearInterval(intervalInfo.id);
-
-    } catch (err) {
-      setError("Failed to create purchase. Please try again.");
+      toast.success("Purchase initiated successfully!");
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.detail || "Failed to initiate purchase. Please try again.";
+      setError(errorMsg);
+      toast.error(errorMsg);
       setIsCreatingPurchase(false);
-      console.error(err);
     }
   };
 
-  // We need to manage the interval cleanup properly
   useEffect(() => {
-    let intervalId: number;
-
-    if (purchase && !isConfirmed && !error) {
-      const checkStatus = async () => {
-        try {
-          const updated = await purchaseService.getPurchase(purchase.id);
-          if (updated.payment_status === 'confirmed') {
-            setIsConfirmed(true);
-            clearInterval(intervalId);
-            setTimeout(() => {
-              navigate("/payment-success", {
-                state: {
-                  purchase: updated,
-                  bottle,
-                  venue
-                }
-              });
-            }, 500);
-          } else if (updated.payment_status === 'failed') {
-            setError("Payment was rejected by the venue.");
-            clearInterval(intervalId);
-          }
-        } catch (e) { console.error(e); }
-      };
-      intervalId = window.setInterval(checkStatus, 3000);
-    }
-
-    return () => clearInterval(intervalId);
+    if (!purchase || isConfirmed || error) return;
+    const iv = window.setInterval(async () => {
+      try {
+        const updated = await purchaseService.getPurchase(purchase.id);
+        if (updated.payment_status === "confirmed") {
+          setIsConfirmed(true);
+          clearInterval(iv);
+          toast.success("Payment confirmed! 🎉");
+          setTimeout(() => navigate("/payment-success", { state: { purchase: updated, bottle, venue } }), 500);
+        } else if (updated.payment_status === "failed") {
+          const errorMsg = "Payment was declined.";
+          setError(errorMsg);
+          toast.error(errorMsg);
+          clearInterval(iv);
+        }
+      } catch { }
+    }, 3000);
+    return () => clearInterval(iv);
   }, [purchase, isConfirmed, error, navigate, bottle, venue]);
 
-  // Show loading while creating purchase
-  if (isCreatingPurchase || !bottle || !venue) {
-    return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4 shadow-lg shadow-purple-500/20"></div>
-          <p className="text-gray-400 font-medium animate-pulse">Creating your purchase...</p>
-        </div>
+  if (isCreatingPurchase || !bottle || !venue) return (
+    <div className="min-h-screen bg-[#09090F] text-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-14 h-14 border-[3px] border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-[#7171A0] text-sm animate-pulse">Setting up your purchase...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  // Show error if purchase creation failed
-  if (error) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center px-6">
-        <div className="text-center">
-          <p className="text-red-400 mb-4">{error}</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl transition-colors"
-          >
-            Go Back
-          </button>
-        </div>
+  if (error) return (
+    <div className="min-h-screen bg-[#09090F] text-white flex items-center justify-center px-6">
+      <div className="text-center">
+        <p className="text-red-400 mb-4 text-sm">{error}</p>
+        <button onClick={() => navigate(-1)} className="btn-primary px-6 py-3 rounded-2xl font-bold text-sm text-white">Go Back</button>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
-      {/* Status Badge */}
-      <div className="mb-8">
-        <div className="relative inline-flex items-center gap-2 px-5 py-2.5 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full backdrop-blur-xl">
-          {!isConfirmed && <Loader2 className="w-4 h-4 animate-spin" />}
-          <span className="text-sm font-medium">
-            {isConfirmed ? "Payment Confirmed!" : "Waiting for payment confirmation"}
-          </span>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#09090F] text-white flex flex-col pb-8">
+      {/* Ambient */}
+      <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-b from-amber-900/10 to-transparent pointer-events-none" />
 
-      {/* Title */}
-      <h1 className="text-2xl font-bold mb-2 text-center">Pay at Counter</h1>
-      <p className="text-gray-400 text-sm mb-8 text-center max-w-sm">
-        Please proceed to the counter and complete your payment. The bartender will confirm your purchase.
-      </p>
-
-      {/* Payment Info Card */}
-      <div className="w-full max-w-sm bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 backdrop-blur-xl border border-zinc-800/50 rounded-3xl p-6 space-y-4 mb-8">
+      {/* Header */}
+      <div className="relative z-10 px-5 pt-12 pb-4 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors">
+          <ArrowLeft className="w-5 h-5 text-[#7171A0]" />
+        </button>
         <div>
-          <p className="text-xs text-purple-400 font-medium mb-1">{bottle.brand}</p>
-          <h3 className="text-xl font-semibold">{bottle.name}</h3>
-        </div>
-
-        <div className="flex items-center justify-between py-3 border-t border-zinc-800">
-          <span className="text-gray-400">Venue</span>
-          <span className="font-medium">{venue.name}</span>
-        </div>
-
-        <div className="flex items-center justify-between py-3 border-t border-zinc-800">
-          <span className="text-gray-400">Volume</span>
-          <span className="font-medium">{purchase?.total_ml || bottle.volume_ml} ml</span>
-        </div>
-
-        <div className="flex items-center justify-between py-3 border-t border-zinc-800">
-          <span className="text-gray-400 text-lg">Total Amount</span>
-          <span className="text-2xl font-bold text-white">₹{bottle.price.toLocaleString()}</span>
+          <h1 className="text-lg font-bold tracking-tight">Pay at Counter</h1>
+          <p className="text-[#7171A0] text-xs">Waiting for confirmation from bar</p>
         </div>
       </div>
 
-      {/* Payment Instructions */}
-      <div className="w-full max-w-sm space-y-4">
-        <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800/50 rounded-2xl p-4">
-          <h3 className="text-sm font-semibold mb-3 text-purple-400">Payment Methods Accepted</h3>
-          <div className="space-y-2 text-sm text-gray-400">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-              <span>UPI / QR Code Payment</span>
+      {/* Status pill */}
+      <div className="relative z-10 px-5 mb-6">
+        <div className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl border text-sm font-semibold ${isConfirmed
+          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+          : "bg-amber-500/10 border-amber-500/30 text-amber-400"
+          }`}>
+          {!isConfirmed && <Loader2 className="w-4 h-4 animate-spin" />}
+          {isConfirmed ? "✅ Payment Confirmed!" : "⏳ Waiting for payment confirmation..."}
+        </div>
+      </div>
+
+      {/* Order summary card */}
+      <div className="relative z-10 px-5 mb-5">
+        <div className="card-surface p-5 space-y-4">
+          <div>
+            <p className="text-[11px] text-violet-400 font-semibold uppercase tracking-wider mb-0.5">{bottle.brand}</p>
+            <h2 className="font-bold text-xl">{bottle.name}</h2>
+          </div>
+
+          <div className="space-y-3 border-t border-white/[0.07] pt-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-[#7171A0]">Venue</span>
+              <span className="font-medium">{venue.name}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-              <span>Credit / Debit Card</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-              <span>Cash</span>
+            <div className="flex justify-between text-sm">
+              <span className="text-[#7171A0]">Volume</span>
+              <span className="font-medium">{purchase?.total_ml || bottle.volume_ml} ml</span>
             </div>
           </div>
-        </div>
 
-        <div className="bg-blue-500/10 backdrop-blur-xl border border-blue-500/30 rounded-2xl p-4">
-          <p className="text-xs text-blue-400 text-center">
-            💡 After payment confirmation, your bottle will appear in "My Bottles" with a QR code for redemption
+          <div className="border-t border-white/[0.07] pt-4 flex justify-between items-center">
+            <span className="text-[#7171A0] font-medium">Total</span>
+            <span className="text-2xl font-black text-gold">₹{bottle.price.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment methods */}
+      <div className="relative z-10 px-5 mb-5">
+        <p className="text-xs text-[#7171A0] uppercase tracking-wider font-medium mb-3">Accepted Payment Methods</p>
+        <div className="space-y-2">
+          {PAYMENT_METHODS.map((m, i) => (
+            <motion.div
+              key={m.label}
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="flex items-center gap-3 p-3.5 rounded-xl bg-[#111118] border border-white/[0.07]"
+            >
+              <div className="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center flex-shrink-0">
+                <m.icon className="w-4 h-4 text-violet-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">{m.label}</p>
+                <p className="text-xs text-[#4A4A6A]">{m.hint}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Info box */}
+      <div className="relative z-10 px-5 mb-8">
+        <div className="bg-violet-500/8 border border-violet-500/20 rounded-2xl p-4">
+          <p className="text-xs text-violet-300/80 text-center leading-relaxed">
+            💡 After the bartender confirms payment, your bottle will appear in <strong>My Bottles</strong> ready to redeem
           </p>
         </div>
       </div>
 
-      {/* Cancel Button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="mt-6 px-6 py-2 text-gray-400 hover:text-white transition-colors text-sm"
-      >
-        Cancel Purchase
-      </button>
+      {/* Cancel */}
+      <div className="relative z-10 px-5 mt-auto">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-full py-3.5 rounded-2xl border border-white/[0.07] text-[#7171A0] text-sm font-semibold hover:bg-white/5 transition-colors"
+        >
+          Cancel Purchase
+        </button>
+      </div>
     </div>
   );
 }

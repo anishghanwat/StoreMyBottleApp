@@ -7,11 +7,16 @@ from models import User
 from schemas import (
     LoginRequest, SignupRequest,
     GoogleLoginRequest, PhoneSendOTPRequest, PhoneVerifyOTPRequest,
+    RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest,
     TokenResponse, UserResponse
 )
 from auth import (
-    create_access_token, verify_google_token, create_otp, verify_otp,
-    send_otp_sms, get_current_user, pwd_context
+    create_access_token, create_refresh_token, create_session, 
+    get_session_by_refresh_token, update_session_tokens, invalidate_session,
+    invalidate_all_user_sessions, verify_google_token, create_otp, verify_otp,
+    send_otp_sms, get_current_user, pwd_context,
+    create_password_reset_token, verify_password_reset_token, 
+    use_password_reset_token, send_password_reset_email
 )
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
@@ -38,9 +43,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
                 detail="Invalid email or password"
             )
         
-        # Create access token
-        # Include role and venue_id in token (optional, but good for frontend decoding)
-        # Ensure role is string (handle Enum)
+        # Create access token and refresh token
         role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
         
         access_token = create_access_token(data={
@@ -49,8 +52,18 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             "venue_id": user.venue_id
         })
         
-        # Manually construct user response to avoid Pydantic validation issues with SQLAlchemy objects
-        user_role = user.role.value if hasattr(user.role, 'value') else str(user.role)
+        refresh_token = create_refresh_token(data={
+            "sub": user.id,
+            "role": role_str
+        })
+        
+        # Create session in database
+        create_session(
+            db=db,
+            user_id=user.id,
+            access_token=access_token,
+            refresh_token=refresh_token
+        )
         
         # Get venue name if venue_id exists
         venue_name = None
@@ -65,7 +78,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             email=user.email,
             phone=user.phone,
             name=user.name,
-            role=user_role,
+            role=role_str,
             venue_id=user.venue_id,
             venue_name=venue_name,
             created_at=user.created_at
@@ -73,16 +86,15 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         
         return TokenResponse(
             access_token=access_token,
+            refresh_token=refresh_token,
             user=user_response
         )
     except HTTPException as he:
-        # Re-raise HTTP exceptions as-is
         raise he
     except Exception as e:
         print(f"LOGIN ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
-        # Return generic error if something breaks, but log it
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Login failed: {str(e)}"
@@ -114,12 +126,33 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     
-    # Create access token
-    access_token = create_access_token(data={"sub": user.id})
+    # Create access token and refresh token
+    access_token = create_access_token(data={"sub": user.id, "role": "customer"})
+    refresh_token = create_refresh_token(data={"sub": user.id, "role": "customer"})
+    
+    # Create session in database
+    create_session(
+        db=db,
+        user_id=user.id,
+        access_token=access_token,
+        refresh_token=refresh_token
+    )
+    
+    user_response = UserResponse(
+        id=user.id,
+        email=user.email,
+        phone=user.phone,
+        name=user.name,
+        role="customer",
+        venue_id=user.venue_id,
+        venue_name=None,
+        created_at=user.created_at
+    )
     
     return TokenResponse(
         access_token=access_token,
-        user=UserResponse.model_validate(user)
+        refresh_token=refresh_token,
+        user=user_response
     )
 
 
@@ -212,18 +245,42 @@ def verify_otp_endpoint(request: PhoneVerifyOTPRequest, db: Session = Depends(ge
         # Create new user with phone
         user = User(
             phone=request.phone,
-            name=f"User {request.phone[-4:]}"  # Default name
+            name=f"User {request.phone[-4:]}",  # Default name
+            role="customer"
         )
         db.add(user)
         db.commit()
         db.refresh(user)
     
-    # Create access token
-    access_token = create_access_token(data={"sub": user.id})
+    # Create access token and refresh token
+    role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
+    
+    access_token = create_access_token(data={"sub": user.id, "role": role_str})
+    refresh_token = create_refresh_token(data={"sub": user.id, "role": role_str})
+    
+    # Create session in database
+    create_session(
+        db=db,
+        user_id=user.id,
+        access_token=access_token,
+        refresh_token=refresh_token
+    )
+    
+    user_response = UserResponse(
+        id=user.id,
+        email=user.email,
+        phone=user.phone,
+        name=user.name,
+        role=role_str,
+        venue_id=user.venue_id,
+        venue_name=None,
+        created_at=user.created_at
+    )
     
     return TokenResponse(
         access_token=access_token,
-        user=UserResponse.model_validate(user)
+        refresh_token=refresh_token,
+        user=user_response
     )
 
 
@@ -249,3 +306,171 @@ def get_current_user_profile(current_user: User = Depends(get_current_user), db:
         venue_name=venue_name,
         created_at=current_user.created_at
     )
+
+
+# ============ Session Management Endpoints ============
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_access_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+    """Refresh access token using refresh token"""
+    # Get session by refresh token
+    session = get_session_by_refresh_token(db, request.refresh_token)
+    
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
+    
+    # Get user
+    user = db.query(User).filter(User.id == session.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+    
+    # Create new tokens
+    role_str = user.role.value if hasattr(user.role, 'value') else str(user.role)
+    
+    new_access_token = create_access_token(data={
+        "sub": user.id,
+        "role": role_str,
+        "venue_id": user.venue_id
+    })
+    
+    new_refresh_token = create_refresh_token(data={
+        "sub": user.id,
+        "role": role_str
+    })
+    
+    # Update session with new tokens
+    update_session_tokens(db, session.id, new_access_token, new_refresh_token)
+    
+    # Get venue name
+    venue_name = None
+    if user.venue_id:
+        from models import Venue
+        venue = db.query(Venue).filter(Venue.id == user.venue_id).first()
+        if venue:
+            venue_name = venue.name
+    
+    user_response = UserResponse(
+        id=user.id,
+        email=user.email,
+        phone=user.phone,
+        name=user.name,
+        role=role_str,
+        venue_id=user.venue_id,
+        venue_name=venue_name,
+        created_at=user.created_at
+    )
+    
+    return TokenResponse(
+        access_token=new_access_token,
+        refresh_token=new_refresh_token,
+        user=user_response
+    )
+
+
+@router.post("/logout")
+def logout(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+    """Logout and invalidate session"""
+    invalidate_session(db, request.refresh_token)
+    return {"message": "Logged out successfully"}
+
+
+@router.post("/logout-all")
+def logout_all_devices(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Logout from all devices"""
+    invalidate_all_user_sessions(db, current_user.id)
+    return {"message": "Logged out from all devices"}
+
+
+@router.get("/sessions")
+def get_user_sessions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get all active sessions for current user"""
+    from models import UserSession
+    
+    sessions = db.query(UserSession).filter(
+        UserSession.user_id == current_user.id,
+        UserSession.is_active == True
+    ).order_by(UserSession.last_activity.desc()).all()
+    
+    return {
+        "sessions": [
+            {
+                "id": s.id,
+                "device_info": s.device_info,
+                "ip_address": s.ip_address,
+                "last_activity": s.last_activity,
+                "created_at": s.created_at,
+                "expires_at": s.expires_at
+            }
+            for s in sessions
+        ],
+        "total": len(sessions)
+    }
+
+
+
+# ============ Password Reset Endpoints ============
+
+@router.post("/forgot-password")
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Request password reset - sends email with reset link"""
+    # Find user by email
+    user = db.query(User).filter(User.email == request.email).first()
+    
+    # Always return success (don't reveal if email exists)
+    if not user:
+        return {
+            "message": "If an account exists with this email, you will receive a password reset link.",
+            "success": True
+        }
+    
+    # Create reset token
+    token = create_password_reset_token(db, user.id)
+    
+    # Send email
+    send_password_reset_email(user.email, token, user.name)
+    
+    return {
+        "message": "If an account exists with this email, you will receive a password reset link.",
+        "success": True
+    }
+
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Reset password using token from email"""
+    # Verify and use token
+    success = use_password_reset_token(db, request.token, request.new_password)
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    
+    return {
+        "message": "Password reset successfully",
+        "success": True
+    }
+
+
+@router.post("/verify-reset-token")
+def verify_reset_token(token: str, db: Session = Depends(get_db)):
+    """Verify if a password reset token is valid"""
+    user_id = verify_password_reset_token(db, token)
+    
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    
+    return {
+        "valid": True,
+        "message": "Token is valid"
+    }

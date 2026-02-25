@@ -1,4 +1,5 @@
 import apiClient from './api';
+import { sessionManager } from '../utils/session';
 import {
     GoogleLoginRequest,
     PhoneSendOTPRequest,
@@ -7,6 +8,7 @@ import {
     User,
 } from '../types/api.types';
 
+// Auth service for customer frontend
 export const authService = {
     // Simple email/password login (for MVP)
     async login(email: string, password: string, name?: string): Promise<TokenResponse> {
@@ -16,9 +18,14 @@ export const authService = {
                 password,
             });
 
-            // Store token and user
-            localStorage.setItem('access_token', response.data.access_token);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
+            // Store tokens and user using session manager
+            if (response.data.refresh_token) {
+                sessionManager.saveSession(
+                    response.data.access_token,
+                    response.data.refresh_token,
+                    response.data.user
+                );
+            }
 
             return response.data;
         } catch (error) {
@@ -38,9 +45,14 @@ export const authService = {
             name,
         });
 
-        // Store token and user
-        localStorage.setItem('access_token', response.data.access_token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Store tokens and user using session manager
+        if (response.data.refresh_token) {
+            sessionManager.saveSession(
+                response.data.access_token,
+                response.data.refresh_token,
+                response.data.user
+            );
+        }
 
         return response.data;
     },
@@ -51,9 +63,14 @@ export const authService = {
             token,
         } as GoogleLoginRequest);
 
-        // Store token and user
-        localStorage.setItem('access_token', response.data.access_token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Store tokens and user using session manager
+        if (response.data.refresh_token) {
+            sessionManager.saveSession(
+                response.data.access_token,
+                response.data.refresh_token,
+                response.data.user
+            );
+        }
 
         return response.data;
     },
@@ -73,9 +90,37 @@ export const authService = {
             otp_code: otpCode,
         } as PhoneVerifyOTPRequest);
 
-        // Store token and user
-        localStorage.setItem('access_token', response.data.access_token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Store tokens and user using session manager
+        if (response.data.refresh_token) {
+            sessionManager.saveSession(
+                response.data.access_token,
+                response.data.refresh_token,
+                response.data.user
+            );
+        }
+
+        return response.data;
+    },
+
+    // Refresh access token
+    async refreshToken(): Promise<TokenResponse> {
+        const refreshToken = sessionManager.getRefreshToken();
+        if (!refreshToken) {
+            throw new Error('No refresh token available');
+        }
+
+        const response = await apiClient.post<TokenResponse>('/auth/refresh', {
+            refresh_token: refreshToken,
+        });
+
+        // Store new tokens using session manager
+        if (response.data.refresh_token) {
+            sessionManager.saveSession(
+                response.data.access_token,
+                response.data.refresh_token,
+                response.data.user
+            );
+        }
 
         return response.data;
     },
@@ -83,24 +128,54 @@ export const authService = {
     // Get current user
     async getCurrentUser(): Promise<User> {
         const response = await apiClient.get<User>('/auth/me');
-        localStorage.setItem('user', JSON.stringify(response.data));
+        const user = sessionManager.getUser();
+        if (user) {
+            sessionManager.saveSession(
+                sessionManager.getAccessToken() || '',
+                sessionManager.getRefreshToken() || '',
+                response.data
+            );
+        }
         return response.data;
     },
 
     // Logout
     logout(): void {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
+        sessionManager.clearSession();
     },
 
     // Get stored user
     getStoredUser(): User | null {
-        const userStr = localStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
+        return sessionManager.getUser();
     },
 
     // Check if authenticated
     isAuthenticated(): boolean {
-        return !!localStorage.getItem('access_token');
+        return sessionManager.isLoggedIn();
+    },
+
+    // Forgot password - request reset email
+    async forgotPassword(email: string): Promise<{ message: string; success: boolean }> {
+        const response = await apiClient.post('/auth/forgot-password', { email });
+        return response.data;
+    },
+
+    // Reset password with token
+    async resetPassword(token: string, newPassword: string): Promise<{ message: string; success: boolean }> {
+        const response = await apiClient.post('/auth/reset-password', {
+            token,
+            new_password: newPassword
+        });
+        return response.data;
+    },
+
+    // Verify reset token is valid
+    async verifyResetToken(token: string): Promise<boolean> {
+        try {
+            await apiClient.post(`/auth/verify-reset-token?token=${token}`);
+            return true;
+        } catch {
+            return false;
+        }
     },
 };

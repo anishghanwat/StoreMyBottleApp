@@ -1,9 +1,11 @@
 import { useParams, Link, useNavigate } from "react-router";
-import { ArrowLeft, MapPin, Clock, Mail, Star, TrendingUp, Home, Wine as BottleIcon, User } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Star, TrendingUp, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { venueService } from "../../services/venue.service";
 import { Venue, Bottle } from "../../types/api.types";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { motion } from "motion/react";
+import { BottomNav } from "../components/ui/BottomNav";
 
 export default function VenueDetails() {
     const { venueId } = useParams();
@@ -13,11 +15,7 @@ export default function VenueDetails() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (venueId) {
-            loadVenueDetails();
-        }
-    }, [venueId]);
+    useEffect(() => { if (venueId) loadVenueDetails(); }, [venueId]);
 
     const loadVenueDetails = async () => {
         try {
@@ -27,193 +25,147 @@ export default function VenueDetails() {
                 venueService.getBottlesByVenue(venueId!),
             ]);
             setVenue(venueData);
-            // Get top 6 bottles (simulating popular bottles)
             setPopularBottles(bottlesData.slice(0, 6));
-        } catch (err) {
+        } catch {
             setError("Failed to load venue details. Please try again.");
-            console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4 shadow-lg shadow-purple-500/20"></div>
-                    <p className="text-gray-400 font-medium animate-pulse">Loading venue...</p>
-                </div>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div className="min-h-screen bg-[#09090F] flex items-center justify-center">
+            <div className="w-12 h-12 border-[3px] border-violet-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
 
-    if (error || !venue) {
-        return (
-            <div className="min-h-screen bg-black text-white flex items-center justify-center px-6">
-                <div className="text-center">
-                    <p className="text-red-400 mb-4">{error || "Venue not found"}</p>
-                    <Link to="/" className="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl transition-colors inline-block">
-                        Back to Venues
-                    </Link>
-                </div>
+    if (error || !venue) return (
+        <div className="min-h-screen bg-[#09090F] text-white flex items-center justify-center px-6">
+            <div className="text-center">
+                <p className="text-red-400 mb-4 text-sm">{error || "Venue not found"}</p>
+                <Link to="/" className="btn-primary px-6 py-3 rounded-2xl text-sm font-bold text-white inline-block">Back</Link>
             </div>
-        );
-    }
-
-    const isOpen = venue.is_open;
+        </div>
+    );
 
     return (
-        <div className="min-h-screen bg-black text-white pb-24">
-            {/* Header */}
-            <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-xl border-b border-zinc-800/50">
-                <div className="px-6 py-4 flex items-center gap-4">
-                    <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-zinc-800/50 rounded-full transition-colors">
-                        <ArrowLeft className="w-6 h-6" />
-                    </button>
-                    <h1 className="text-xl font-semibold">Venue Details</h1>
-                </div>
-            </div>
-
+        <div className="min-h-screen bg-[#09090F] text-white pb-24">
             {/* Hero Image */}
-            <div className="relative h-64 bg-gradient-to-br from-purple-900/20 to-pink-900/20">
+            <div className="relative h-64">
                 <ImageWithFallback
                     src={venue.image_url || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800"}
                     alt={venue.name}
                     className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#09090F] via-[#09090F]/60 to-transparent" />
 
-                {/* Venue Name Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                            <h2 className="text-3xl font-bold mb-2">{venue.name}</h2>
-                            <div className="flex items-center gap-2 text-gray-300">
-                                <MapPin className="w-4 h-4" />
-                                <span className="text-sm">{venue.location}</span>
-                            </div>
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-xs font-semibold ${isOpen
-                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                            : "bg-red-500/20 text-red-400 border border-red-500/30"
-                            }`}>
-                            {isOpen ? "Open Now" : "Closed"}
-                        </div>
+                {/* Back button on hero */}
+                <button
+                    onClick={() => navigate(-1)}
+                    className="absolute top-12 left-4 p-2.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10"
+                >
+                    <ArrowLeft className="w-5 h-5 text-white" />
+                </button>
+
+                {/* Open badge */}
+                <div className="absolute top-12 right-4">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border ${venue.is_open
+                        ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                        : "bg-black/40 border-white/10 text-[#7171A0]"
+                        }`}>
+                        {venue.is_open && <span className="open-dot" />}
+                        {venue.is_open ? "Open Now" : "Closed"}
+                    </div>
+                </div>
+
+                {/* Venue name overlay */}
+                <div className="absolute bottom-0 inset-x-0 px-5 pb-5">
+                    <h1 className="text-3xl font-black tracking-tight mb-1">{venue.name}</h1>
+                    <div className="flex items-center gap-1.5 text-[#7171A0]">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span className="text-sm">{venue.location}</span>
                     </div>
                 </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="px-6 py-6 border-b border-zinc-800/50">
+            {/* CTA */}
+            <div className="px-5 py-5 border-b border-white/[0.06]">
                 <Link
-                    to={`/venue/${venueId}`}
-                    className="block w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white py-4 rounded-xl font-semibold text-center transition-all duration-300 active:scale-95 shadow-lg shadow-purple-500/25"
+                    to={`/venue/${venueId}/bottles`}
+                    className="btn-primary flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-base text-white"
                 >
-                    View Full Menu
+                    View Full Bottle Menu
+                    <ChevronRight className="w-5 h-5" />
                 </Link>
             </div>
 
-            {/* Venue Information */}
-            <div className="px-6 py-6 space-y-6 border-b border-zinc-800/50">
-                <h3 className="text-lg font-semibold">Information</h3>
-
-                <div className="space-y-4">
-                    {/* Operating Hours */}
-                    <div className="flex items-start gap-4 p-4 bg-zinc-900/50 rounded-xl border border-zinc-800/50">
-                        <div className="p-2 bg-purple-500/10 rounded-lg">
-                            <Clock className="w-5 h-5 text-purple-400" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-400 mb-1">Operating Hours</p>
-                            <p className="text-white">Mon - Sun: 6:00 PM - 2:00 AM</p>
-                        </div>
+            {/* Info row */}
+            <div className="px-5 py-5 grid grid-cols-2 gap-3 border-b border-white/[0.06]">
+                <div className="card-surface p-4 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center flex-shrink-0">
+                        <Clock className="w-4 h-4 text-violet-400" />
                     </div>
-
-                    {/* Rating */}
-                    <div className="flex items-start gap-4 p-4 bg-zinc-900/50 rounded-xl border border-zinc-800/50">
-                        <div className="p-2 bg-purple-500/10 rounded-lg">
-                            <Star className="w-5 h-5 text-purple-400" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-400 mb-1">Rating</p>
-                            <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-1">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                        <Star key={star} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                    ))}
-                                </div>
-                                <span className="text-white font-medium">4.8</span>
-                                <span className="text-gray-400 text-sm">(120 reviews)</span>
-                            </div>
-                        </div>
+                    <div>
+                        <p className="text-[10px] text-[#4A4A6A]">Hours</p>
+                        <p className="text-xs font-semibold">6 PM – 2 AM</p>
+                    </div>
+                </div>
+                <div className="card-surface p-4 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-[#4A4A6A]">Rating</p>
+                        <p className="text-xs font-semibold">4.8 · 120 reviews</p>
                     </div>
                 </div>
             </div>
 
             {/* Popular Bottles */}
             {popularBottles.length > 0 && (
-                <div className="px-6 py-6">
+                <div className="px-5 py-5">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-purple-400" />
-                            <h3 className="text-lg font-semibold">Popular Bottles</h3>
+                            <TrendingUp className="w-4 h-4 text-violet-400" />
+                            <h2 className="font-bold text-base">Popular Bottles</h2>
                         </div>
-                        <Link to={`/venue/${venueId}`} className="text-sm text-purple-400 hover:text-purple-300 font-medium">
-                            View All
+                        <Link to={`/venue/${venueId}/bottles`} className="text-xs text-violet-400 font-semibold">
+                            View All →
                         </Link>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        {popularBottles.map((bottle) => (
-                            <div
+                    <div className="grid grid-cols-2 gap-3">
+                        {popularBottles.map((bottle, i) => (
+                            <motion.div
                                 key={bottle.id}
-                                className="bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 backdrop-blur-xl border border-zinc-800/50 rounded-2xl overflow-hidden hover:border-purple-500/50 transition-all duration-300"
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.06 }}
+                                className="card-surface overflow-hidden hover:border-violet-500/30 transition-all duration-300 group"
                             >
-                                {/* Bottle Image */}
-                                <div className="relative h-32 bg-zinc-900/50 flex items-center justify-center p-3">
+                                <div className="h-28 bg-[#1A1A26] flex items-center justify-center p-3 relative overflow-hidden">
                                     <ImageWithFallback
                                         src={bottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
                                         alt={bottle.name}
-                                        className="w-full h-full object-contain"
+                                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                                     />
                                 </div>
-
-                                {/* Bottle Info */}
-                                <div className="p-3 space-y-2">
-                                    <div>
-                                        <p className="text-xs text-purple-400 font-medium mb-0.5">{bottle.brand}</p>
-                                        <h4 className="text-sm font-semibold leading-tight line-clamp-2">{bottle.name}</h4>
-                                    </div>
-
+                                <div className="p-3 space-y-1">
+                                    <p className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider">{bottle.brand}</p>
+                                    <h4 className="text-sm font-bold leading-tight line-clamp-1">{bottle.name}</h4>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs text-gray-400">{bottle.volume_ml}ml</span>
-                                        <span className="text-lg font-bold text-white">₹{bottle.price.toLocaleString()}</span>
+                                        <span className="text-[11px] text-[#7171A0]">{bottle.volume_ml} ml</span>
+                                        <span className="font-black text-base text-gold">₹{bottle.price.toLocaleString()}</span>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 </div>
             )}
 
-            {/* Bottom Navigation */}
-            <div className="fixed bottom-0 left-0 right-0 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800/50 px-6 py-4">
-                <div className="flex items-center justify-around max-w-md mx-auto">
-                    <Link to="/" className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors">
-                        <Home className="w-6 h-6" />
-                        <span className="text-xs font-medium">Home</span>
-                    </Link>
-                    <Link to="/my-bottles" className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors">
-                        <BottleIcon className="w-6 h-6" />
-                        <span className="text-xs font-medium">My Bottles</span>
-                    </Link>
-                    <Link to="/profile" className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors">
-                        <User className="w-6 h-6" />
-                        <span className="text-xs font-medium">Profile</span>
-                    </Link>
-                </div>
-            </div>
+            {/* Bottom Nav */}
+            <BottomNav active="home" />
         </div>
     );
 }

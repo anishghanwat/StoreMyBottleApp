@@ -4,6 +4,7 @@ import { X, ScanLine, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import QrScanner from "react-qr-scanner";
 import { authService } from "../../services/api";
+import { toast } from "sonner";
 
 interface QRScannerProps {
   onClose: () => void;
@@ -44,6 +45,7 @@ export default function QRScanner({ onClose }: QRScannerProps) {
             qrDataObj = JSON.parse(r.qr_data);
           } catch (e) { }
 
+          toast.success("QR code validated!");
           navigate("/drink-details", {
             state: {
               redemptionId: r.id,
@@ -58,12 +60,14 @@ export default function QRScanner({ onClose }: QRScannerProps) {
         } else {
           if (response.message === "QR code already used") {
             setWarning("Already Served");
+            toast.error("QR code already used");
             setTimeout(() => {
               setWarning("");
               setIsProcessing(false);
             }, 3000);
           } else {
             setError(response.message || "Invalid QR Code");
+            toast.error(response.message || "Invalid QR code");
             setTimeout(() => {
               setError("");
               setIsProcessing(false);
@@ -72,7 +76,9 @@ export default function QRScanner({ onClose }: QRScannerProps) {
         }
       } catch (err: any) {
         console.error("Validation error:", err);
-        setError(err.response?.data?.detail || "Validation Failed");
+        const errorMsg = err.response?.data?.detail || "Validation Failed";
+        setError(errorMsg);
+        toast.error(errorMsg);
         setTimeout(() => {
           setError("");
           setIsProcessing(false);

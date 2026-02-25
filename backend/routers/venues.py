@@ -17,13 +17,18 @@ def get_venues(
     skip: int = 0, 
     limit: int = 20, 
     search: Optional[str] = None,
+    city: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Get list of venues"""
+    """Get list of venues with optional city filtering"""
     query = db.query(Venue)
     
     if search:
         query = query.filter(Venue.name.ilike(f"%{search}%"))
+    
+    if city:
+        # Filter by city (location field format: "Area, City")
+        query = query.filter(Venue.location.ilike(f"%{city}%"))
         
     total = query.count()
     venues = query.offset(skip).limit(limit).all()

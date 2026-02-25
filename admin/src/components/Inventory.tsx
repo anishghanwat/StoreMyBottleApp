@@ -1,7 +1,32 @@
 import { useState, useEffect } from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
-import { Plus, Pencil, Trash2, X, Search, Filter } from 'lucide-react'
-import { adminService } from '../services/api'
+import { Plus, Package } from 'lucide-react'
+import { adminService } from '@/services/api'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
+import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuLabel, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+    Dialog, DialogContent, DialogDescription,
+    DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog'
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { TableSkeletonLoader } from '@/components/ui/skeleton-loader'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SearchFilterBar } from '@/components/ui/search-filter-bar'
+import { useConfirmDialog } from '@/components/ui/confirm-dialog'
+import { toast } from 'sonner'
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 
 interface Bottle {
     id: string
@@ -10,7 +35,7 @@ interface Bottle {
     brand: string
     price: number
     volume_ml: number
-    image_url: string
+    image_url: string | null
     is_available: boolean
 }
 
@@ -19,56 +44,59 @@ interface Venue {
     name: string
 }
 
-export default function Inventory() {
+export function Inventory() {
     const [bottles, setBottles] = useState<Bottle[]>([])
     const [venues, setVenues] = useState<Venue[]>([])
     const [loading, setLoading] = useState(true)
+    const [refreshing, setRefreshing] = useState(false)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingBottle, setEditingBottle] = useState<Bottle | null>(null)
-
-    // Filter state
-    const [selectedVenueId, setSelectedVenueId] = useState<string>("all")
-    const [searchQuery, setSearchQuery] = useState("")
+    const [selectedVenueId, setSelectedVenueId] = useState('all')
+    const [searchQuery, setSearchQuery] = useState('')
 
     const [formData, setFormData] = useState({
-        venue_id: "",
-        name: "",
-        brand: "",
-        price: "",
-        volume_ml: "",
-        image_url: "",
-        is_available: true
+        venue_id: '',
+        name: '',
+        brand: '',
+        price: '',
+        volume_ml: '',
+        image_url: '',
+        is_available: true,
     })
 
-    useEffect(() => {
-        loadData()
-    }, [])
+    const { confirm, dialog } = useConfirmDialog()
 
-    const loadData = async () => {
+    const loadData = async (silent = false) => {
+        if (!silent) setLoading(true)
+        else setRefreshing(true)
         try {
             const [bottlesData, venuesData] = await Promise.all([
                 adminService.getBottles(),
-                adminService.getVenues()
+                adminService.getVenues(),
             ])
             setBottles(bottlesData)
             setVenues(venuesData)
         } catch (error) {
             console.error('Failed to load data:', error)
+            if (!silent) toast.error('Failed to load inventory')
         } finally {
-            setLoading(false)
+            if (!silent) setLoading(false)
+            else setRefreshing(false)
         }
     }
+
+    useEffect(() => { loadData() }, [])
 
     const handleCreateClick = () => {
         setEditingBottle(null)
         setFormData({
-            venue_id: venues.length > 0 ? venues[0].id : "",
-            name: "",
-            brand: "",
-            price: "",
-            volume_ml: "",
-            image_url: "",
-            is_available: true
+            venue_id: venues.length > 0 ? venues[0].id : '',
+            name: '',
+            brand: '',
+            price: '',
+            volume_ml: '',
+            image_url: '',
+            is_available: true,
         })
         setIsDialogOpen(true)
     }
@@ -81,293 +109,300 @@ export default function Inventory() {
             brand: bottle.brand,
             price: bottle.price.toString(),
             volume_ml: bottle.volume_ml.toString(),
-            image_url: bottle.image_url || "",
-            is_available: bottle.is_available
+            image_url: bottle.image_url || '',
+            is_available: bottle.is_available,
         })
         setIsDialogOpen(true)
     }
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this bottle?')) {
-            try {
-                await adminService.deleteBottle(id)
-                loadData()
-            } catch (error) {
-                console.error('Failed to delete bottle:', error)
-            }
-        }
+    const handleDelete = (bottle: Bottle) => {
+        confirm({
+            title: 'Delete Bottle',
+            description: `Are you sure you want to delete "${bottle.name}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            variant: 'destructive',
+            onConfirm: async () => {
+                try {
+                    await adminService.deleteBottle(bottle.id)
+                    toast.success('Bottle deleted successfully')
+                    loadData(true)
+                } catch (error) {
+                    console.error('Failed to delete bottle:', error)
+                    toast.error('Failed to delete bottle')
+                }
+            },
+        })
     }
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleSave = async () => {
+        if (!formData.venue_id || !formData.name || !formData.brand || !formData.price || !formData.volume_ml) {
+            toast.error('Please fill in all required fields')
+            return
+        }
         try {
             const payload = {
                 venue_id: formData.venue_id,
                 name: formData.name,
                 brand: formData.brand,
                 price: parseFloat(formData.price),
-                ml: parseInt(formData.volume_ml), // Backend expects 'ml' alias or volume_ml
-                image_url: formData.image_url,
-                is_available: formData.is_available
+                volume_ml: parseInt(formData.volume_ml),
+                image_url: formData.image_url || null,
+                is_available: formData.is_available,
             }
-
             if (editingBottle) {
                 await adminService.updateBottle(editingBottle.id, payload)
+                toast.success('Bottle updated successfully')
             } else {
                 await adminService.createBottle(payload)
+                toast.success('Bottle created successfully')
             }
             setIsDialogOpen(false)
-            loadData()
+            loadData(true)
         } catch (error) {
             console.error('Failed to save bottle:', error)
+            toast.error('Failed to save bottle')
         }
     }
 
     const filteredBottles = bottles.filter(bottle => {
-        const matchesVenue = selectedVenueId === "all" || bottle.venue_id === selectedVenueId
-        const matchesSearch = bottle.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesVenue = selectedVenueId === 'all' || bottle.venue_id === selectedVenueId
+        const matchesSearch =
+            bottle.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             bottle.brand.toLowerCase().includes(searchQuery.toLowerCase())
         return matchesVenue && matchesSearch
     })
 
-    if (loading) return <div className="text-white">Loading inventory...</div>
+    const update = (key: keyof typeof formData, value: any) =>
+        setFormData(prev => ({ ...prev, [key]: value }))
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-2xl font-bold text-white">Bottle Inventory</h2>
-                    <p className="text-gray-400">Manage bottles across all venues</p>
-                </div>
-                <button
-                    onClick={handleCreateClick}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                >
-                    <Plus size={20} />
-                    Add Bottle
-                </button>
+        <div className="flex flex-col gap-4 p-4">
+            {dialog}
+
+            <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold tracking-tight">Inventory</h2>
+                <Button onClick={handleCreateClick}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Bottle
+                </Button>
             </div>
 
-            {/* Filters */}
-            <div className="flex gap-4 p-4 bg-gray-800 rounded-lg">
-                <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search bottles..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-gray-700 text-white pl-10 pr-4 py-2 rounded-lg"
+            <Card>
+                <CardHeader>
+                    <CardTitle>Bottle Catalogue</CardTitle>
+                    <CardDescription>Manage bottles available across all venues.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <SearchFilterBar
+                        searchPlaceholder="Search by name or brand…"
+                        searchValue={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        filters={[
+                            {
+                                id: 'venue',
+                                label: 'All Venues',
+                                value: selectedVenueId,
+                                onChange: setSelectedVenueId,
+                                options: [
+                                    { value: 'all', label: 'All Venues' },
+                                    ...venues.map(v => ({ value: v.id, label: v.name })),
+                                ],
+                            },
+                        ]}
+                        onRefresh={() => loadData(true)}
+                        refreshing={refreshing}
                     />
-                </div>
-                <div className="flex items-center gap-2">
-                    <Filter className="text-gray-400" size={20} />
-                    <select
-                        value={selectedVenueId}
-                        onChange={(e) => setSelectedVenueId(e.target.value)}
-                        className="bg-gray-700 text-white px-4 py-2 rounded-lg border-none"
-                    >
-                        <option value="all">All Venues</option>
-                        {venues.map(v => (
-                            <option key={v.id} value={v.id}>{v.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
 
-            <div className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700">
-                <table className="w-full text-left text-gray-300">
-                    <thead className="bg-gray-900/50 text-xs uppercase text-gray-400">
-                        <tr>
-                            <th className="p-4">Details</th>
-                            <th className="p-4">Venue</th>
-                            <th className="p-4">Size</th>
-                            <th className="p-4">Price</th>
-                            <th className="p-4">Status</th>
-                            <th className="p-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-700">
-                        {filteredBottles.map((bottle) => {
-                            const venueName = venues.find(v => v.id === bottle.venue_id)?.name || 'Unknown'
-                            return (
-                                <tr key={bottle.id} className="hover:bg-gray-700/50">
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded bg-gray-700 overflow-hidden">
-                                                {bottle.image_url ? (
-                                                    <img src={bottle.image_url} alt={bottle.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">No Img</div>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <div className="font-medium text-white">{bottle.name}</div>
-                                                <div className="text-sm text-gray-500">{bottle.brand}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">{venueName}</td>
-                                    <td className="p-4">{bottle.volume_ml} ml</td>
-                                    <td className="p-4">₹{bottle.price}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs ${bottle.is_available ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                                            }`}>
-                                            {bottle.is_available ? 'Available' : 'Unavailable'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() => handleEditClick(bottle)}
-                                                className="p-2 hover:bg-gray-600 rounded-lg text-blue-400"
-                                            >
-                                                <Pencil size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(bottle.id)}
-                                                className="p-2 hover:bg-gray-600 rounded-lg text-red-400"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                        {filteredBottles.length === 0 && (
-                            <tr>
-                                <td colSpan={6} className="p-8 text-center text-gray-500">
-                                    No bottles found.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                    {loading ? (
+                        <TableSkeletonLoader rows={5} columns={6} />
+                    ) : filteredBottles.length === 0 ? (
+                        <EmptyState
+                            icon={Package}
+                            title="No bottles found"
+                            description={searchQuery || selectedVenueId !== 'all'
+                                ? 'Try adjusting your search or filters'
+                                : 'Get started by adding your first bottle'}
+                            action={!searchQuery && selectedVenueId === 'all' ? {
+                                label: 'Add Bottle',
+                                onClick: handleCreateClick,
+                            } : undefined}
+                        />
+                    ) : (
+                        <div className="rounded-md border overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Bottle</TableHead>
+                                        <TableHead>Venue</TableHead>
+                                        <TableHead>Size</TableHead>
+                                        <TableHead>Price</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredBottles.map(bottle => {
+                                        const venueName = venues.find(v => v.id === bottle.venue_id)?.name ?? 'Unknown'
+                                        return (
+                                            <TableRow key={bottle.id}>
+                                                <TableCell className="font-medium">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-10 w-10 rounded-md border bg-muted overflow-hidden flex-shrink-0">
+                                                            {bottle.image_url
+                                                                ? <img src={bottle.image_url} alt={bottle.name} className="h-full w-full object-cover" />
+                                                                : <div className="h-full w-full flex items-center justify-center text-[10px] text-muted-foreground">No img</div>
+                                                            }
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-semibold">{bottle.name}</div>
+                                                            <div className="text-xs text-muted-foreground">{bottle.brand}</div>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{venueName}</TableCell>
+                                                <TableCell>{bottle.volume_ml} ml</TableCell>
+                                                <TableCell>₹{bottle.price}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={bottle.is_available ? 'default' : 'secondary'}>
+                                                        {bottle.is_available ? 'Available' : 'Unavailable'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                <span className="sr-only">Open menu</span>
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                            <DropdownMenuItem onClick={() => handleEditClick(bottle)}>
+                                                                <Pencil className="mr-2 h-4 w-4" /> Edit
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                className="text-destructive"
+                                                                onClick={() => handleDelete(bottle)}
+                                                            >
+                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
-            <Dialog.Root open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <Dialog.Portal>
-                    <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
-                    <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800 p-6 rounded-xl border border-gray-700 w-full max-w-md shadow-xl">
-                        <Dialog.Title className="text-xl font-bold text-white mb-4">
-                            {editingBottle ? 'Edit Bottle' : 'Add New Bottle'}
-                        </Dialog.Title>
+            {/* Add / Edit Dialog */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="sm:max-w-[480px]">
+                    <DialogHeader>
+                        <DialogTitle>{editingBottle ? 'Edit Bottle' : 'Add New Bottle'}</DialogTitle>
+                        <DialogDescription>
+                            {editingBottle ? 'Update bottle details.' : 'Add a new bottle to the catalogue.'}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                        <form onSubmit={handleSave} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Venue</label>
-                                <select
-                                    required
-                                    value={formData.venue_id}
-                                    onChange={(e) => setFormData({ ...formData, venue_id: e.target.value })}
-                                    className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white"
-                                >
-                                    <option value="" disabled>Select Venue</option>
+                    <div className="grid gap-4 py-4">
+                        {/* Venue */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right">Venue *</Label>
+                            <Select value={formData.venue_id} onValueChange={v => update('venue_id', v)}>
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Select venue" />
+                                </SelectTrigger>
+                                <SelectContent>
                                     {venues.map(v => (
-                                        <option key={v.id} value={v.id}>{v.name}</option>
+                                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
                                     ))}
-                                </select>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">Brand</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.brand}
-                                        onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">Name</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">Price (₹)</label>
-                                    <input
-                                        type="number"
-                                        required
-                                        min="0"
-                                        value={formData.price}
-                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">Volume (ml)</label>
-                                    <input
-                                        type="number"
-                                        required
-                                        min="0"
-                                        value={formData.volume_ml}
-                                        onChange={(e) => setFormData({ ...formData, volume_ml: e.target.value })}
-                                        className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Image URL</label>
-                                <input
-                                    type="text"
-                                    value={formData.image_url}
-                                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                                    placeholder="https://..."
-                                    className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white"
-                                />
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    id="is_available"
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {/* Brand */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right">Brand *</Label>
+                            <Input
+                                value={formData.brand}
+                                onChange={e => update('brand', e.target.value)}
+                                className="col-span-3"
+                                placeholder="e.g. Johnnie Walker"
+                            />
+                        </div>
+                        {/* Name */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right">Name *</Label>
+                            <Input
+                                value={formData.name}
+                                onChange={e => update('name', e.target.value)}
+                                className="col-span-3"
+                                placeholder="e.g. Black Label"
+                            />
+                        </div>
+                        {/* Price */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right">Price (₹) *</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                value={formData.price}
+                                onChange={e => update('price', e.target.value)}
+                                className="col-span-3"
+                                placeholder="3500"
+                            />
+                        </div>
+                        {/* Volume */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right">Volume (ml) *</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                value={formData.volume_ml}
+                                onChange={e => update('volume_ml', e.target.value)}
+                                className="col-span-3"
+                                placeholder="750"
+                            />
+                        </div>
+                        {/* Image URL */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right">Image URL</Label>
+                            <Input
+                                value={formData.image_url}
+                                onChange={e => update('image_url', e.target.value)}
+                                className="col-span-3"
+                                placeholder="https://…"
+                            />
+                        </div>
+                        {/* Available */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label className="text-right">Available</Label>
+                            <div className="col-span-3 flex items-center gap-2">
+                                <Switch
                                     checked={formData.is_available}
-                                    onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
-                                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-purple-600 focus:ring-purple-500"
+                                    onCheckedChange={v => update('is_available', v)}
                                 />
-                                <label htmlFor="is_available" className="text-gray-300">Available for sale</label>
+                                <span className="text-sm text-muted-foreground">
+                                    {formData.is_available ? 'Available for sale' : 'Not available'}
+                                </span>
                             </div>
+                        </div>
+                    </div>
 
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsDialogOpen(false)}
-                                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg"
-                                >
-                                    Save
-                                </button>
-                            </div>
-                        </form>
-
-                        <Dialog.Close asChild>
-                            <button
-                                className="absolute top-4 right-4 text-gray-400 hover:text-white"
-                                aria-label="Close"
-                            >
-                                <X size={20} />
-                            </button>
-                        </Dialog.Close>
-                    </Dialog.Content>
-                </Dialog.Portal>
-            </Dialog.Root>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleSave}>
+                            {editingBottle ? 'Save Changes' : 'Create Bottle'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
+
+// Keep default export alias for backward compat (App.tsx imports named export)
+export default Inventory

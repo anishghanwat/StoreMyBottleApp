@@ -1,9 +1,18 @@
 import { Link } from "react-router";
-import { Search, MapPin, X, SlidersHorizontal, Home, Wine, User } from "lucide-react";
+import { Search, MapPin, X, Flame, Clock, RefreshCw, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { venueService } from "../../services/venue.service";
 import { Venue } from "../../types/api.types";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { useLocationAndGreeting } from "../../utils/useLocationAndGreeting";
+import { BottomNav } from "../components/ui/BottomNav";
+import { motion } from "motion/react";
+
+const PROMO_BANNERS = [
+  { label: "🎉 Happy Hours", sub: "50% off premium pegs till 9 PM", gradient: "from-violet-600/90 to-fuchsia-700/90" },
+  { label: "🥃 New Arrivals", sub: "Single malt collection at Privé", gradient: "from-amber-600/90 to-orange-700/90" },
+  { label: "🎶 Live Tonight", sub: "Open bar with DJ set at Aer", gradient: "from-cyan-600/90 to-blue-700/90" },
+];
 
 export default function VenueSelection() {
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -11,28 +20,29 @@ export default function VenueSelection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
+  const [filterOpen, setFilterOpen] = useState<"all" | "open" | "recent" | "nearby">("all");
+  const [activeBanner, setActiveBanner] = useState(0);
 
-  // Filter states
-  const [filterOpen, setFilterOpen] = useState<"all" | "open" | "closed">("all");
-  const [sortBy, setSortBy] = useState<"name" | "popular" | "recent">("name");
+  // Use location and greeting hook
+  const { greeting, location, locationDetails, loading: locationLoading, refresh: refreshLocation } = useLocationAndGreeting();
+
+  useEffect(() => { loadVenues(); }, []);
 
   useEffect(() => {
-    loadVenues();
+    const t = setInterval(() => setActiveBanner(p => (p + 1) % PROMO_BANNERS.length), 4000);
+    return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, filterOpen, sortBy, venues]);
+  useEffect(() => { applyFilters(); }, [searchTerm, filterOpen, venues, locationDetails]);
 
   const loadVenues = async () => {
     try {
       setLoading(true);
+      // Load all venues initially
       const data = await venueService.getVenues();
       setVenues(data);
     } catch (err) {
       setError("Failed to load venues. Please try again.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -43,332 +53,232 @@ export default function VenueSelection() {
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(venue =>
-        venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        venue.location.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(v =>
+        v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.location.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // Open/Closed filter
+    // Open filter
     if (filterOpen === "open") {
-      filtered = filtered.filter(venue => venue.is_open);
-    } else if (filterOpen === "closed") {
-      filtered = filtered.filter(venue => !venue.is_open);
+      filtered = filtered.filter(v => v.is_open);
     }
 
-    // Sorting
-    filtered.sort((a, b) => {
-      if (sortBy === "name") {
-        return a.name.localeCompare(b.name);
-      } else if (sortBy === "popular") {
-        // For now, just reverse order (would use actual popularity data)
-        return 0;
-      } else if (sortBy === "recent") {
-        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-      }
-      return 0;
-    });
+    // Recent filter
+    if (filterOpen === "recent") {
+      filtered.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    }
+
+    // Nearby filter (city-based)
+    if (filterOpen === "nearby" && locationDetails) {
+      const userCity = locationDetails.city.toLowerCase();
+      filtered = filtered.filter(v =>
+        v.location.toLowerCase().includes(userCity)
+      );
+    }
 
     setFilteredVenues(filtered);
   };
 
-  const clearFilters = () => {
-    setSearchTerm("");
-    setFilterOpen("all");
-    setSortBy("name");
-  };
-
-  const activeFiltersCount =
-    (filterOpen !== "all" ? 1 : 0) +
-    (sortBy !== "name" ? 1 : 0);
-
-  if (loading && !searchTerm) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4 shadow-lg shadow-purple-500/20"></div>
-          <p className="text-gray-400 font-medium animate-pulse">Finding best places...</p>
-        </div>
+      <div className="min-h-screen bg-[#09090F] text-white flex flex-col items-center justify-center gap-4">
+        <div className="w-14 h-14 border-[3px] border-violet-600 border-t-transparent rounded-full animate-spin shadow-lg shadow-violet-500/20" />
+        <p className="text-[#7171A0] text-sm font-medium animate-pulse">Finding the scene...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+      <div className="min-h-screen bg-[#09090F] text-white flex items-center justify-center px-6">
         <div className="text-center">
-          <p className="text-red-400 mb-4">{error}</p>
-          <button
-            onClick={loadVenues}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl transition-colors"
-          >
-            Retry
-          </button>
+          <p className="text-red-400 mb-4 text-sm">{error}</p>
+          <button onClick={loadVenues} className="btn-primary px-6 py-3 rounded-2xl text-white text-sm font-bold">Retry</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white pb-24">{/* Added pb-24 for bottom nav */}
-      {/* Header */}
-      <div className="px-6 pt-8 pb-6">
-        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-          StoreMyBottle
-        </h1>
-        <p className="text-gray-400 text-sm">Choose Your Venue</p>
+    <div className="min-h-screen bg-[#09090F] text-white pb-24">
+      {/* Top ambient header */}
+      <div className="relative px-5 pt-12 pb-5">
+        {/* Ambient glow behind header */}
+        <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-b from-violet-900/20 to-transparent pointer-events-none" />
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-violet-400" />
+              {locationLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs text-[#7171A0] font-medium">Locating...</span>
+                </div>
+              ) : (
+                <>
+                  <span className="text-xs text-[#7171A0] font-medium">{location}</span>
+                  <button
+                    onClick={refreshLocation}
+                    className="p-1 hover:bg-white/5 rounded-full transition-colors"
+                    title="Refresh location"
+                  >
+                    <RefreshCw className="w-3 h-3 text-[#4A4A6A] hover:text-violet-400 transition-colors" />
+                  </button>
+                </>
+              )}
+            </div>
+            <Link to="/profile" className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+              <User className="w-4 h-4 text-[#7171A0]" />
+            </Link>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight mt-3">
+            {greeting.greeting} {greeting.emoji}
+          </h1>
+          <p className="text-[#7171A0] text-sm mt-0.5">
+            {greeting.timeOfDay === 'morning' && 'Start your day with something special'}
+            {greeting.timeOfDay === 'afternoon' && 'Perfect time for a refreshing drink'}
+            {greeting.timeOfDay === 'evening' && 'Where are you heading tonight?'}
+            {greeting.timeOfDay === 'night' && 'The night is still young!'}
+          </p>
+        </div>
       </div>
 
       {/* Search Bar */}
-      <div className="px-6 mb-4">
+      <div className="px-5 mb-4">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4A4A6A] w-4 h-4" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search venues..."
-            className="w-full bg-zinc-900/50 backdrop-blur border border-zinc-800 rounded-2xl pl-12 pr-4 py-4 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+            className="input-nightlife w-full py-3.5 pl-11 pr-4 text-sm"
           />
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="px-6 mb-4">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          {/* Filter Toggle Button */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${showFilters || activeFiltersCount > 0
-              ? "bg-purple-500 text-white"
-              : "bg-zinc-900/50 border border-zinc-800 text-gray-400"
-              }`}
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Filters
-            {activeFiltersCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-xs">
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
-
-          {/* Quick Filters */}
-          <button
-            onClick={() => setFilterOpen(filterOpen === "open" ? "all" : "open")}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${filterOpen === "open"
-              ? "bg-green-500 text-white"
-              : "bg-zinc-900/50 border border-zinc-800 text-gray-400"
-              }`}
-          >
-            Open Now
-          </button>
-
-          <button
-            onClick={() => setSortBy(sortBy === "popular" ? "name" : "popular")}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${sortBy === "popular"
-              ? "bg-purple-500 text-white"
-              : "bg-zinc-900/50 border border-zinc-800 text-gray-400"
-              }`}
-          >
-            Popular
-          </button>
-
-          {activeFiltersCount > 0 && (
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-1 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap bg-red-500/20 border border-red-500/30 text-red-400"
-            >
-              <X className="w-3 h-3" />
-              Clear
+          {searchTerm && (
+            <button onClick={() => setSearchTerm("")} className="absolute right-4 top-1/2 -translate-y-1/2">
+              <X className="w-4 h-4 text-[#4A4A6A]" />
             </button>
           )}
         </div>
+      </div>
 
-        {/* Expanded Filters */}
-        {showFilters && (
-          <div className="mt-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl space-y-3">
-            <div>
-              <label className="text-sm text-gray-400 mb-2 block">Status</label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setFilterOpen("all")}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${filterOpen === "all"
-                    ? "bg-purple-500 text-white"
-                    : "bg-zinc-800 text-gray-400"
-                    }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setFilterOpen("open")}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${filterOpen === "open"
-                    ? "bg-green-500 text-white"
-                    : "bg-zinc-800 text-gray-400"
-                    }`}
-                >
-                  Open
-                </button>
-                <button
-                  onClick={() => setFilterOpen("closed")}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${filterOpen === "closed"
-                    ? "bg-red-500 text-white"
-                    : "bg-zinc-800 text-gray-400"
-                    }`}
-                >
-                  Closed
-                </button>
+      {/* Promo Banner Carousel */}
+      {!searchTerm && (
+        <div className="px-5 mb-5">
+          <div className="relative rounded-2xl overflow-hidden h-20">
+            {PROMO_BANNERS.map((b, i) => (
+              <div
+                key={i}
+                className={`absolute inset-0 bg-gradient-to-r ${b.gradient} flex flex-col justify-center px-5 transition-opacity duration-700 ${i === activeBanner ? "opacity-100" : "opacity-0"}`}
+              >
+                <p className="text-white font-bold text-sm">{b.label}</p>
+                <p className="text-white/70 text-xs mt-0.5">{b.sub}</p>
               </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-2 block">Sort By</label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSortBy("name")}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${sortBy === "name"
-                    ? "bg-purple-500 text-white"
-                    : "bg-zinc-800 text-gray-400"
-                    }`}
-                >
-                  Name
-                </button>
-                <button
-                  onClick={() => setSortBy("popular")}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${sortBy === "popular"
-                    ? "bg-purple-500 text-white"
-                    : "bg-zinc-800 text-gray-400"
-                    }`}
-                >
-                  Popular
-                </button>
-                <button
-                  onClick={() => setSortBy("recent")}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${sortBy === "recent"
-                    ? "bg-purple-500 text-white"
-                    : "bg-zinc-800 text-gray-400"
-                    }`}
-                >
-                  Recent
-                </button>
-              </div>
+            ))}
+            {/* Dots */}
+            <div className="absolute bottom-2 right-3 flex gap-1">
+              {PROMO_BANNERS.map((_, i) => (
+                <button key={i} onClick={() => setActiveBanner(i)}
+                  className={`h-1.5 rounded-full transition-all ${i === activeBanner ? "w-4 bg-white" : "w-1.5 bg-white/40"}`}
+                />
+              ))}
             </div>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Filter Pills */}
+      <div className="px-5 mb-5">
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {[
+            { key: "all", label: "All Venues", icon: null },
+            { key: "nearby", label: locationDetails ? `Near Me (${locationDetails.city})` : "Near Me", icon: MapPin, disabled: !locationDetails },
+            { key: "open", label: "Open Now", icon: null },
+            { key: "recent", label: "New", icon: Flame },
+          ].map(f => (
+            <button
+              key={f.key}
+              onClick={() => !f.disabled && setFilterOpen(f.key as any)}
+              disabled={f.disabled}
+              className={`chip whitespace-nowrap ${filterOpen === f.key ? "chip-active" : "chip-inactive"} ${f.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {f.key === "open" && <span className="open-dot" />}
+              {f.key === "recent" && <Flame className="w-3 h-3" />}
+              {f.key === "nearby" && <MapPin className="w-3 h-3" />}
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Results Count */}
-      <div className="px-6 mb-4">
-        <p className="text-sm text-gray-400">
-          {filteredVenues.length} {filteredVenues.length === 1 ? "venue" : "venues"} found
-        </p>
+      {/* Section Title */}
+      <div className="px-5 mb-4 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-[#7171A0]">
+          {filteredVenues.length} {filteredVenues.length === 1 ? "venue" : "venues"}
+          {filterOpen === "nearby" && locationDetails ? ` in ${locationDetails.city}` : " found"}
+        </h2>
       </div>
 
-      {/* Venue List */}
-      <div className="px-4 pb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Venue Grid */}
+      <div className="px-4 grid grid-cols-2 gap-3">
         {filteredVenues.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-            <MapPin className="w-16 h-16 text-gray-600 mb-4 opacity-50" />
-            <h3 className="text-xl font-semibold text-gray-400 mb-2">No venues found</h3>
-            <p className="text-gray-500 max-w-xs mb-6">
-              {searchTerm || activeFiltersCount > 0
-                ? "Try adjusting your search or filters"
-                : "No venues available at the moment"}
-            </p>
-            {(searchTerm || activeFiltersCount > 0) && (
-              <button
-                onClick={clearFilters}
-                className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl transition-colors"
-              >
-                Clear Filters
-              </button>
-            )}
+          <div className="col-span-2 flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-full bg-[#111118] border border-white/[0.07] flex items-center justify-center mb-4">
+              <MapPin className="w-8 h-8 text-[#4A4A6A]" />
+            </div>
+            <h3 className="text-base font-semibold mb-1">No venues found</h3>
+            <p className="text-[#7171A0] text-xs">Try adjusting your search or filters</p>
           </div>
         ) : (
           filteredVenues.map((venue) => (
-            <div
+            <motion.div
               key={venue.id}
-              className="block group"
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.1 }}
             >
-              <div className="h-full relative bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 backdrop-blur-xl border border-zinc-800/50 rounded-2xl overflow-hidden hover:border-purple-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10">
-                {/* Venue Image */}
-                <Link to={`/venue/${venue.id}`} className="block">
-                  <div className="relative h-48 overflow-hidden">
+              <Link to={`/venue/${venue.id}`} className="block group">
+                <div className="card-surface overflow-hidden hover:border-violet-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/10">
+                  {/* Image */}
+                  <div className="relative h-32 overflow-hidden">
                     <ImageWithFallback
-                      src={venue.image_url || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800"}
+                      src={venue.image_url || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600"}
                       alt={venue.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                    {/* Status Badge */}
-                    <div className="absolute top-3 right-3">
-                      <div
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-xl ${venue.is_open
-                          ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                          : "bg-red-500/20 text-red-400 border border-red-500/30"
-                          }`}
-                      >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                    {/* Open badge */}
+                    <div className="absolute top-2 right-2">
+                      <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold backdrop-blur-sm ${venue.is_open
+                        ? "bg-green-500/20 border border-green-500/30 text-green-400"
+                        : "bg-black/50 border border-white/10 text-[#7171A0]"
+                        }`}>
+                        {venue.is_open && <span className="open-dot scale-75" />}
                         {venue.is_open ? "Open" : "Closed"}
                       </div>
                     </div>
                   </div>
-                </Link>
 
-                {/* Venue Info */}
-                <div className="p-4">
-                  <Link to={`/venue/${venue.id}`}>
-                    <h3 className="text-lg font-semibold mb-1.5 group-hover:text-purple-400 transition-colors">{venue.name}</h3>
-                    <div className="flex items-center text-gray-400 text-sm mb-3">
-                      <MapPin className="w-4 h-4 mr-1.5 flex-shrink-0" />
-                      <span className="truncate">{venue.location}</span>
+                  {/* Info */}
+                  <div className="p-3">
+                    <h3 className="font-semibold text-sm leading-tight mb-1 group-hover:text-violet-400 transition-colors truncate">{venue.name}</h3>
+                    <div className="flex items-center gap-1 text-[#7171A0]">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      <span className="text-[11px] truncate">{venue.location}</span>
                     </div>
-                  </Link>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <Link
-                      to={`/venue/${venue.id}`}
-                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white py-2.5 rounded-lg font-medium text-sm text-center transition-all duration-300 active:scale-95"
-                    >
-                      View Menu
-                    </Link>
-                    <Link
-                      to={`/venue/${venue.id}/details`}
-                      className="px-4 bg-zinc-800 hover:bg-zinc-700 text-white py-2.5 rounded-lg font-medium text-sm transition-all duration-300 active:scale-95 flex items-center justify-center"
-                    >
-                      Info
-                    </Link>
                   </div>
-                </div>
 
-                {/* Glow effect */}
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5" />
+                  {/* Hover glow */}
+                  <div className="absolute inset-0 rounded-[20px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 pointer-events-none" />
                 </div>
-              </div>
-            </div>
+              </Link>
+            </motion.div>
           ))
         )}
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800/50 px-6 py-4">
-        <div className="flex items-center justify-around max-w-md mx-auto">
-          <Link to="/" className="flex flex-col items-center gap-1 text-purple-400">
-            <Home className="w-6 h-6" />
-            <span className="text-xs font-medium">Home</span>
-          </Link>
-          <Link to="/my-bottles" className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors">
-            <Wine className="w-6 h-6" />
-            <span className="text-xs font-medium">My Bottles</span>
-          </Link>
-          <Link to="/profile" className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors">
-            <User className="w-6 h-6" />
-            <span className="text-xs font-medium">Profile</span>
-          </Link>
-        </div>
-      </div>
+      <BottomNav active="home" />
     </div>
   );
 }

@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Wine, LogIn, UserPlus } from "lucide-react";
+import { Wine, LogIn, UserPlus, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
 import { authService } from "../../services/api";
+import { toast } from "sonner";
 
 export default function BartenderLogin() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
-  const [venueName, setVenueName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -19,177 +20,158 @@ export default function BartenderLogin() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-
     try {
       if (isLogin) {
-        // Login
         const data = await authService.login(email, password);
-
-        // Check if user is bartender
         if (data.user.role !== "bartender" && data.user.role !== "admin") {
-          setError("Access denied. Not a bartender account.");
+          setError("Access denied — not a bartender account.");
+          toast.error("Access denied — not a bartender account");
           setIsLoading(false);
           return;
         }
-
-        // Store token and user info
-        localStorage.setItem("bartender_token", data.access_token);
-        localStorage.setItem("bartender", JSON.stringify(data.user));
-
+        // Session is already saved by authService.login
+        toast.success("Welcome back!");
         navigate("/home");
       } else {
-        // Signup
-        // Note: Generic signup defaults to customer role. 
-        // For bartender app, we might want to default to bartender or ask admin approval.
-        // But for MVP, we'll try to signup and then login.
-        // Wait, standard signup creates customer.
-        // User asked "sign up anlogin as well".
-        // If they signup here, they become customer. Then login fails "Not a bartender".
-        // This is tricky.
-        // I will just implement signup call for now.
-        // User probably expects it to work.
-        // I should probably pass role="bartender" if I modified backend?
-        // Backend auth.py signup defaults to customer.
-        // I will just call signup. If it succeeds, they can login (but might be customer).
-
         await authService.signup(name, email, password, phone);
         setIsLogin(true);
-        setError("Account created! Please ask admin to promote you to Bartender, or login if allowed.");
-        // Actually, let's auto-login? No, better show message.
+        setError("Account created! Ask your admin to grant bartender access, then log in.");
+        toast.success("Account created successfully!");
       }
-
     } catch (err: any) {
-      console.error("Auth failed:", err);
-      let msg = "Authentication failed.";
-      if (err.response) {
-        msg = err.response.data?.detail || `Server Error: ${err.response.status}`;
-      } else if (err.message === "Network Error") {
-        msg = "Network Error: Check backend connection/SSL certs.";
-      } else {
-        msg = err.message || "Unknown Error";
-      }
+      const msg = err.response?.data?.detail || err.message || "Authentication failed.";
       setError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-b from-[#0a0a0f] via-[#1a0a2e] to-[#0a0a0f]">
+    <div className="min-h-screen bg-[#06060D] text-white flex flex-col items-center justify-center px-6 relative overflow-hidden">
+      {/* Ambient orbs */}
+      <div className="absolute top-[-100px] left-[-80px] w-72 h-72 rounded-full bg-violet-700/15 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-[-60px] right-[-60px] w-56 h-56 rounded-full bg-amber-600/10 blur-3xl pointer-events-none" />
+
       {/* Logo */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-12 text-center"
+        className="mb-10 text-center"
       >
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 mb-4 shadow-lg shadow-purple-500/50">
-          <Wine className="w-10 h-10 text-white" />
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-600 to-violet-900 mb-4 shadow-lg shadow-violet-700/40">
+          <Wine className="w-9 h-9 text-white" />
         </div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-          StoreMyBottle
-        </h1>
-        <p className="text-gray-400 mt-2">Bartender Portal</p>
+        <h1 className="text-2xl font-black tracking-tight">StoreMyBottle</h1>
+        <div className="inline-flex items-center gap-1.5 mt-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/8">
+          <ShieldCheck className="w-3 h-3 text-amber-400" />
+          <span className="text-[11px] text-[#6B6B9A] font-semibold tracking-wider uppercase">Staff Portal</span>
+        </div>
       </motion.div>
 
-      {/* Auth Card */}
+      {/* Card */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.15 }}
         className="w-full max-w-sm"
       >
-        <div className="glass-card p-8 rounded-3xl border border-purple-500/20 bg-[rgba(17,17,27,0.7)] backdrop-blur-xl shadow-2xl shadow-purple-500/10">
-
-          {/* Toggle */}
-          <div className="flex mb-6 bg-[rgba(255,255,255,0.05)] rounded-xl p-1">
-            <button
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${isLogin ? "bg-purple-600 text-white shadow-lg" : "text-gray-400 hover:text-white"
-                }`}
-            >
-              Login
-            </button>
-            <button
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${!isLogin ? "bg-purple-600 text-white shadow-lg" : "text-gray-400 hover:text-white"
-                }`}
-            >
-              Sign Up
-            </button>
+        <div className="bar-card p-7 shadow-2xl shadow-black/50">
+          {/* Tab toggle */}
+          <div className="flex bg-white/[0.04] rounded-xl p-1 mb-6">
+            {[{ label: "Sign In", val: true }, { label: "Sign Up", val: false }].map(t => (
+              <button
+                key={String(t.val)}
+                onClick={() => { setIsLogin(t.val); setError(""); }}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${isLogin === t.val
+                  ? "bg-violet-600 text-white shadow-lg shadow-violet-700/30"
+                  : "text-[#6B6B9A] hover:text-white"
+                  }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Venue Name (Only for Login? Or both? Actually, venue is implicit for now or selected after?)
-                Original code had Venue Name. Let's keep it for Login if it was there?
-                Original code used it but didn't pass to API. It was UI only?
-                I'll keep it simple.
-            */}
-
             {!isLogin && (
               <>
-                <div>
-                  <label className="block text-sm text-gray-300 mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your Name"
-                    className="w-full px-4 py-3 rounded-xl bg-[rgba(17,17,27,0.5)] border border-purple-500/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-300 mb-1">Phone</label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+91..."
-                    className="w-full px-4 py-3 rounded-xl bg-[rgba(17,17,27,0.5)] border border-purple-500/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Full Name"
+                  className="input-bar w-full px-4 py-3.5 text-sm"
+                  required
+                />
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="Phone (+91...)"
+                  className="input-bar w-full px-4 py-3.5 text-sm"
+                  required
+                />
               </>
             )}
 
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
-                className="w-full px-4 py-3 rounded-xl bg-[rgba(17,17,27,0.5)] border border-purple-500/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                required
-              />
-            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Email address"
+              className="input-bar w-full px-4 py-3.5 text-sm"
+              required
+            />
 
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Password</label>
+            <div className="relative">
               <input
-                type="password"
+                type={showPass ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl bg-[rgba(17,17,27,0.5)] border border-purple-500/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Password"
+                className="input-bar w-full pl-4 pr-12 py-3.5 text-sm"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPass(v => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B6B9A]"
+              >
+                {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
 
-            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+            {isLogin && (
+              <div className="flex justify-end -mt-1">
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="text-sm text-[#6B6B9A] hover:text-violet-400 transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+                <p className="text-red-400 text-xs leading-relaxed">{error}</p>
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70 transition-all disabled:opacity-50"
+              className="btn-bar-primary w-full py-4 flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-2"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  {isLogin ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
-                  {isLogin ? "Sign In" : "Create Account"}
+                  {isLogin ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                  {isLogin ? "Sign In to Portal" : "Create Account"}
                 </>
               )}
             </button>
@@ -197,14 +179,13 @@ export default function BartenderLogin() {
         </div>
       </motion.div>
 
-      {/* Footer */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        className="text-gray-500 text-sm mt-8"
+        transition={{ delay: 0.5 }}
+        className="text-[#4A4A6A] text-xs mt-8"
       >
-        v1.0.0 • Secure Portal
+        v1.0.0 · Staff access only
       </motion.p>
     </div>
   );

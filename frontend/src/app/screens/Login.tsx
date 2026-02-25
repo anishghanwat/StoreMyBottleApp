@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router";
-import { ArrowLeft, Mail, Lock, User, Loader2 } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, Loader2, Wine } from "lucide-react";
 import { authService } from "../../services/auth.service";
+import { motion } from "motion/react";
+import { toast } from "sonner";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,7 +12,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form fields
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,163 +20,180 @@ export default function Login() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     try {
       if (isSignup) {
-        // For MVP, we'll use email as the identifier
-        // In a real app, you'd have a separate signup endpoint
         await authService.login(email, password, name);
+        toast.success("Account created successfully! Welcome! 🎉");
       } else {
         await authService.login(email, password);
+        toast.success("Welcome back!");
       }
-
-      // Navigate to intended destination or payment page
       const destination = location.state?.from || "/payment";
       navigate(destination, { state: location.state });
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Authentication failed. Please try again.");
-      console.error(err);
+      const errorMsg = err.response?.data?.detail || "Authentication failed. Please try again.";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      {/* Header */}
-      <div className="px-6 py-4 flex items-center gap-4">
+    <div className="min-h-screen bg-[#09090F] text-white flex flex-col relative overflow-hidden">
+      {/* Ambient orbs */}
+      <div className="absolute top-[-80px] left-[-60px] w-64 h-64 rounded-full bg-violet-600/20 blur-3xl pointer-events-none float" />
+      <div className="absolute top-[30%] right-[-80px] w-48 h-48 rounded-full bg-fuchsia-600/15 blur-3xl pointer-events-none float-delayed" />
+      <div className="absolute bottom-[20%] left-[-40px] w-56 h-56 rounded-full bg-violet-800/10 blur-3xl pointer-events-none" />
+
+      {/* Back Button */}
+      <div className="px-5 pt-12 pb-4 flex items-center relative z-10">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 -ml-2 hover:bg-zinc-800/50 rounded-full transition-colors"
+          className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors"
         >
-          <ArrowLeft className="w-6 h-6" />
+          <ArrowLeft className="w-5 h-5 text-[#7171A0]" />
         </button>
-        <h1 className="text-xl font-semibold">
-          {isSignup ? "Create Account" : "Sign In"}
-        </h1>
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex items-center justify-center px-6">
-        <div className="w-full max-w-sm space-y-6">
-          {/* Title */}
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-2">
-              {isSignup ? "Join StoreMyBottle" : "Welcome Back"}
-            </h2>
-            <p className="text-gray-400">
-              {isSignup
-                ? "Create an account to purchase and redeem bottles"
-                : "Sign in to continue your purchase"}
-            </p>
+      <div className="flex-1 flex flex-col justify-center px-6 relative z-10">
+        {/* Logo + Title */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-10"
+        >
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <Wine className="w-5 h-5 text-white" strokeWidth={1.8} />
+            </div>
+            <span className="text-sm font-semibold tracking-wider text-[#7171A0] uppercase">StoreMyBottle</span>
           </div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">
+            {isSignup ? "Create account" : "Welcome back"}
+          </h1>
+          <p className="text-[#7171A0] text-sm leading-relaxed">
+            {isSignup
+              ? "Join to purchase & store bottles at top venues"
+              : "Sign in to access your stored bottles"}
+          </p>
+        </motion.div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4">
-              <p className="text-red-400 text-sm">{error}</p>
+        {/* Tab Toggle */}
+        <div className="flex bg-[#111118] border border-white/[0.07] rounded-2xl p-1 mb-6">
+          <button
+            onClick={() => { setIsSignup(false); setError(null); }}
+            className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${!isSignup
+              ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25"
+              : "text-[#7171A0] hover:text-white"
+              }`}
+          >
+            Sign In
+          </button>
+          <button
+            onClick={() => { setIsSignup(true); setError(null); }}
+            className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${isSignup
+              ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25"
+              : "text-[#7171A0] hover:text-white"
+              }`}
+          >
+            Sign Up
+          </button>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 mb-4"
+          >
+            <p className="text-red-400 text-sm">{error}</p>
+          </motion.div>
+        )}
+
+        {/* Form */}
+        <motion.form
+          key={isSignup ? "signup" : "login"}
+          initial={{ opacity: 0, x: isSignup ? 20 : -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.25 }}
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
+          {isSignup && (
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A4A6A]" />
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Full Name"
+                required
+                className="input-nightlife w-full py-4 pl-11 pr-4"
+              />
             </div>
           )}
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name Field (Signup only) */}
-            {isSignup && (
-              <div className="space-y-2">
-                <label className="text-sm text-gray-400">Full Name</label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
-                    required
-                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-                  />
-                </div>
-              </div>
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A4A6A]" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
+              required
+              className="input-nightlife w-full py-4 pl-11 pr-4"
+            />
+          </div>
+
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A4A6A]" />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              required
+              minLength={6}
+              className="input-nightlife w-full py-4 pl-11 pr-4"
+            />
+          </div>
+
+          {!isSignup && (
+            <div className="flex justify-end -mt-1">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-[#7171A0] hover:text-violet-400 transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full py-4 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {isSignup ? "Creating account..." : "Signing in..."}
+              </>
+            ) : (
+              isSignup ? "Create Account" : "Sign In"
             )}
+          </button>
+        </motion.form>
 
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label className="text-sm text-gray-400">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label className="text-sm text-gray-400">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  minLength={6}
-                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-zinc-700 disabled:to-zinc-700 text-white py-5 rounded-2xl font-medium text-base transition-all duration-300 active:scale-95 shadow-lg shadow-purple-500/25 disabled:shadow-none flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  {isSignup ? "Creating Account..." : "Signing In..."}
-                </>
-              ) : (
-                <>{isSignup ? "Create Account" : "Sign In"}</>
-              )}
-            </button>
-          </form>
-
-          {/* Toggle Sign Up / Sign In */}
-          <div className="text-center pt-4">
-            <button
-              onClick={() => {
-                setIsSignup(!isSignup);
-                setError(null);
-              }}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              {isSignup ? (
-                <>
-                  Already have an account?{" "}
-                  <span className="text-purple-400 font-medium">Sign In</span>
-                </>
-              ) : (
-                <>
-                  Don't have an account?{" "}
-                  <span className="text-purple-400 font-medium">Sign Up</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Guest Browsing Note */}
-          <div className="text-center pt-6 border-t border-zinc-800">
-            <Link to="/" className="text-gray-500 text-sm hover:text-white transition-colors">
-              You can browse venues and bottles without signing in
-            </Link>
-          </div>
+        {/* Guest browse */}
+        <div className="text-center pt-8 mt-2 border-t border-white/[0.06]">
+          <Link to="/" className="text-[#4A4A6A] text-sm hover:text-[#7171A0] transition-colors">
+            Browse venues without signing in →
+          </Link>
         </div>
       </div>
     </div>

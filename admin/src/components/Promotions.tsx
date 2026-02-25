@@ -23,8 +23,8 @@ export function Promotions() {
   const [loading, setLoading] = React.useState(true)
   const [refreshing, setRefreshing] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [statusFilter, setStatusFilter] = React.useState("")
-  const [venueFilter, setVenueFilter] = React.useState("")
+  const [statusFilter, setStatusFilter] = React.useState("all")
+  const [venueFilter, setVenueFilter] = React.useState("all")
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [editingPromotion, setEditingPromotion] = React.useState<any>(null)
   const [formData, setFormData] = React.useState({
@@ -57,8 +57,8 @@ export function Promotions() {
 
     try {
       const filters: any = {}
-      if (statusFilter) filters.status = statusFilter
-      if (venueFilter) filters.venue_id = venueFilter
+      if (statusFilter && statusFilter !== "all") filters.status = statusFilter
+      if (venueFilter && venueFilter !== "all") filters.venue_id = venueFilter
 
       const data = await adminService.getPromotions(filters)
       setPromotions(data.promotions)

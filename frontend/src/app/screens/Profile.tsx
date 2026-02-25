@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { profileService } from "../../services/profile.service";
 import { authService } from "../../services/auth.service";
 import { Profile as UserProfile } from "../../types/api.types";
+import { toast } from "sonner";
 
 interface Badge {
     id: string;
@@ -72,8 +73,10 @@ export default function Profile() {
             setProfile(data);
             setEditName(data.user.name);
             setEditEmail(data.user.email || "");
-        } catch (err) {
-            setError("Failed to load profile");
+        } catch (err: any) {
+            const errorMsg = err.response?.data?.detail || "Failed to load profile";
+            setError(errorMsg);
+            toast.error(errorMsg);
             console.error(err);
         } finally {
             setLoading(false);
@@ -95,7 +98,10 @@ export default function Profile() {
                 });
             }
             setIsEditing(false);
-        } catch (err) {
+            toast.success("Profile updated successfully!");
+        } catch (err: any) {
+            const errorMsg = err.response?.data?.detail || "Failed to update profile";
+            toast.error(errorMsg);
             console.error(err);
         } finally {
             setSaving(false);
@@ -104,6 +110,7 @@ export default function Profile() {
 
     const handleLogout = () => {
         authService.logout();
+        toast.success("Logged out successfully");
         navigate("/login");
     };
 
@@ -256,8 +263,8 @@ export default function Profile() {
                     <button
                         onClick={() => setActiveTab('overview')}
                         className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'overview'
-                                ? 'bg-purple-600 text-white'
-                                : 'text-gray-400 hover:text-white'
+                            ? 'bg-purple-600 text-white'
+                            : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         Overview
@@ -265,8 +272,8 @@ export default function Profile() {
                     <button
                         onClick={() => setActiveTab('badges')}
                         className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'badges'
-                                ? 'bg-purple-600 text-white'
-                                : 'text-gray-400 hover:text-white'
+                            ? 'bg-purple-600 text-white'
+                            : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         Badges
@@ -274,8 +281,8 @@ export default function Profile() {
                     <button
                         onClick={() => setActiveTab('stats')}
                         className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'stats'
-                                ? 'bg-purple-600 text-white'
-                                : 'text-gray-400 hover:text-white'
+                            ? 'bg-purple-600 text-white'
+                            : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         Stats
@@ -410,8 +417,8 @@ export default function Profile() {
                                 <div
                                     key={badge.id}
                                     className={`aspect-square rounded-2xl p-4 flex flex-col items-center justify-center text-center transition-all ${badge.earned
-                                            ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/30'
-                                            : 'bg-zinc-900/50 border border-zinc-800/50 opacity-50'
+                                        ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/30'
+                                        : 'bg-zinc-900/50 border border-zinc-800/50 opacity-50'
                                         }`}
                                 >
                                     <div className="text-3xl mb-2">{badge.icon}</div>

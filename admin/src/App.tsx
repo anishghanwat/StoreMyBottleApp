@@ -29,6 +29,8 @@ import { Promotions } from "@/components/Promotions"
 // import { SupportTickets } from "@/components/SupportTickets"
 import { InventoryAuditLogs } from "@/components/InventoryAuditLogs"
 import { Login } from "@/components/Login"
+import { ForgotPassword } from "@/components/ForgotPassword"
+import { ResetPassword } from "@/components/ResetPassword"
 import { authService } from "@/services/api"
 import { Toaster } from "@/components/ui/sonner"
 
@@ -37,6 +39,33 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(false)
   const [user, setUser] = React.useState<any>(null)
   const [loading, setLoading] = React.useState(true)
+  const [authView, setAuthView] = React.useState<'login' | 'forgot-password' | 'reset-password'>('login')
+  const [resetToken, setResetToken] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    // Check for reset token in URL
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('token')
+    if (token) {
+      setAuthView('reset-password')
+      setResetToken(token)
+    }
+
+    // Check for hash navigation
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '')
+      if (hash === 'forgot-password') {
+        setAuthView('forgot-password')
+      } else if (hash === 'login' || hash === '') {
+        setAuthView('login')
+      }
+    }
+
+    window.addEventListener('hashchange', handleHashChange)
+    handleHashChange()
+
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   React.useEffect(() => {
     // Check auth status on mount
@@ -69,12 +98,28 @@ export default function App() {
   const handleLogin = (user: any) => {
     setIsAuthenticated(true)
     setUser(user)
+    setAuthView('login')
+    window.location.hash = ''
   }
 
   const handleLogout = () => {
     authService.logout()
     setIsAuthenticated(false)
     setUser(null)
+    setAuthView('login')
+    window.location.hash = ''
+  }
+
+  const handleBackToLogin = () => {
+    setAuthView('login')
+    window.location.hash = ''
+  }
+
+  const handleResetSuccess = () => {
+    setAuthView('login')
+    setResetToken(null)
+    window.location.hash = ''
+    window.history.replaceState({}, document.title, window.location.pathname)
   }
 
   const renderPage = () => {
@@ -111,7 +156,21 @@ export default function App() {
   }
 
   const getPageTitle = () => {
-    return currentPage.charAt(0).toUpperCase() + currentPage.slice(1)
+    const pageTitles: Record<string, string> = {
+      dashboard: "Dashboard",
+      venues: "Venues",
+      bottles: "Bottles",
+      users: "Users",
+      purchases: "Purchases",
+      redemptions: "Redemptions",
+      bartenders: "Bartenders",
+      reports: "Reports",
+      "venue-analytics": "Venue Analytics",
+      settings: "Settings",
+      promotions: "Promotions",
+      logs: "Audit Logs",
+    }
+    return pageTitles[currentPage] ?? currentPage.charAt(0).toUpperCase() + currentPage.slice(1)
   }
 
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>
@@ -119,7 +178,15 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <>
-        <Login onLogin={handleLogin} />
+        {authView === 'login' && <Login onLogin={handleLogin} />}
+        {authView === 'forgot-password' && <ForgotPassword onBack={handleBackToLogin} />}
+        {authView === 'reset-password' && resetToken && (
+          <ResetPassword
+            token={resetToken}
+            onSuccess={handleResetSuccess}
+            onBack={handleBackToLogin}
+          />
+        )}
         <Toaster />
       </>
     )
