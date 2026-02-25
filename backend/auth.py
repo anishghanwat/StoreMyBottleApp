@@ -14,7 +14,13 @@ from database import get_db
 from models import User, OTP
 
 # Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Bcrypt has a 72-byte limit, so we configure it properly
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__ident="2b",  # Use bcrypt 2b variant
+    bcrypt__rounds=12     # 12 rounds is secure and fast
+)
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
