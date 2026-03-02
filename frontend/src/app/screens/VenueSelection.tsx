@@ -8,11 +8,6 @@ import { useLocationAndGreeting } from "../../utils/useLocationAndGreeting";
 import { BottomNav } from "../components/ui/BottomNav";
 import { motion } from "motion/react";
 
-const PROMO_BANNERS = [
-  { label: "🎉 Happy Hours", sub: "50% off premium pegs till 9 PM", gradient: "from-violet-600/90 to-fuchsia-700/90" },
-  { label: "🥃 New Arrivals", sub: "Single malt collection at Privé", gradient: "from-amber-600/90 to-orange-700/90" },
-  { label: "🎶 Live Tonight", sub: "Open bar with DJ set at Aer", gradient: "from-cyan-600/90 to-blue-700/90" },
-];
 
 export default function VenueSelection() {
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -21,17 +16,11 @@ export default function VenueSelection() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState<"all" | "open" | "recent" | "nearby">("all");
-  const [activeBanner, setActiveBanner] = useState(0);
 
   // Use location and greeting hook
   const { greeting, location, locationDetails, loading: locationLoading, refresh: refreshLocation } = useLocationAndGreeting();
 
   useEffect(() => { loadVenues(); }, []);
-
-  useEffect(() => {
-    const t = setInterval(() => setActiveBanner(p => (p + 1) % PROMO_BANNERS.length), 4000);
-    return () => clearInterval(t);
-  }, []);
 
   useEffect(() => { applyFilters(); }, [searchTerm, filterOpen, venues, locationDetails]);
 
@@ -101,7 +90,7 @@ export default function VenueSelection() {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090F] text-white pb-24">
+    <div className="flex flex-col min-h-screen bg-[#09090F] text-white">
       {/* Top ambient header */}
       <div className="relative px-5 pt-12 pb-5">
         {/* Ambient glow behind header */}
@@ -163,30 +152,6 @@ export default function VenueSelection() {
         </div>
       </div>
 
-      {/* Promo Banner Carousel */}
-      {!searchTerm && (
-        <div className="px-5 mb-5">
-          <div className="relative rounded-2xl overflow-hidden h-20">
-            {PROMO_BANNERS.map((b, i) => (
-              <div
-                key={i}
-                className={`absolute inset-0 bg-gradient-to-r ${b.gradient} flex flex-col justify-center px-5 transition-opacity duration-700 ${i === activeBanner ? "opacity-100" : "opacity-0"}`}
-              >
-                <p className="text-white font-bold text-sm">{b.label}</p>
-                <p className="text-white/70 text-xs mt-0.5">{b.sub}</p>
-              </div>
-            ))}
-            {/* Dots */}
-            <div className="absolute bottom-2 right-3 flex gap-1">
-              {PROMO_BANNERS.map((_, i) => (
-                <button key={i} onClick={() => setActiveBanner(i)}
-                  className={`h-1.5 rounded-full transition-all ${i === activeBanner ? "w-4 bg-white" : "w-1.5 bg-white/40"}`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Filter Pills */}
       <div className="px-5 mb-5">
@@ -220,10 +185,10 @@ export default function VenueSelection() {
         </h2>
       </div>
 
-      {/* Venue Grid */}
-      <div className="px-4 grid grid-cols-2 gap-3">
+      {/* Venue List */}
+      <div className="px-4 space-y-3 pb-24">
         {filteredVenues.length === 0 ? (
-          <div className="col-span-2 flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-16 h-16 rounded-full bg-[#111118] border border-white/[0.07] flex items-center justify-center mb-4">
               <MapPin className="w-8 h-8 text-[#4A4A6A]" />
             </div>
@@ -234,48 +199,59 @@ export default function VenueSelection() {
           filteredVenues.map((venue) => (
             <motion.div
               key={venue.id}
-              whileTap={{ scale: 0.97 }}
+              whileTap={{ scale: 0.98 }}
               transition={{ duration: 0.1 }}
             >
               <Link to={`/venue/${venue.id}`} className="block group">
-                <div className="card-surface overflow-hidden hover:border-violet-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/10">
-                  {/* Image */}
-                  <div className="relative h-32 overflow-hidden">
+                <div className="relative rounded-2xl overflow-hidden border border-white/[0.06] hover:border-violet-500/25 transition-all duration-300">
+                  {/* Full image */}
+                  <div className="relative h-44 overflow-hidden">
                     <ImageWithFallback
                       src={venue.image_url || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600"}
                       alt={venue.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                    {/* Open badge */}
-                    <div className="absolute top-2 right-2">
-                      <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold backdrop-blur-sm ${venue.is_open
-                        ? "bg-green-500/20 border border-green-500/30 text-green-400"
-                        : "bg-black/50 border border-white/10 text-[#7171A0]"
-                        }`}>
-                        {venue.is_open && <span className="open-dot scale-75" />}
-                        {venue.is_open ? "Open" : "Closed"}
+                    {/* Gradient overlay — bottom heavy */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                    {/* Top-right: star rating badge */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1.5 rounded-xl text-xs font-bold border border-white/10">
+                      <span className="text-amber-400">★</span>
+                      <span className="text-white">{venue.is_open ? "4.8" : "—"}</span>
+                    </div>
+
+                    {/* Bottom overlay: name + location left, tags right */}
+                    <div className="absolute bottom-0 inset-x-0 px-4 pb-3 pt-6 flex items-end justify-between">
+                      {/* Left: name + location */}
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-lg text-white leading-tight truncate">{venue.name}</h3>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3 text-white/60 flex-shrink-0" />
+                          <span className="text-sm text-white/70 truncate">{venue.location}</span>
+                        </div>
+                      </div>
+
+                      {/* Right: tags */}
+                      <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
+                        {venue.is_open ? (
+                          <span className="bg-black/50 backdrop-blur-sm border border-white/15 text-white/80 text-[11px] font-medium px-2.5 py-1 rounded-full">
+                            Open
+                          </span>
+                        ) : (
+                          <span className="bg-black/50 backdrop-blur-sm border border-white/15 text-white/50 text-[11px] font-medium px-2.5 py-1 rounded-full">
+                            Closed
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
-
-                  {/* Info */}
-                  <div className="p-3">
-                    <h3 className="font-semibold text-sm leading-tight mb-1 group-hover:text-violet-400 transition-colors truncate">{venue.name}</h3>
-                    <div className="flex items-center gap-1 text-[#7171A0]">
-                      <MapPin className="w-3 h-3 flex-shrink-0" />
-                      <span className="text-[11px] truncate">{venue.location}</span>
-                    </div>
-                  </div>
-
-                  {/* Hover glow */}
-                  <div className="absolute inset-0 rounded-[20px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 pointer-events-none" />
                 </div>
               </Link>
             </motion.div>
           ))
         )}
       </div>
+
 
       {/* Bottom Navigation */}
       <BottomNav active="home" />

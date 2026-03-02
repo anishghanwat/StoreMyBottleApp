@@ -15,9 +15,11 @@ export interface Bottle {
     brand: string;
     name: string;
     price: number;
-    volume_ml: number;
+    volume_ml: number | null;
     image_url: string | null;
     is_available: boolean;
+    category?: string | null;
+    description?: string | null;
 }
 
 export interface User {

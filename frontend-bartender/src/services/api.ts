@@ -138,8 +138,8 @@ export const authService = {
         return response.data;
     },
 
-    signup: async (name: string, email: string, password: string, phone: string) => {
-        const response = await api.post('/auth/signup', { name, email, password, phone });
+    signup: async (name: string, email: string, password: string, phone?: string) => {
+        const response = await api.post('/auth/signup', { email, password, name });
         const { access_token, refresh_token, user } = response.data;
 
         // Save session

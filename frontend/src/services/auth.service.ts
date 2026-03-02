@@ -11,30 +11,22 @@ import {
 // Auth service for customer frontend
 export const authService = {
     // Simple email/password login (for MVP)
-    async login(email: string, password: string, name?: string): Promise<TokenResponse> {
-        try {
-            const response = await apiClient.post<TokenResponse>('/auth/login', {
-                email,
-                password,
-            });
+    async login(email: string, password: string): Promise<TokenResponse> {
+        const response = await apiClient.post<TokenResponse>('/auth/login', {
+            email,
+            password,
+        });
 
-            // Store tokens and user using session manager
-            if (response.data.refresh_token) {
-                sessionManager.saveSession(
-                    response.data.access_token,
-                    response.data.refresh_token,
-                    response.data.user
-                );
-            }
-
-            return response.data;
-        } catch (error) {
-            // If login fails and name is provided, try signup
-            if (name) {
-                return this.signup(email, password, name);
-            }
-            throw error;
+        // Store tokens and user using session manager
+        if (response.data.refresh_token) {
+            sessionManager.saveSession(
+                response.data.access_token,
+                response.data.refresh_token,
+                response.data.user
+            );
         }
+
+        return response.data;
     },
 
     // Signup method

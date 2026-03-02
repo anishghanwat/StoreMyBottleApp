@@ -72,12 +72,11 @@ class BottleCreate(BottleBase):
 
 class BottleResponse(BottleBase):
     id: str
-    venue_id: str = Field(alias="venueId")
+    venue_id: str
     is_available: bool
     
     class Config:
         from_attributes = True
-        populate_by_name = True
 
 
 class BottleList(BaseModel):

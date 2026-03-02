@@ -5,20 +5,24 @@ import { sessionManager } from '../utils/session';
 const getApiUrl = () => {
     // Check if VITE_API_URL is set (production)
     if (import.meta.env.VITE_API_URL) {
+        console.log('🔧 Using VITE_API_URL:', import.meta.env.VITE_API_URL);
         return import.meta.env.VITE_API_URL;
     }
 
     // Fallback for local development
     const hostname = window.location.hostname;
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        console.log('🔧 Using localhost fallback: http://localhost:8000');
         return 'http://localhost:8000';
     }
 
     // Default fallback
+    console.log('🔧 Using default fallback: http://localhost:8000');
     return 'http://localhost:8000';
 };
 
 const API_URL = getApiUrl();
+console.log('🌐 Final API_URL:', API_URL);
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({

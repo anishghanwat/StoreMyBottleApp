@@ -106,6 +106,48 @@ def confirm_purchase(
     return purchase
 
 
+@router.post("/{purchase_id}/cancel", response_model=PurchaseResponse)
+def cancel_purchase(
+    purchase_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cancel a pending purchase"""
+    # Get purchase with row lock
+    purchase = db.query(Purchase).filter(
+        Purchase.id == purchase_id,
+        Purchase.user_id == current_user.id
+    ).with_for_update().first()
+    
+    if not purchase:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Purchase not found"
+        )
+    
+    if purchase.payment_status != PaymentStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot cancel purchase with status: {purchase.payment_status.value}"
+        )
+    
+    # Mark as failed/cancelled
+    purchase.payment_status = PaymentStatus.FAILED
+    
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to cancel purchase: {str(e)}"
+        )
+    
+    db.refresh(purchase)
+    
+    return purchase
+
+
 @router.get("/my-bottles", response_model=UserBottleList)
 def get_my_bottles(
     current_user: User = Depends(get_current_user),
@@ -148,6 +190,29 @@ def get_my_bottles(
         bottles=user_bottles,
         total=len(user_bottles)
     )
+
+
+@router.get("/pending", response_model=List[PurchaseResponse])
+def get_pending_purchases(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's pending purchases (waiting for payment confirmation)
+    
+    Only returns purchases that are:
+    - Still pending (not confirmed/failed)
+    - Created within the last 15 minutes
+    """
+    # Calculate expiration time (15 minutes ago)
+    expiration_time = datetime.now(timezone.utc) - timedelta(minutes=15)
+    
+    purchases = db.query(Purchase).filter(
+        Purchase.user_id == current_user.id,
+        Purchase.payment_status == PaymentStatus.PENDING,
+        Purchase.created_at >= expiration_time  # Only show purchases from last 15 minutes
+    ).order_by(Purchase.created_at.desc()).all()
+    
+    return purchases
 
 
 @router.get("/history", response_model=UserBottleList)
@@ -214,21 +279,30 @@ def get_purchase(
 
 
 @router.get("/venue/{venue_id}/pending", response_model=List[PurchaseRequestResponse])
-def get_pending_purchases(
+def get_pending_purchases_for_venue(
     venue_id: str,
     current_user: User = Depends(get_current_active_bartender),
     db: Session = Depends(get_db)
 ):
-    """Get pending purchase requests for a venue"""
+    """Get pending purchase requests for a venue
+    
+    Only returns purchases that are:
+    - Still pending (not confirmed/failed)
+    - Created within the last 15 minutes
+    """
     # Verify bartender belongs to venue (optional, depends on policy)
     if current_user.venue_id and current_user.venue_id != venue_id:
         # Allowing override if admin, but strict for now
         # raise HTTPException(status_code=403, detail="Not authorized for this venue")
         pass 
 
+    # Calculate expiration time (15 minutes ago)
+    expiration_time = datetime.now(timezone.utc) - timedelta(minutes=15)
+
     purchases = db.query(Purchase).filter(
         Purchase.venue_id == venue_id,
-        Purchase.payment_status == PaymentStatus.PENDING
+        Purchase.payment_status == PaymentStatus.PENDING,
+        Purchase.created_at >= expiration_time  # Only show purchases from last 15 minutes
     ).order_by(Purchase.created_at.desc()).all()
     
     response = []

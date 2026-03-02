@@ -36,6 +36,14 @@ export const purchaseService = {
         return response.data;
     },
 
+    // Cancel a pending purchase
+    async cancelPurchase(purchaseId: string): Promise<Purchase> {
+        const response = await apiClient.post<Purchase>(
+            `/purchases/${purchaseId}/cancel`
+        );
+        return response.data;
+    },
+
     // Get user's bottles
     async getUserBottles(): Promise<UserBottle[]> {
         const response = await apiClient.get<{ bottles: UserBottle[]; total: number }>(
@@ -50,5 +58,11 @@ export const purchaseService = {
             '/purchases/history'
         );
         return response.data.bottles;
+    },
+
+    // Get pending purchases
+    async getPendingPurchases(): Promise<Purchase[]> {
+        const response = await apiClient.get<Purchase[]>('/purchases/pending');
+        return response.data;
     },
 };

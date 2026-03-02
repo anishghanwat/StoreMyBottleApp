@@ -413,7 +413,7 @@ export function Bartenders() {
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select a venue" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[10000]">
                   {venues.map((venue) => (
                     <SelectItem key={venue.id} value={venue.id}>
                       {venue.name}
@@ -487,7 +487,7 @@ export function Bartenders() {
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select a venue" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[10000]">
                   {venues.map((venue) => (
                     <SelectItem key={venue.id} value={venue.id}>
                       {venue.name}

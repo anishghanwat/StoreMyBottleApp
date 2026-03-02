@@ -49,7 +49,7 @@ export default function VenueDetails() {
     );
 
     return (
-        <div className="min-h-screen bg-[#09090F] text-white pb-24">
+        <div className="flex flex-col min-h-screen bg-[#09090F] text-white">
             {/* Hero Image */}
             <div className="relative h-64">
                 <ImageWithFallback
@@ -154,8 +154,8 @@ export default function VenueDetails() {
                                     <p className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider">{bottle.brand}</p>
                                     <h4 className="text-sm font-bold leading-tight line-clamp-1">{bottle.name}</h4>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[11px] text-[#7171A0]">{bottle.volume_ml} ml</span>
-                                        <span className="font-black text-base text-gold">₹{bottle.price.toLocaleString()}</span>
+                                        <span className="text-[11px] text-[#7171A0]">{bottle.volume_ml ? `${bottle.volume_ml} ml` : ''}</span>
+                                        <span className="font-black text-base text-gold">₹{Math.round(bottle.price).toLocaleString('en-IN')}</span>
                                     </div>
                                 </div>
                             </motion.div>

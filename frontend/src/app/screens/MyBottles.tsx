@@ -1,36 +1,111 @@
 import { Link, useNavigate } from "react-router";
-import { Wine, Clock, Sparkles } from "lucide-react";
+import { Wine, Clock, Sparkles, AlertCircle, QrCode } from "lucide-react";
 import { useState, useEffect } from "react";
 import { purchaseService } from "../../services/purchase.service";
+import { redemptionService } from "../../services/redemption.service";
 import { authService } from "../../services/auth.service";
-import { UserBottle } from "../../types/api.types";
+import { UserBottle, Purchase, Redemption } from "../../types/api.types";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { BottomNav } from "../components/ui/BottomNav";
+
+const ACTIVE_REDEMPTION_KEY = "activeRedemptionId";
+const ACTIVE_BOTTLE_KEY = "activeRedemptionBottleId";
 
 export default function MyBottles() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
   const [bottles, setBottles] = useState<UserBottle[]>([]);
   const [history, setHistory] = useState<UserBottle[]>([]);
+  const [pendingPurchases, setPendingPurchases] = useState<Purchase[]>([]);
+  const [activeRedemption, setActiveRedemption] = useState<{ redemption: Redemption; bottle: UserBottle } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
 
   useEffect(() => {
-    if (!authService.isAuthenticated()) { navigate("/login"); return; }
+    if (!authService.isAuthenticated()) { navigate("/login", { replace: true }); return; }
     loadData();
   }, [navigate]);
+
+  // Live countdown timer - updates every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto-refresh when all pending purchases expire
+  useEffect(() => {
+    if (pendingPurchases.length === 0) return;
+
+    const allExpired = pendingPurchases.every(purchase => {
+      const createdAt = new Date(purchase.created_at).getTime();
+      const expiresAt = createdAt + (15 * 60 * 1000);
+      return currentTime >= expiresAt;
+    });
+
+    if (allExpired) {
+      // Refresh the list to remove expired purchases
+      loadData();
+    }
+  }, [currentTime, pendingPurchases]);
+
+  // Auto-refresh when QR code expires
+  useEffect(() => {
+    if (!activeRedemption) return;
+
+    const expiresAt = new Date(activeRedemption.redemption.qr_expires_at).getTime();
+    const isExpired = currentTime >= expiresAt;
+
+    if (isExpired) {
+      // Clear expired QR code and refresh
+      localStorage.removeItem(ACTIVE_REDEMPTION_KEY);
+      localStorage.removeItem(ACTIVE_BOTTLE_KEY);
+      loadData();
+    }
+  }, [currentTime, activeRedemption]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [cur, hist] = await Promise.all([
+      const [cur, hist, pending] = await Promise.all([
         purchaseService.getUserBottles(),
-        purchaseService.getPurchaseHistory()
+        purchaseService.getPurchaseHistory(),
+        purchaseService.getPendingPurchases()
       ]);
       setBottles(cur);
       setHistory(hist);
+      setPendingPurchases(pending);
+
+      // Check for active redemption in localStorage
+      const savedRedemptionId = localStorage.getItem(ACTIVE_REDEMPTION_KEY);
+      const savedBottleId = localStorage.getItem(ACTIVE_BOTTLE_KEY);
+
+      if (savedRedemptionId && savedBottleId) {
+        try {
+          const [redemption, matchedBottle] = await Promise.all([
+            redemptionService.getRedemptionStatus(savedRedemptionId),
+            cur.find(b => b.id === savedBottleId) || Promise.resolve(null)
+          ]);
+
+          if (redemption && matchedBottle && redemption.status === 'pending') {
+            setActiveRedemption({ redemption, bottle: matchedBottle });
+          } else {
+            // Clean up if expired or redeemed
+            localStorage.removeItem(ACTIVE_REDEMPTION_KEY);
+            localStorage.removeItem(ACTIVE_BOTTLE_KEY);
+          }
+        } catch {
+          // Clean up on error
+          localStorage.removeItem(ACTIVE_REDEMPTION_KEY);
+          localStorage.removeItem(ACTIVE_BOTTLE_KEY);
+        }
+      }
+
       setError(null);
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || "Failed to load your bottles.";
@@ -60,7 +135,7 @@ export default function MyBottles() {
   const displayed = activeTab === 'current' ? bottles : history;
 
   return (
-    <div className="min-h-screen bg-[#09090F] text-white pb-24">
+    <div className="flex flex-col min-h-screen bg-[#09090F] text-white">
       {/* Header */}
       <div className="relative px-5 pt-12 pb-5">
         <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-violet-900/15 to-transparent pointer-events-none" />
@@ -74,6 +149,152 @@ export default function MyBottles() {
           )}
         </div>
       </div>
+
+      {/* Active QR Code Alert */}
+      {activeRedemption && (
+        <div className="px-5 mb-5">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-violet-500/10 border border-violet-500/30 rounded-2xl p-4"
+          >
+            <div className="flex items-start gap-3">
+              <QrCode className="w-5 h-5 text-violet-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-violet-400 mb-1">
+                  Active QR Code
+                </h3>
+                <p className="text-xs text-violet-300/80 mb-3">
+                  You have an active QR code ready to scan
+                </p>
+                <button
+                  onClick={() => navigate(`/redeem-qr/${activeRedemption.bottle.bottleId}`)}
+                  className="w-full bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/40 rounded-xl p-3 text-left transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-white">
+                        {activeRedemption.bottle.bottleBrand} {activeRedemption.bottle.bottleName}
+                      </p>
+                      <p className="text-xs text-violet-300/70">
+                        {activeRedemption.redemption.peg_size_ml} ml · {activeRedemption.bottle.venueName}
+                      </p>
+                    </div>
+                    <span className="text-xs text-violet-400 font-semibold">
+                      View QR →
+                    </span>
+                  </div>
+                  {(() => {
+                    const expiresAt = new Date(activeRedemption.redemption.qr_expires_at).getTime();
+                    const timeLeft = Math.max(0, Math.floor((expiresAt - currentTime) / 1000));
+                    const minutesLeft = Math.floor(timeLeft / 60);
+                    const secondsLeft = timeLeft % 60;
+                    const isExpiringSoon = timeLeft < 300; // Less than 5 minutes
+
+                    return (
+                      <div className={`flex items-center gap-1.5 text-xs font-medium ${isExpiringSoon ? 'text-red-400' : 'text-violet-400'
+                        }`}>
+                        <Clock className="w-3 h-3" />
+                        {timeLeft > 0 ? (
+                          <span>Expires in {minutesLeft}:{secondsLeft.toString().padStart(2, '0')}</span>
+                        ) : (
+                          <span>Expired</span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Pending Payments Alert */}
+      {pendingPurchases.length > 0 && (
+        <div className="px-5 mb-5">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-amber-400 mb-1">
+                  {pendingPurchases.length} Pending Payment{pendingPurchases.length > 1 ? 's' : ''}
+                </h3>
+                <p className="text-xs text-amber-300/80 mb-3">
+                  Complete payment within 15 minutes or it will expire
+                </p>
+                <div className="space-y-2">
+                  {pendingPurchases.map((purchase) => {
+                    const createdAt = new Date(purchase.created_at).getTime();
+                    const expiresAt = createdAt + (15 * 60 * 1000); // 15 minutes
+                    const timeLeft = Math.max(0, Math.floor((expiresAt - currentTime) / 1000));
+                    const minutesLeft = Math.floor(timeLeft / 60);
+                    const secondsLeft = timeLeft % 60;
+                    const isExpiringSoon = timeLeft < 300; // Less than 5 minutes
+                    const isExpired = timeLeft === 0;
+
+                    return (
+                      <button
+                        key={purchase.id}
+                        onClick={() => {
+                          if (!isExpired) {
+                            navigate('/payment', {
+                              state: {
+                                purchaseId: purchase.id,
+                                resuming: true
+                              }
+                            });
+                          }
+                        }}
+                        disabled={isExpired}
+                        className={`w-full hover:bg-amber-500/30 border rounded-xl p-3 text-left transition-colors ${isExpired
+                          ? 'bg-red-500/10 border-red-500/30 opacity-60 cursor-not-allowed'
+                          : isExpiringSoon
+                            ? 'bg-red-500/20 border-red-500/40'
+                            : 'bg-amber-500/20 border-amber-500/40'
+                          }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-white">
+                              ₹{Math.round(purchase.purchase_price).toLocaleString('en-IN')}
+                            </p>
+                            <p className="text-xs text-amber-300/70">
+                              {new Date(purchase.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                          {!isExpired && (
+                            <span className="text-xs text-amber-400 font-semibold">
+                              Resume →
+                            </span>
+                          )}
+                        </div>
+                        <div className={`flex items-center gap-1.5 text-xs font-medium ${isExpired
+                          ? 'text-red-400/70'
+                          : isExpiringSoon
+                            ? 'text-red-400'
+                            : 'text-amber-400'
+                          }`}>
+                          <Clock className="w-3 h-3" />
+                          {isExpired ? (
+                            <span>Expired</span>
+                          ) : (
+                            <span>Expires in {minutesLeft}:{secondsLeft.toString().padStart(2, '0')}</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Tab Switcher */}
       <div className="px-5 mb-5">

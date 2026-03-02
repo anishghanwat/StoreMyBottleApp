@@ -34,9 +34,12 @@ export default function BottleDetails() {
 
             if (venueId) {
                 const bottlesData = await venueService.getBottlesByVenue(venueId);
+                console.log('🔍 Bottles data received:', bottlesData);
+                console.log('🔍 First bottle:', bottlesData[0]);
 
                 if (!bottle && bottleId) {
                     const foundBottle = bottlesData.find(b => b.id === bottleId);
+                    console.log('🔍 Found bottle:', foundBottle);
                     if (foundBottle) {
                         setBottle(foundBottle);
                         const similar = bottlesData
@@ -101,69 +104,97 @@ export default function BottleDetails() {
     }
 
     return (
-        <div className="min-h-screen bg-[#09090F] text-white pb-24 relative overflow-hidden">
-            {/* Ambient orbs */}
-            <div className="absolute top-[-60px] right-[-60px] w-48 h-48 rounded-full bg-violet-600/15 blur-3xl pointer-events-none" />
-            <div className="absolute top-[40%] left-[-80px] w-56 h-56 rounded-full bg-fuchsia-600/10 blur-3xl pointer-events-none" />
+        <div className="flex flex-col h-screen bg-[#09090F] text-white overflow-hidden">
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto">
 
-            {/* Sticky Header */}
-            <div className="sticky top-0 z-10 glass-dark border-b border-white/[0.07]">
-                <div className="px-5 py-4 flex items-center gap-4">
+                {/* Hero — full bleed image with overlaid back button, brand, name & price */}
+                <div className="relative h-[55vh] min-h-[320px] bg-black overflow-hidden">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 1.04 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.45 }}
+                        className="absolute inset-0 flex items-center justify-center p-8"
+                    >
+                        <ImageWithFallback
+                            src={bottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=600"}
+                            alt={bottle.name}
+                            className="w-full h-full object-contain drop-shadow-2xl"
+                        />
+                    </motion.div>
+
+                    {/* Bottom gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#09090F] via-[#09090F]/20 to-transparent" />
+
+                    {/* Back button — top left */}
                     <button
                         onClick={() => navigate(-1)}
-                        className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors"
+                        className="absolute top-5 left-4 z-10 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center"
                     >
-                        <ArrowLeft className="w-5 h-5 text-[#7171A0]" />
+                        <ArrowLeft className="w-5 h-5 text-white" />
                     </button>
-                    <h1 className="text-base font-semibold tracking-tight">Bottle Details</h1>
+
+                    {/* Brand + Name + Price — bottom of image */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="absolute bottom-0 inset-x-0 px-5 pb-5 flex items-end justify-between"
+                    >
+                        <div className="min-w-0 flex-1 pr-4">
+                            <p className="text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-1">{bottle.brand}</p>
+                            <h1 className="text-2xl font-extrabold leading-tight text-white">{bottle.name}</h1>
+                        </div>
+                        <div className="shrink-0 bg-[#1A1A2A]/90 border border-white/10 rounded-2xl px-4 py-2.5 text-right">
+                            <span className="text-xl font-black text-white">₹{Math.round(bottle.price).toLocaleString('en-IN')}</span>
+                        </div>
+                    </motion.div>
                 </div>
-            </div>
 
-            {/* Hero Image */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4 }}
-                className="relative h-72 bg-gradient-to-br from-violet-900/20 via-[#111118] to-fuchsia-900/15 flex items-center justify-center p-8"
-            >
-                <ImageWithFallback
-                    src={bottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=600"}
-                    alt={bottle.name}
-                    className="w-full h-full object-contain drop-shadow-2xl"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#09090F] via-transparent to-transparent" />
-            </motion.div>
-
-            {/* Bottle Info */}
-            <div className="px-5 py-5 space-y-5">
-                {/* Brand & Name */}
+                {/* Tag pills */}
                 <motion.div
-                    initial={{ opacity: 0, y: 16 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
+                    transition={{ delay: 0.25 }}
+                    className="flex items-center gap-2 px-5 pt-4 pb-2 flex-wrap"
                 >
-                    <p className="text-[11px] text-violet-400 font-semibold uppercase tracking-wider mb-1">{bottle.brand}</p>
-                    <h2 className="text-3xl font-bold tracking-tight mb-3">{bottle.name}</h2>
-                    <div className="flex items-center gap-3">
-                        <span className="text-4xl font-black text-gold">₹{bottle.price.toLocaleString()}</span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${bottle.is_available
-                            ? "bg-green-500/15 text-green-400 border border-green-500/30"
-                            : "bg-red-500/15 text-red-400 border border-red-500/30"
-                            }`}>
-                            {bottle.is_available ? "In Stock" : "Out of Stock"}
+                    {bottle.category && (
+                        <span className="bg-[#1E1E2E] border border-white/10 text-white/80 text-xs font-medium px-3.5 py-1.5 rounded-full">
+                            {bottle.category}
                         </span>
-                    </div>
+                    )}
+                    {bottle.volume_ml && (
+                        <span className="bg-[#1E1E2E] border border-white/10 text-white/80 text-xs font-medium px-3.5 py-1.5 rounded-full">
+                            {bottle.volume_ml}ml
+                        </span>
+                    )}
+                    <span className={`text-xs font-medium px-3.5 py-1.5 rounded-full border ${bottle.is_available
+                        ? "bg-green-500/10 border-green-500/30 text-green-400"
+                        : "bg-red-500/10 border-red-500/30 text-red-400"}`}>
+                        {bottle.is_available ? "In Stock" : "Out of Stock"}
+                    </span>
                 </motion.div>
+
+                {/* Description — always shown, fallback if backend doesn't provide one */}
+                <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="px-5 pt-2 pb-4 text-sm text-[#8888AA] leading-relaxed"
+                >
+                    {bottle.description
+                        || `${bottle.brand} ${bottle.name} is a premium spirit offering exceptional quality and taste. Store your bottle with us and enjoy it peg by peg at the venue.`}
+                </motion.p>
 
                 {/* Venue Info */}
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                    className="card-surface p-4"
+                    transition={{ delay: 0.35 }}
+                    className="mx-5 mb-4 card-surface p-4"
                 >
                     <p className="text-xs text-[#7171A0] mb-1">Available at</p>
-                    <Link to={`/venue/${venue.id}/details`} className="text-lg font-semibold text-violet-400 hover:text-violet-300 transition-colors">
+                    <Link to={`/venue/${venue.id}/details`} className="text-base font-semibold text-violet-400 hover:text-violet-300 transition-colors">
                         {venue.name}
                     </Link>
                     <p className="text-sm text-[#7171A0] mt-0.5">{venue.location}</p>
@@ -173,47 +204,32 @@ export default function BottleDetails() {
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
+                    transition={{ delay: 0.4 }}
+                    className="px-5 mb-4"
                 >
-                    <div className="flex items-center gap-2 mb-3">
-                        <Info className="w-4 h-4 text-violet-400" />
-                        <h3 className="text-base font-semibold">Specifications</h3>
-                    </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div className="card-surface p-4">
                             <div className="flex items-center gap-2 mb-1">
                                 <Droplet className="w-4 h-4 text-violet-400" />
                                 <p className="text-xs text-[#7171A0]">Volume</p>
                             </div>
-                            <p className="text-xl font-bold">{bottle.volume_ml}ml</p>
+                            <p className="text-xl font-bold">
+                                {bottle.volume_ml ? `${bottle.volume_ml} ml` : 'N/A'}
+                            </p>
                         </div>
                         <div className="card-surface p-4">
                             <p className="text-xs text-[#7171A0] mb-1">Type</p>
-                            <p className="text-xl font-bold">Premium</p>
+                            <p className="text-xl font-bold capitalize">{bottle.category || 'Premium'}</p>
                         </div>
                     </div>
-                </motion.div>
-
-                {/* Description */}
-                <motion.div
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
-                >
-                    <h3 className="text-base font-semibold mb-2">About this bottle</h3>
-                    <p className="text-[#7171A0] text-sm leading-relaxed">
-                        {bottle.brand} {bottle.name} is a premium spirit offering exceptional quality and taste.
-                        Perfect for those who appreciate fine beverages. Store your bottle with us and enjoy
-                        it peg by peg at your convenience.
-                    </p>
                 </motion.div>
 
                 {/* How it Works */}
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="p-4 bg-gradient-to-br from-violet-900/15 to-fuchsia-900/10 rounded-2xl border border-violet-500/20"
+                    transition={{ delay: 0.45 }}
+                    className="mx-5 mb-5 p-4 bg-gradient-to-br from-violet-900/15 to-fuchsia-900/10 rounded-2xl border border-violet-500/20"
                 >
                     <h3 className="text-base font-semibold mb-3">How it works</h3>
                     <ol className="space-y-3 text-sm">
@@ -232,7 +248,53 @@ export default function BottleDetails() {
                     </ol>
                 </motion.div>
 
-                {/* Buy Button */}
+                {/* Similar Bottles */}
+                {similarBottles.length > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        className="px-5 py-5 border-t border-white/[0.06]"
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-base font-semibold">Similar Bottles</h3>
+                            <Link to={`/venue/${venueId}`} className="text-xs text-violet-400 hover:text-violet-300 font-semibold transition-colors">
+                                View All
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {similarBottles.map((similarBottle) => (
+                                <Link
+                                    key={similarBottle.id}
+                                    to={`/venue/${venueId}/bottle/${similarBottle.id}`}
+                                    state={{ bottle: similarBottle, venue }}
+                                    className="card-surface overflow-hidden hover:border-violet-500/30 transition-all duration-300 active:scale-95"
+                                >
+                                    <div className="relative h-28 bg-gradient-to-br from-violet-900/10 to-[#1A1A26] flex items-center justify-center p-3">
+                                        <ImageWithFallback
+                                            src={similarBottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
+                                            alt={similarBottle.name}
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
+                                    <div className="p-3 space-y-1">
+                                        <p className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider">{similarBottle.brand}</p>
+                                        <h4 className="text-sm font-semibold leading-tight line-clamp-2">{similarBottle.name}</h4>
+                                        <div className="flex items-center justify-between pt-1">
+                                            <span className="text-[10px] text-[#7171A0]">{similarBottle.volume_ml ? `${similarBottle.volume_ml}ml` : ''}</span>
+                                            <span className="text-base font-black text-white">₹{Math.round(similarBottle.price).toLocaleString('en-IN')}</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+
+            </div>{/* end scrollable */}
+
+            {/* Purchase Button — pinned to bottom of flex column */}
+            <div className="px-5 pb-6 pt-3 bg-gradient-to-t from-[#09090F] via-[#09090F]/95 to-transparent flex-shrink-0">
                 <motion.button
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -240,65 +302,14 @@ export default function BottleDetails() {
                     whileTap={{ scale: 0.97 }}
                     onClick={handleBuyBottle}
                     disabled={!bottle.is_available}
-                    className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all duration-300 ${bottle.is_available
-                        ? "btn-primary text-white"
+                    className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center transition-all duration-300 ${bottle.is_available
+                        ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white shadow-lg shadow-fuchsia-500/30"
                         : "bg-[#1A1A26] text-[#4A4A6A] cursor-not-allowed"
                         }`}
                 >
-                    <ShoppingCart className="w-5 h-5" />
-                    {bottle.is_available ? "Buy This Bottle" : "Out of Stock"}
+                    {bottle.is_available ? "Purchase Bottle" : "Out of Stock"}
                 </motion.button>
             </div>
-
-            {/* Similar Bottles */}
-            {similarBottles.length > 0 && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="px-5 py-5 border-t border-white/[0.06]"
-                >
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-base font-semibold">Similar Bottles</h3>
-                        <Link to={`/venue/${venueId}`} className="text-xs text-violet-400 hover:text-violet-300 font-semibold transition-colors">
-                            View All
-                        </Link>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        {similarBottles.map((similarBottle) => (
-                            <Link
-                                key={similarBottle.id}
-                                to={`/venue/${venueId}/bottle/${similarBottle.id}`}
-                                state={{ bottle: similarBottle, venue }}
-                                className="card-surface overflow-hidden hover:border-violet-500/30 transition-all duration-300 active:scale-95"
-                            >
-                                {/* Bottle Image */}
-                                <div className="relative h-28 bg-gradient-to-br from-violet-900/10 to-[#1A1A26] flex items-center justify-center p-3">
-                                    <ImageWithFallback
-                                        src={similarBottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
-                                        alt={similarBottle.name}
-                                        className="w-full h-full object-contain"
-                                    />
-                                </div>
-
-                                {/* Bottle Info */}
-                                <div className="p-3 space-y-1">
-                                    <p className="text-[10px] text-violet-400 font-semibold uppercase tracking-wider">{similarBottle.brand}</p>
-                                    <h4 className="text-sm font-semibold leading-tight line-clamp-2">{similarBottle.name}</h4>
-                                    <div className="flex items-center justify-between pt-1">
-                                        <span className="text-[10px] text-[#7171A0]">{similarBottle.volume_ml}ml</span>
-                                        <span className="text-base font-black text-white">₹{similarBottle.price.toLocaleString()}</span>
-                                    </div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                </motion.div>
-            )}
-
-            {/* Bottom Navigation */}
-            <BottomNav active="home" />
         </div>
     );
 }

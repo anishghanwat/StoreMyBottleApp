@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { ScanLine, LogOut, Wine, Check, X, Clock, TrendingUp, Users, Package, History, Tag, Sparkles, DollarSign } from "lucide-react";
+import {
+  ScanLine, LogOut, Wine, Check, X, Clock,
+  TrendingUp, Users, Package, History, Tag,
+  Sparkles, DollarSign, ChevronRight
+} from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { purchaseService, venueService, redemptionService, promotionService, authService } from "../../services/api";
 import { useLocationAndGreeting } from "../../utils/useLocationAndGreeting";
@@ -26,14 +30,16 @@ interface Promotion {
   valid_until: string;
 }
 
+type Tab = "requests" | "more";
+
 export default function BartenderHome() {
   const navigate = useNavigate();
   const bartender = JSON.parse(localStorage.getItem("bartender") || "{}");
   const [requests, setRequests] = useState<BottleRequest[]>([]);
   const [stats, setStats] = useState({ served_today: 0, active_bottles: 0 });
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [activeTab, setActiveTab] = useState<Tab>("requests");
 
-  // Use location and greeting hook
   const { greeting } = useLocationAndGreeting();
 
   useEffect(() => {
@@ -78,15 +84,14 @@ export default function BartenderHome() {
   const handleConfirm = async (id: string) => {
     setRequests(c => c.map(r => r.id === id ? { ...r, status: "confirmed" } : r));
     if (navigator.vibrate) navigator.vibrate(50);
-    try {
-      await purchaseService.process(id, "confirm");
-      setTimeout(fetchRequests, 2000);
-    } catch { fetchRequests(); }
+    try { await purchaseService.process(id, "confirm"); setTimeout(fetchRequests, 2000); }
+    catch { fetchRequests(); }
   };
 
   const handleReject = async (id: string) => {
     if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-    try { await purchaseService.process(id, "reject"); fetchRequests(); } catch { fetchRequests(); }
+    try { await purchaseService.process(id, "reject"); fetchRequests(); }
+    catch { fetchRequests(); }
   };
 
   const handleLogout = async () => {
@@ -97,13 +102,21 @@ export default function BartenderHome() {
 
   const pendingCount = requests.filter(r => r.status === "pending").length;
 
+  const QUICK_ACTIONS = [
+    { label: "Analytics", icon: TrendingUp, color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20", path: "/stats" },
+    { label: "History", icon: History, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", path: "/history" },
+    { label: "Inventory", icon: Package, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", path: "/inventory" },
+    { label: "Customers", icon: Users, color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20", path: "/customers" },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#06060D] text-white pb-8">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#06060D]/90 backdrop-blur-xl border-b border-white/[0.05] px-5 py-4">
+    <div className="flex flex-col h-screen bg-[#06060D] text-white overflow-hidden">
+
+      {/* ── Header ── */}
+      <div className="flex-shrink-0 px-5 pt-10 pb-3 border-b border-white/[0.05]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-[#6B6B9A]">{greeting.greeting} {greeting.emoji}</p>
+            <p className="text-[11px] text-[#6B6B9A]">{greeting.greeting} {greeting.emoji}</p>
             <h1 className="text-lg font-black tracking-tight">
               {bartender.venue_name || bartender.venueName || "The Neon Lounge"}
             </h1>
@@ -120,209 +133,258 @@ export default function BartenderHome() {
         </div>
       </div>
 
-      <div className="px-5 pt-5 space-y-5">
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: "Served Today", value: stats.served_today, icon: Wine, color: "violet", accent: "text-violet-400", extra: "↑ Active" },
-            { label: "Active Bottles", value: stats.active_bottles, icon: Package, color: "amber", accent: "text-amber-400", extra: "In venue" },
-            { label: "Pending", value: pendingCount, icon: Clock, color: "amber", accent: "text-amber-400", extra: "Requests", pulse: pendingCount > 0 },
-            { label: "History", value: "View", icon: History, color: "emerald", accent: "text-emerald-400", extra: "All time", isAction: true },
-          ].map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-              onClick={() => s.isAction && navigate("/history")}
-              className={`stat-card p-4 ${s.color === "violet" ? "stat-card-violet" : s.color === "emerald" ? "stat-card-emerald" : "stat-card-amber"} ${s.pulse ? "pending-pulse" : ""} ${s.isAction ? "cursor-pointer hover:border-white/10" : ""}`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div className={`p-1.5 rounded-lg bg-white/[0.05]`}>
-                  <s.icon className={`w-3.5 h-3.5 ${s.accent}`} />
-                </div>
-                <span className="text-[11px] text-[#6B6B9A]">{s.label}</span>
-              </div>
-              <p className="text-2xl font-black">{s.value}</p>
-              <p className={`text-[11px] mt-1 ${s.accent}`}>{s.extra}</p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Scan QR — primary CTA */}
+      {/* ── Scan QR — always visible ── */}
+      <div className="flex-shrink-0 px-5 pt-4 pb-3">
         <motion.button
           whileTap={{ scale: 0.978 }}
           onClick={() => navigate("/scan")}
-          className="btn-scan w-full py-6 flex items-center justify-center gap-3 text-base font-black"
+          className="btn-scan w-full py-5 flex items-center justify-center gap-3 text-base font-black"
         >
           <ScanLine className="w-6 h-6" />
           Scan Customer QR
         </motion.button>
+      </div>
 
-        {/* Quick actions */}
-        <div className="grid grid-cols-2 gap-3">
+      {/* ── Stats strip ── */}
+      <div className="flex-shrink-0 px-5 pb-3">
+        <div className="grid grid-cols-3 gap-2">
           {[
-            { label: "Analytics", icon: TrendingUp, color: "text-violet-400", path: "/stats" },
-            { label: "History", icon: History, color: "text-emerald-400", path: "/history" },
-            { label: "Inventory", icon: Package, color: "text-amber-400", path: "/inventory" },
-            { label: "Customers", icon: Users, color: "text-cyan-400", path: "/customers" },
-          ].map(a => (
-            <motion.button
-              key={a.label}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => navigate(a.path)}
-              className="bar-card py-5 flex flex-col items-center gap-2 hover:border-white/10 transition-all"
+            { label: "Served Today", value: stats.served_today, accent: "text-violet-400" },
+            { label: "Active Bottles", value: stats.active_bottles, accent: "text-amber-400" },
+            { label: "Pending", value: pendingCount, accent: pendingCount > 0 ? "text-red-400" : "text-[#6B6B9A]", pulse: pendingCount > 0 },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className={`bar-card p-3 text-center ${s.pulse ? "pending-pulse" : ""}`}
             >
-              <a.icon className={`w-5 h-5 ${a.color}`} />
-              <span className="text-xs font-bold text-[#B0B0D0]">{a.label}</span>
-            </motion.button>
+              <p className={`text-xl font-black ${s.accent}`}>{s.value}</p>
+              <p className="text-[10px] text-[#6B6B9A] mt-0.5 leading-tight">{s.label}</p>
+            </div>
           ))}
         </div>
+      </div>
 
-        {/* Active Promotions */}
-        {promotions.length > 0 && (
-          <div>
-            <p className="text-xs font-bold text-[#6B6B9A] uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Active Promos
-            </p>
-            <div className="space-y-2">
-              {promotions.map((promo, i) => (
-                <motion.div
-                  key={promo.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="bar-card p-4 border border-amber-500/15 bg-gradient-to-r from-amber-500/5 to-transparent"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Tag className="w-3 h-3 text-amber-400" />
-                        <span className="text-sm font-black text-amber-400 font-mono">{promo.code}</span>
-                      </div>
-                      <p className="text-sm text-white">{promo.description}</p>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-[#6B6B9A]">
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="w-3 h-3" />
-                          {promo.discount_type === "percentage" ? `${promo.discount_value}% off` : `₹${promo.discount_value} off`}
-                        </span>
-                        <span>Until {new Date(promo.valid_until).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Bottle Requests */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold text-[#6B6B9A] uppercase tracking-wider flex items-center gap-2">
-              <Wine className="w-3.5 h-3.5 text-violet-400" /> Bottle Requests
-            </p>
-            {pendingCount > 0 && <span className="chip-pending">{pendingCount} pending</span>}
-          </div>
-
-          <div className="space-y-4">
-            <AnimatePresence mode="popLayout">
-              {requests.map(request => (
-                <motion.div
-                  key={request.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.92 }}
-                  drag="x"
-                  dragConstraints={{ left: -110, right: 110 }}
-                  dragElastic={0.18}
-                  onDragEnd={(_, info) => {
-                    if (request.status === "pending") {
-                      if (info.offset.x > 100) handleConfirm(request.id);
-                      else if (info.offset.x < -100) handleReject(request.id);
-                    }
-                  }}
-                  className={`request-card p-5 cursor-grab active:cursor-grabbing relative overflow-hidden ${request.status === "pending" ? "request-card-pending" :
-                    request.status === "confirmed" ? "request-card-confirmed" : "request-card-rejected"
-                    }`}
-                >
-                  {/* Swipe ghost hints */}
-                  {request.status === "pending" && (
-                    <div className="absolute inset-0 flex items-center justify-between px-5 pointer-events-none">
-                      <div className="flex items-center gap-1.5 text-red-400 opacity-20">
-                        <X className="w-4 h-4" /><span className="text-xs">Reject</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-emerald-400 opacity-20">
-                        <span className="text-xs">Confirm</span><Check className="w-4 h-4" />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="relative z-10">
-                    {/* Top row: time + status */}
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="flex items-center gap-1 text-[11px] text-[#6B6B9A]">
-                        <Clock className="w-3 h-3" />{request.timestamp}
-                      </span>
-                      {request.status !== "pending" && (
-                        <span className={request.status === "confirmed" ? "chip-confirmed" : "chip-rejected"}>
-                          {request.status === "confirmed" ? "Confirmed ✓" : "Rejected"}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Customer + bottle */}
-                    <p className="font-black text-base">{request.customerName}</p>
-                    <p className="text-[#B0B0D0] text-sm">{request.bottleName}</p>
-                    <p className="text-[#6B6B9A] text-xs mt-0.5">{request.bottleType}</p>
-
-                    {/* Amount + payment */}
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.05]">
-                      <div>
-                        <p className="text-[10px] text-[#4A4A6A]">Amount</p>
-                        <p className="font-black text-[#F5C518]">₹{request.amount.toLocaleString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-[#4A4A6A]">Payment</p>
-                        <p className="text-sm font-semibold">{request.paymentMethod}</p>
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    {request.status === "pending" && (
-                      <div className="flex gap-3 mt-4">
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleReject(request.id)}
-                          className="btn-reject flex-1 py-3.5 flex items-center justify-center gap-2 text-sm"
-                        >
-                          <X className="w-4 h-4" /> Reject
-                        </motion.button>
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleConfirm(request.id)}
-                          className="btn-confirm flex-1 py-3.5 flex items-center justify-center gap-2 text-sm"
-                        >
-                          <Check className="w-4 h-4" /> Confirm
-                        </motion.button>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {requests.length === 0 && (
-              <div className="text-center py-14">
-                <div className="w-14 h-14 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4">
-                  <Wine className="w-6 h-6 text-[#4A4A6A]" />
-                </div>
-                <p className="text-[#6B6B9A] text-sm">No requests yet</p>
-                <p className="text-[#4A4A6A] text-xs mt-1">New orders will appear here</p>
-              </div>
+      {/* ── Tab bar ── */}
+      <div className="flex-shrink-0 px-5 pb-2">
+        <div className="flex bg-white/[0.04] rounded-2xl p-1 border border-white/[0.05]">
+          <button
+            onClick={() => setActiveTab("requests")}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${activeTab === "requests"
+              ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25"
+              : "text-[#6B6B9A]"
+              }`}
+          >
+            <Wine className="w-3.5 h-3.5" />
+            Requests
+            {pendingCount > 0 && (
+              <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === "requests" ? "bg-white/20" : "bg-red-500/20 text-red-400"}`}>
+                {pendingCount}
+              </span>
             )}
-          </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("more")}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${activeTab === "more"
+              ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25"
+              : "text-[#6B6B9A]"
+              }`}
+          >
+            More
+          </button>
         </div>
+      </div>
+
+      {/* ── Scrollable tab content ── */}
+      <div className="flex-1 overflow-y-auto px-5 pb-6">
+        <AnimatePresence mode="wait">
+
+          {/* REQUESTS TAB */}
+          {activeTab === "requests" && (
+            <motion.div
+              key="requests"
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -12 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-3 pt-2"
+            >
+              {requests.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4">
+                    <Wine className="w-7 h-7 text-[#4A4A6A]" />
+                  </div>
+                  <p className="text-[#6B6B9A] text-sm font-medium">No bottle requests</p>
+                  <p className="text-[#4A4A6A] text-xs mt-1">New orders will appear here</p>
+                </div>
+              ) : (
+                <AnimatePresence mode="popLayout">
+                  {requests.map(request => (
+                    <motion.div
+                      key={request.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.93 }}
+                      drag="x"
+                      dragConstraints={{ left: -110, right: 110 }}
+                      dragElastic={0.18}
+                      onDragEnd={(_, info) => {
+                        if (request.status === "pending") {
+                          if (info.offset.x > 100) handleConfirm(request.id);
+                          else if (info.offset.x < -100) handleReject(request.id);
+                        }
+                      }}
+                      className={`request-card p-4 cursor-grab active:cursor-grabbing relative overflow-hidden ${request.status === "pending" ? "request-card-pending" :
+                        request.status === "confirmed" ? "request-card-confirmed" : "request-card-rejected"
+                        }`}
+                    >
+                      {/* Swipe hints */}
+                      {request.status === "pending" && (
+                        <div className="absolute inset-0 flex items-center justify-between px-4 pointer-events-none">
+                          <div className="flex items-center gap-1 text-red-400 opacity-20">
+                            <X className="w-4 h-4" /><span className="text-xs">Reject</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-emerald-400 opacity-20">
+                            <span className="text-xs">Confirm</span><Check className="w-4 h-4" />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="relative z-10">
+                        {/* Top row */}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="flex items-center gap-1 text-[11px] text-[#6B6B9A]">
+                            <Clock className="w-3 h-3" />{request.timestamp}
+                          </span>
+                          {request.status !== "pending" && (
+                            <span className={request.status === "confirmed" ? "chip-confirmed" : "chip-rejected"}>
+                              {request.status === "confirmed" ? "Confirmed ✓" : "Rejected"}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Customer + bottle */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-black text-base leading-tight">{request.customerName}</p>
+                            <p className="text-[#B0B0D0] text-sm">{request.bottleName}</p>
+                            <p className="text-[#6B6B9A] text-xs mt-0.5">{request.bottleType}</p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-black text-lg text-[#F5C518]">₹{request.amount.toLocaleString()}</p>
+                            <p className="text-xs text-[#6B6B9A]">{request.paymentMethod}</p>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        {request.status === "pending" && (
+                          <div className="flex gap-2 mt-3">
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleReject(request.id)}
+                              className="btn-reject flex-1 py-3 flex items-center justify-center gap-1.5 text-sm font-bold"
+                            >
+                              <X className="w-4 h-4" /> Reject
+                            </motion.button>
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleConfirm(request.id)}
+                              className="btn-confirm flex-1 py-3 flex items-center justify-center gap-1.5 text-sm font-bold"
+                            >
+                              <Check className="w-4 h-4" /> Confirm
+                            </motion.button>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              )}
+            </motion.div>
+          )}
+
+          {/* MORE TAB */}
+          {activeTab === "more" && (
+            <motion.div
+              key="more"
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 12 }}
+              transition={{ duration: 0.18 }}
+              className="pt-2 space-y-5"
+            >
+              {/* Quick actions */}
+              <div>
+                <p className="text-[11px] text-[#6B6B9A] font-bold uppercase tracking-wider mb-2">Quick Actions</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {QUICK_ACTIONS.map((a, i) => (
+                    <motion.button
+                      key={a.label}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => navigate(a.path)}
+                      className="bar-card p-4 flex items-center gap-3 hover:border-white/10 transition-all text-left"
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border ${a.bg}`}>
+                        <a.icon className={`w-4 h-4 ${a.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-[#B0B0D0]">{a.label}</p>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-[#4A4A6A]" />
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Active Promotions */}
+              {promotions.length > 0 && (
+                <div>
+                  <p className="text-[11px] text-[#6B6B9A] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-amber-400" /> Active Promos
+                  </p>
+                  <div className="space-y-2">
+                    {promotions.map((promo, i) => (
+                      <motion.div
+                        key={promo.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="bar-card p-4 border border-amber-500/15 bg-gradient-to-r from-amber-500/5 to-transparent"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <Tag className="w-3 h-3 text-amber-400" />
+                              <span className="text-sm font-black text-amber-400 font-mono">{promo.code}</span>
+                            </div>
+                            <p className="text-sm text-white">{promo.description}</p>
+                            <div className="flex items-center gap-3 mt-1.5 text-xs text-[#6B6B9A]">
+                              <span className="flex items-center gap-1">
+                                <DollarSign className="w-3 h-3" />
+                                {promo.discount_type === "percentage" ? `${promo.discount_value}% off` : `₹${promo.discount_value} off`}
+                              </span>
+                              <span>Until {new Date(promo.valid_until).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {promotions.length === 0 && (
+                <div className="text-center py-8 text-[#4A4A6A] text-xs">
+                  <Sparkles className="w-5 h-5 mx-auto mb-2 text-[#2A2A3A]" />
+                  No active promotions
+                </div>
+              )}
+            </motion.div>
+          )}
+
+        </AnimatePresence>
       </div>
     </div>
   );

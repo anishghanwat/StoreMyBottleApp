@@ -77,7 +77,7 @@ export default function PaymentSuccess() {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-[#7171A0]">Paid</span>
-            <span className="font-black text-gold">₹{bottle.price.toLocaleString()}</span>
+            <span className="font-black text-gold">₹{Math.round(bottle.price).toLocaleString('en-IN')}</span>
           </div>
         </div>
       </motion.div>

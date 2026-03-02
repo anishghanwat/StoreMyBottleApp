@@ -9,8 +9,8 @@ interface BottomNavProps {
 
 export function BottomNav({ active }: BottomNavProps) {
     return (
-        <div className="fixed bottom-0 left-0 right-0 bottom-nav px-6 py-3 z-50">
-            <div className="flex items-center justify-around max-w-md mx-auto">
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-sm bottom-nav px-6 py-3 z-50">
+            <div className="flex items-center justify-around">
 
                 {/* Home */}
                 <Link to="/" className="flex flex-col items-center gap-1 group">

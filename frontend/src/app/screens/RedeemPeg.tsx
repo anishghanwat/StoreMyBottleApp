@@ -9,9 +9,9 @@ import { motion } from "motion/react";
 import { toast } from "sonner";
 
 const PEG_SIZES = [
-  { ml: 30, label: "Small", subtitle: "Classic peg", emoji: "🥃" },
-  { ml: 45, label: "Regular", subtitle: "Standard pour", emoji: "🥃" },
-  { ml: 60, label: "Large", subtitle: "Double shot", emoji: "🥃" },
+  { ml: 30, label: "Small", subtitle: "Classic peg" },
+  { ml: 45, label: "Regular", subtitle: "Standard pour" },
+  { ml: 60, label: "Large", subtitle: "Double shot" },
 ];
 
 export default function RedeemPeg() {
@@ -52,6 +52,9 @@ export default function RedeemPeg() {
       setCreating(true);
       const redemption = await redemptionService.createRedemption(bottleId, selectedPeg);
       toast.success("QR code generated! Show it to the bartender 🎉");
+      // Persist so we can recover if the user navigates away and comes back
+      localStorage.setItem("activeRedemptionId", redemption.id);
+      localStorage.setItem("activeRedemptionBottleId", bottleId);
       navigate(`/redeem-qr/${bottleId}`, { state: { redemption, bottle } });
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || "Failed to create redemption. Please try again.";
@@ -98,49 +101,51 @@ export default function RedeemPeg() {
   const afterRedeem = selectedPeg ? bottle.remainingMl - selectedPeg : null;
 
   return (
-    <div className="min-h-screen bg-[#09090F] text-white flex flex-col">
-      {/* Ambient */}
-      <div className="absolute top-0 inset-x-0 h-64 bg-gradient-to-b from-violet-900/15 to-transparent pointer-events-none" />
+    <div className="flex flex-col h-screen bg-[#09090F] text-white overflow-hidden">
 
-      {/* Header */}
-      <div className="relative z-10 px-5 pt-12 pb-4 flex items-center gap-3">
-        <Link to="/my-bottles" className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors">
-          <ArrowLeft className="w-5 h-5 text-[#7171A0]" />
-        </Link>
-        <div>
-          <h1 className="text-lg font-bold tracking-tight">Choose Peg Size</h1>
-          <p className="text-[#7171A0] text-xs">Select how much you'd like to pour</p>
-        </div>
-      </div>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
 
-      {/* Bottle Card */}
-      <div className="relative z-10 px-5 mb-6">
-        <div className="card-surface p-4">
-          <div className="flex gap-3 mb-4">
-            <div className="w-14 h-14 bg-[#1A1A26] rounded-2xl flex items-center justify-center p-2 flex-shrink-0 border border-white/[0.06]">
-              <ImageWithFallback
-                src={bottle.image || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
-                alt={bottle.bottleName}
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] text-violet-400 font-semibold uppercase tracking-wider mb-0.5">{bottle.bottleBrand}</p>
-              <h3 className="font-bold text-base leading-tight truncate">{bottle.bottleName}</h3>
-              <p className="text-xs text-[#7171A0] mt-0.5">{bottle.venueName}</p>
-            </div>
+        {/* Hero image area with back button + bottle name overlaid */}
+        <div className="relative h-52 bg-black overflow-hidden">
+          {/* Bottle image */}
+          <div className="absolute inset-0 flex items-center justify-center p-8 opacity-80">
+            <ImageWithFallback
+              src={bottle.image || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
+              alt={bottle.bottleName}
+              className="w-full h-full object-contain drop-shadow-2xl"
+            />
           </div>
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#09090F] via-[#09090F]/30 to-transparent" />
 
-          {/* Progress */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-[#7171A0] flex items-center gap-1">
-                <Droplets className="w-3 h-3" /> Available
+          {/* Back button */}
+          <Link
+            to="/my-bottles"
+            className="absolute top-5 left-4 z-10 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center"
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </Link>
+
+          {/* Brand + Name */}
+          <div className="absolute bottom-0 inset-x-0 px-5 pb-4">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-fuchsia-400 mb-0.5">{bottle.bottleBrand}</p>
+            <h1 className="text-xl font-extrabold text-white leading-tight">{bottle.bottleName}</h1>
+            <p className="text-xs text-white/50 mt-0.5">{bottle.venueName}</p>
+          </div>
+        </div>
+
+        {/* Volume remaining card */}
+        <div className="px-5 mt-4 mb-5">
+          <div className="card-surface p-4 space-y-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-[#7171A0] flex items-center gap-1.5">
+                <Droplets className="w-3.5 h-3.5" /> Remaining
               </span>
               <span className="font-bold">
                 {afterRedeem !== null ? (
                   <>
-                    <span className="text-[#7171A0] line-through mr-1">{bottle.remainingMl} ml</span>
+                    <span className="text-[#7171A0] line-through mr-1.5">{bottle.remainingMl} ml</span>
                     <span className="text-violet-400">{afterRedeem} ml left</span>
                   </>
                 ) : (
@@ -148,82 +153,87 @@ export default function RedeemPeg() {
                 )}
               </span>
             </div>
-            <div className="progress-bar">
-              <div className="progress-fill transition-all duration-500" style={{ width: `${pct}%` }} />
+            {/* Progress bar */}
+            <div className="h-2 w-full bg-white/[0.06] rounded-full overflow-hidden relative">
+              {/* Base: gradient when idle, white when a peg is selected (deducted portion shows as white) */}
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${afterRedeem !== null ? "bg-white" : "bg-gradient-to-r from-violet-600 to-fuchsia-500"}`}
+                style={{ width: `${pct}%` }}
+              />
+              {/* Gradient overlay = what remains after pour */}
               {afterRedeem !== null && (
                 <div
-                  className="h-full rounded-full bg-white/10 absolute top-0 left-0 transition-all duration-500"
+                  className="h-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 absolute top-0 left-0 transition-all duration-500"
                   style={{ width: `${(afterRedeem / bottle.totalMl) * 100}%` }}
                 />
               )}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Peg Size Selection */}
-      <div className="relative z-10 flex-1 px-5 space-y-3">
-        <p className="text-xs text-[#7171A0] font-medium uppercase tracking-wider mb-1">Select Size</p>
-        {PEG_SIZES.map((peg, i) => {
-          const affordable = bottle.remainingMl >= peg.ml;
-          const isSelected = selectedPeg === peg.ml;
-          return (
-            <motion.button
-              key={peg.ml}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.08 }}
-              onClick={() => affordable && setSelectedPeg(peg.ml)}
-              disabled={!affordable}
-              className={`w-full rounded-2xl border-2 p-4 text-left transition-all duration-250 ${isSelected
-                ? "border-violet-500 bg-violet-500/10 shadow-lg shadow-violet-500/15"
-                : affordable
-                  ? "border-white/[0.07] bg-[#111118] hover:border-white/20 active:scale-98"
-                  : "border-white/[0.04] bg-[#0D0D15] opacity-40 cursor-not-allowed"
-                }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {/* Visual glass level */}
-                  <div className="w-10 h-10 rounded-xl bg-[#1A1A26] flex items-center justify-center text-xl">
-                    {peg.emoji}
-                  </div>
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-bold text-base">{peg.label}</span>
-                      <span className="text-2xl font-black text-violet-400">{peg.ml}<span className="text-sm font-medium text-[#7171A0]"> ml</span></span>
+        {/* Peg size selection */}
+        <div className="px-5 space-y-3 pb-4">
+          <p className="text-[11px] text-[#7171A0] font-semibold uppercase tracking-widest mb-2">Select Size</p>
+          {PEG_SIZES.map((peg, i) => {
+            const affordable = bottle.remainingMl >= peg.ml;
+            const isSelected = selectedPeg === peg.ml;
+            return (
+              <motion.button
+                key={peg.ml}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.07 }}
+                onClick={() => affordable && setSelectedPeg(peg.ml)}
+                disabled={!affordable}
+                className={`w-full rounded-2xl border-2 p-4 text-left transition-all duration-200 ${isSelected
+                  ? "border-fuchsia-500 bg-fuchsia-500/10 shadow-lg shadow-fuchsia-500/15"
+                  : affordable
+                    ? "border-white/[0.08] bg-[#111118] hover:border-white/20"
+                    : "border-white/[0.04] bg-[#0D0D15] opacity-40 cursor-not-allowed"
+                  }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isSelected ? "bg-fuchsia-500/20" : "bg-[#1A1A26]"}`}>
+                      <Wine className={`w-6 h-6 ${isSelected ? "text-fuchsia-400" : "text-violet-400"}`} />
                     </div>
-                    <p className="text-xs text-[#7171A0]">{peg.subtitle}</p>
+                    <div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-bold text-base text-white">{peg.label}</span>
+                        <span className={`text-xl font-black ${isSelected ? "text-fuchsia-400" : "text-violet-400"}`}>
+                          {peg.ml}<span className="text-sm font-medium text-[#7171A0]"> ml</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#7171A0]">{peg.subtitle}</p>
+                    </div>
+                  </div>
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? "border-fuchsia-500 bg-fuchsia-500" : "border-white/20"
+                    }`}>
+                    {isSelected && (
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
                   </div>
                 </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? "border-violet-500 bg-violet-500" : "border-white/20"
-                  }`}>
-                  {isSelected && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="px-5 mt-3">
-          <p className="text-red-400 text-xs text-center">{error}</p>
+              </motion.button>
+            );
+          })}
         </div>
-      )}
 
-      {/* Generate QR Button */}
-      <div className="relative z-10 px-5 pb-10 pt-6">
-        <button
+        {error && (
+          <p className="px-5 text-red-400 text-xs text-center mt-2">{error}</p>
+        )}
+      </div>{/* end scroll */}
+
+      {/* Generate QR — pinned to bottom */}
+      <div className="px-5 pb-8 pt-3 bg-gradient-to-t from-[#09090F] via-[#09090F]/90 to-transparent flex-shrink-0">
+        <motion.button
+          whileTap={{ scale: 0.97 }}
           onClick={handleGenerate}
           disabled={!selectedPeg || creating}
           className={`w-full py-4 rounded-2xl font-bold text-base transition-all duration-300 ${selectedPeg && !creating
-            ? "btn-primary text-white"
+            ? "bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white shadow-lg shadow-fuchsia-500/30"
             : "bg-[#1A1A26] text-[#4A4A6A] cursor-not-allowed"
             }`}
         >
@@ -232,7 +242,7 @@ export default function RedeemPeg() {
             : selectedPeg
               ? `Generate QR · ${selectedPeg} ml`
               : "Select a peg size"}
-        </button>
+        </motion.button>
       </div>
     </div>
   );
