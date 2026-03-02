@@ -14,7 +14,7 @@ from auth import (
     create_access_token, create_refresh_token, create_session, 
     get_session_by_refresh_token, update_session_tokens, invalidate_session,
     invalidate_all_user_sessions, verify_google_token, create_otp, verify_otp,
-    send_otp_sms, get_current_user, pwd_context,
+    send_otp_sms, get_current_user, hash_password, verify_password,
     create_password_reset_token, verify_password_reset_token, 
     use_password_reset_token, send_password_reset_email
 )

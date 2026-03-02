@@ -3,7 +3,7 @@ Verify authentication and authorization configuration
 """
 from database import SessionLocal
 from models import User, UserRole
-from auth import pwd_context, create_access_token, verify_password
+from auth import hash_password, verify_password, create_access_token
 from jose import jwt
 from config import settings
 import requests
@@ -38,15 +38,15 @@ def verify_auth_system():
     print("-" * 80)
     
     test_password = "TestPassword123"
-    hashed = pwd_context.hash(test_password)
+    hashed = hash_password(test_password)
     
-    if pwd_context.verify(test_password, hashed):
+    if verify_password(test_password, hashed):
         print("   ✅ Password hashing works correctly")
     else:
         print("   ❌ Password hashing verification failed!")
         issues.append("Password hashing not working")
     
-    if pwd_context.verify("WrongPassword", hashed):
+    if verify_password("WrongPassword", hashed):
         print("   ❌ Password verification accepts wrong password!")
         issues.append("Password verification too permissive")
     else:

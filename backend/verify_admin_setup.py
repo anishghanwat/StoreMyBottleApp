@@ -5,7 +5,7 @@ This script checks if everything is configured correctly for the admin panel.
 
 from database import SessionLocal
 from models import User, Venue
-from auth import pwd_context
+from auth import hash_password, verify_password
 
 def verify_setup():
     db = SessionLocal()
@@ -26,7 +26,7 @@ def verify_setup():
         
         # Verify password
         if admin.hashed_password:
-            is_valid = pwd_context.verify("admin123", admin.hashed_password)
+            is_valid = verify_password("admin123", admin.hashed_password)
             if is_valid:
                 print(f"   ✅ Password 'admin123' is correct")
             else:
@@ -87,7 +87,7 @@ def verify_setup():
     if not admin:
         print("❌ Admin user missing - Run create_admin.py")
         all_good = False
-    elif not admin.hashed_password or not pwd_context.verify("admin123", admin.hashed_password):
+    elif not admin.hashed_password or not verify_password("admin123", admin.hashed_password):
         print("❌ Admin password incorrect - Run create_admin.py")
         all_good = False
     else:

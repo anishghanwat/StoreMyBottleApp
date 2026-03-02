@@ -7,7 +7,7 @@ sys.path.append(os.getcwd())
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from models import User, UserRole
-from auth import pwd_context
+from auth import hash_password, verify_password
 
 def create_admin(email, password, name="Admin User"):
     db = SessionLocal()
@@ -17,13 +17,13 @@ def create_admin(email, password, name="Admin User"):
         if user:
             print(f"User {email} already exists. Updating role to Admin...")
             user.role = UserRole.ADMIN
-            user.hashed_password = pwd_context.hash(password)
+            user.hashed_password = hash_password(password)
             print(f"Password updated for {email}")
         else:
             print(f"Creating new admin user {email}...")
             user = User(
                 email=email,
-                hashed_password=pwd_context.hash(password),
+                hashed_password=hash_password(password),
                 name=name,
                 role=UserRole.ADMIN,
                 phone="1234567890" # Dummy phone

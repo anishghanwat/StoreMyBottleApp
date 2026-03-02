@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import SessionLocal
 from models import User, UserRole
-from auth import pwd_context
+from auth import hash_password
 
 def seed_bartender():
     db = SessionLocal()
@@ -33,14 +33,14 @@ def seed_bartender():
                 print("Updated role to bartender.")
             
             # Force update password
-            hashed_password = pwd_context.hash("password123")
+            hashed_password = hash_password("password123")
             user.hashed_password = hashed_password
             db.commit()
             print("Updated password to 'password123'.")
             return
 
         print(f"Creating user {email}...")
-        hashed_password = pwd_context.hash("password123")
+        hashed_password = hash_password("password123")
         
         new_user = User(
             email=email,
