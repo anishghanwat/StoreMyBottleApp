@@ -1,7 +1,47 @@
-
-
 import axios from 'axios';
 import { sessionManager } from '../utils/session';
+import type {
+    LoginRequest,
+    LoginResponse,
+    User,
+    Venue,
+    VenueCreateRequest,
+    VenueUpdateRequest,
+    Bottle,
+    BottleCreateRequest,
+    BottleUpdateRequest,
+    Purchase,
+    PurchaseFilters,
+    Redemption,
+    RedemptionFilters,
+    Bartender,
+    BartenderCreateRequest,
+    BartenderUpdateRequest,
+    UserUpdateRoleRequest,
+    DateRangeFilters,
+    RevenueAnalytics,
+    SalesAnalytics,
+    RedemptionAnalytics,
+    UserAnalytics,
+    Promotion,
+    PromotionCreateRequest,
+    PromotionUpdateRequest,
+    PromotionFilters,
+    PromotionValidationRequest,
+    SupportTicket,
+    SupportTicketCreateRequest,
+    SupportTicketUpdateRequest,
+    SupportTicketFilters,
+    TicketCommentCreateRequest,
+    AuditLog,
+    AuditLogFilters,
+    Setting,
+    SettingCreateRequest,
+    SettingUpdateRequest,
+    SettingFilters,
+    BulkUpdateSettingsRequest,
+    DashboardStats,
+} from '../types/api.types';
 
 // Use environment variable for API URL, fallback to auto-detect for local dev
 const getApiUrl = () => {
@@ -125,8 +165,8 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-    login: async (email, password) => {
-        const response = await api.post('/api/auth/login', { email, password });
+    login: async (email: string, password: string): Promise<LoginResponse> => {
+        const response = await api.post<LoginResponse>('/api/auth/login', { email, password });
         const { access_token, refresh_token, user } = response.data;
 
         // Save session
@@ -135,8 +175,8 @@ export const authService = {
         return response.data;
     },
 
-    getProfile: async () => {
-        const response = await api.get('/api/users/me');
+    getProfile: async (): Promise<User> => {
+        const response = await api.get<User>('/api/users/me');
         return response.data;
     },
 
@@ -186,42 +226,41 @@ export const authService = {
 };
 
 export const adminService = {
-    getStats: async () => {
-        const response = await api.get('/api/admin/stats');
+    getStats: async (): Promise<DashboardStats> => {
+        const response = await api.get<DashboardStats>('/api/admin/stats');
         return response.data;
     },
 
-    getUsers: async (skip = 0, limit = 50) => {
-        const response = await api.get(`/api/admin/users?skip=${skip}&limit=${limit}`);
+    getUsers: async (skip = 0, limit = 50): Promise<{ users: User[]; total: number }> => {
+        const response = await api.get<{ users: User[]; total: number }>(`/api/admin/users?skip=${skip}&limit=${limit}`);
         return response.data;
     },
 
-    updateUserRole: async (userId, role, venueId) => {
-        const response = await api.put(`/api/admin/users/${userId}/role`, {
+    updateUserRole: async (userId: string, role: string, venueId?: string | null): Promise<User> => {
+        const response = await api.put<User>(`/api/admin/users/${userId}/role`, {
             role,
             venue_id: venueId
-        });
+        } as UserUpdateRoleRequest);
         return response.data;
     },
 
-    createVenue: async (venueData) => {
-        const response = await api.post('/api/admin/venues', venueData);
+    createVenue: async (venueData: VenueCreateRequest): Promise<Venue> => {
+        const response = await api.post<Venue>('/api/admin/venues', venueData);
         return response.data;
     },
 
-    getVenues: async () => {
-        const response = await api.get('/api/admin/venues');
+    getVenues: async (): Promise<Venue[]> => {
+        const response = await api.get<Venue[]>('/api/admin/venues');
         return response.data;
     },
 
-    updateVenue: async (id, venueData) => {
-        const response = await api.put(`/api/admin/venues/${id}`, venueData);
+    updateVenue: async (id: string, venueData: VenueUpdateRequest): Promise<Venue> => {
+        const response = await api.put<Venue>(`/api/admin/venues/${id}`, venueData);
         return response.data;
     },
 
-    deleteVenue: async (id) => {
-        const response = await api.delete(`/api/admin/venues/${id}`);
-        return response.data;
+    deleteVenue: async (id: string): Promise<void> => {
+        await api.delete(`/api/admin/venues/${id}`);
     },
 
     getBottles: async (venueId?: string) => {
