@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # Resend (Email Service)
     RESEND_API_KEY: Optional[str] = None
     FROM_EMAIL: str = "onboarding@resend.dev"
+    RESEND_TEST_EMAIL: Optional[str] = None  # For testing email delivery
     
     # Frontend
     FRONTEND_URL: str = "http://localhost:5173"
