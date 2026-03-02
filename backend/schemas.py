@@ -58,7 +58,7 @@ class BottleBase(BaseModel):
     brand: str
     name: str
     price: Decimal
-    volume_ml: int = Field(alias="ml")
+    volume_ml: int
     image_url: Optional[str] = None
 
 
@@ -108,7 +108,7 @@ class BottleUpdate(BaseModel):
     brand: Optional[str] = None
     name: Optional[str] = None
     price: Optional[Decimal] = None
-    volume_ml: Optional[int] = Field(None, alias="ml")
+    volume_ml: Optional[int] = None
     image_url: Optional[str] = None
     is_available: Optional[bool] = None
     
