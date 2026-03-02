@@ -5,15 +5,12 @@ echo ========================================
 echo.
 
 REM Check if Docker is running
-docker info >nul 2>&1
+docker ps >nul 2>&1
 if errorlevel 1 (
-    echo [WARNING] Docker is not running!
-    echo You can either:
-    echo   1. Start Docker Desktop
-    echo   2. Run MySQL locally
+    echo [WARNING] Docker might not be running!
+    echo Please make sure Docker Desktop is started.
     echo.
-    set /p CONTINUE="Continue without Docker? (y/N): "
-    if /i not "%CONTINUE%"=="y" exit /b 1
+    pause
 )
 
 echo [INFO] Starting MySQL database...
