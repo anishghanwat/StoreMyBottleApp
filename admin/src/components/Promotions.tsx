@@ -48,8 +48,11 @@ export function Promotions() {
 
   React.useEffect(() => {
     fetchPromotions()
-    fetchVenues()
   }, [statusFilter, venueFilter])
+
+  React.useEffect(() => {
+    fetchVenues()
+  }, [])
 
   const fetchPromotions = async (silent = false) => {
     if (!silent) setLoading(true)
@@ -295,7 +298,7 @@ export function Promotions() {
               description={searchQuery || statusFilter || venueFilter
                 ? "Try adjusting your search or filters"
                 : "Create your first promotion to offer discounts to customers"}
-              action={!searchQuery && !statusFilter && !venueFilter ? {
+              action={!searchQuery && statusFilter === "all" && venueFilter === "all" ? {
                 label: "Create Promotion",
                 onClick: handleCreate
               } : undefined}

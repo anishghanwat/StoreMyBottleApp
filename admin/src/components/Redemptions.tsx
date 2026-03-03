@@ -57,27 +57,24 @@ export function Redemptions() {
     }
   }
 
-  const handleFilterChange = async () => {
-    setRefreshing(true)
-    try {
-      const filters: any = {}
-      if (statusFilter !== "all") filters.status = statusFilter
-      if (venueFilter !== "all") filters.venue_id = venueFilter
-
-      const data = await adminService.getRedemptions(filters)
-      setRedemptions(data.redemptions)
-    } catch (error) {
-      console.error("Failed to filter redemptions", error)
-      toast.error("Failed to filter redemptions")
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
   React.useEffect(() => {
-    if (statusFilter !== "all" || venueFilter !== "all") {
-      handleFilterChange()
+    const applyFilters = async () => {
+      setRefreshing(true)
+      try {
+        const filters: any = {}
+        if (statusFilter !== "all") filters.status = statusFilter
+        if (venueFilter !== "all") filters.venue_id = venueFilter
+
+        const data = await adminService.getRedemptions(filters)
+        setRedemptions(data.redemptions)
+      } catch (error) {
+        console.error("Failed to filter redemptions", error)
+        toast.error("Failed to filter redemptions")
+      } finally {
+        setRefreshing(false)
+      }
     }
+    applyFilters()
   }, [statusFilter, venueFilter])
 
   const filteredRedemptions = redemptions.filter(redemption => {

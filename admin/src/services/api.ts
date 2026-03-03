@@ -274,12 +274,12 @@ export const adminService = {
         return response.data;
     },
 
-    createBottle: async (bottleData) => {
-        const response = await api.post('/api/admin/bottles', bottleData);
+    createBottle: async (bottleData: BottleCreateRequest): Promise<Bottle> => {
+        const response = await api.post<Bottle>('/api/admin/bottles', bottleData);
         return response.data;
     },
 
-    updateBottle: async (bottleId: string, bottleData) => {
+    updateBottle: async (bottleId: string, bottleData: BottleUpdateRequest): Promise<Bottle> => {
         const response = await api.put(`/api/admin/bottles/${bottleId}`, bottleData);
         return response.data;
     },

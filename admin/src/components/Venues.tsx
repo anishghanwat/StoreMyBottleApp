@@ -229,8 +229,8 @@ export function Venues() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={venue.status === 'active' ? 'default' : 'secondary'}>
-                          {venue.status || 'Active'}
+                        <Badge variant={venue.is_open ? 'default' : 'secondary'}>
+                          {venue.is_open ? 'Open' : 'Closed'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">

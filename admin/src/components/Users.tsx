@@ -66,7 +66,7 @@ export function Users() {
 
     try {
       const data = await adminService.getUsers()
-      setUsers(data)
+      setUsers(Array.isArray(data) ? data : data.users ?? [])
     } catch (error) {
       console.error("Failed to fetch users", error)
       toast.error("Failed to load users")
@@ -90,12 +90,10 @@ export function Users() {
   })
 
   const handleEditClick = (user: any) => {
-    console.log("handleEditClick called for:", user)
     setSelectedUser(user)
     setEditRole(user.role)
     setEditVenueId(user.venue_id || "")
     setIsEditOpen(true)
-    console.log("setIsEditOpen called. New state should be true.")
   }
 
   const handleSaveRole = async () => {

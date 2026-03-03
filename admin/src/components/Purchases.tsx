@@ -50,27 +50,24 @@ export function Purchases() {
     }
   }
 
-  const handleFilterChange = async () => {
-    setRefreshing(true)
-    try {
-      const filters: any = {}
-      if (statusFilter !== "all") filters.status = statusFilter
-      if (venueFilter !== "all") filters.venue_id = venueFilter
-
-      const data = await adminService.getPurchases(filters)
-      setPurchases(data.purchases)
-    } catch (error) {
-      console.error("Failed to filter purchases", error)
-      toast.error("Failed to filter purchases")
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
   React.useEffect(() => {
-    if (statusFilter !== "all" || venueFilter !== "all") {
-      handleFilterChange()
+    const applyFilters = async () => {
+      setRefreshing(true)
+      try {
+        const filters: any = {}
+        if (statusFilter !== "all") filters.status = statusFilter
+        if (venueFilter !== "all") filters.venue_id = venueFilter
+
+        const data = await adminService.getPurchases(filters)
+        setPurchases(data.purchases)
+      } catch (error) {
+        console.error("Failed to filter purchases", error)
+        toast.error("Failed to filter purchases")
+      } finally {
+        setRefreshing(false)
+      }
     }
+    applyFilters()
   }, [statusFilter, venueFilter])
 
   const filteredPurchases = purchases.filter(purchase => {
