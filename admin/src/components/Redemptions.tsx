@@ -57,7 +57,12 @@ export function Redemptions() {
     }
   }
 
+  const isFirstRender = React.useRef(true)
   React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     const applyFilters = async () => {
       setRefreshing(true)
       try {
@@ -113,21 +118,6 @@ export function Redemptions() {
         return "Cancelled"
       default:
         return status
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "redeemed":
-        return "bg-green-500 hover:bg-green-600"
-      case "pending":
-        return "bg-yellow-500 hover:bg-yellow-600 text-black"
-      case "expired":
-        return "bg-gray-500 hover:bg-gray-600"
-      case "cancelled":
-        return "bg-red-500 hover:bg-red-600"
-      default:
-        return ""
     }
   }
 
@@ -224,10 +214,7 @@ export function Redemptions() {
                       <TableCell>{redemption.venue_name}</TableCell>
                       <TableCell>{redemption.peg_size_ml}ml</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={getStatusVariant(redemption.status)}
-                          className={getStatusColor(redemption.status)}
-                        >
+                        <Badge variant={getStatusVariant(redemption.status)}>
                           {getStatusLabel(redemption.status)}
                         </Badge>
                       </TableCell>

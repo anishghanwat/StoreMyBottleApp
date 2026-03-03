@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Store, Plus, Pencil, Trash2, MoreHorizontal, MapPin } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -49,6 +50,7 @@ export function Venues() {
     address: "",
     contact_email: "",
     contact_phone: "",
+    image_url: "",
     status: "active"
   })
 
@@ -79,7 +81,7 @@ export function Venues() {
   const filteredVenues = venues.filter(venue => {
     const matchesSearch =
       venue.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      venue.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      venue.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       venue.contact_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       venue.contact_phone?.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesSearch
@@ -92,6 +94,7 @@ export function Venues() {
       address: "",
       contact_email: "",
       contact_phone: "",
+      image_url: "",
       status: "active"
     })
     setIsDialogOpen(true)
@@ -104,19 +107,76 @@ export function Venues() {
       address: venue.location || "",
       contact_email: venue.contact_email || "",
       contact_phone: venue.contact_phone || "",
+      image_url: venue.image_url || "",
       status: venue.is_open ? "active" : "inactive"
     })
     setIsDialogOpen(true)
   }
 
   const handleSave = async () => {
+    // Validation
+    if (!formData.name || formData.name.trim().length === 0) {
+      toast.error("Please enter a venue name")
+      return
+    }
+    if (formData.name.trim().length > 255) {
+      toast.error("Venue name must be less than 255 characters")
+      return
+    }
+    if (!formData.address || formData.address.trim().length === 0) {
+      toast.error("Please enter a venue address")
+      return
+    }
+    if (formData.address.trim().length > 500) {
+      toast.error("Address must be less than 500 characters")
+      return
+    }
+    if (formData.contact_email && formData.contact_email.trim().length > 0) {
+      if (formData.contact_email.trim().length > 255) {
+        toast.error("Email must be less than 255 characters")
+        return
+      }
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.contact_email.trim())) {
+        toast.error("Please enter a valid email address")
+        return
+      }
+    }
+    if (formData.contact_phone && formData.contact_phone.trim().length > 0) {
+      if (formData.contact_phone.trim().length > 20) {
+        toast.error("Phone number must be less than 20 characters")
+        return
+      }
+      // Basic phone validation (digits, spaces, +, -, ())
+      const phoneRegex = /^[\d\s\+\-\(\)]+$/
+      if (!phoneRegex.test(formData.contact_phone.trim())) {
+        toast.error("Please enter a valid phone number")
+        return
+      }
+    }
+    if (formData.image_url && formData.image_url.trim().length > 0) {
+      if (formData.image_url.trim().length > 1000) {
+        toast.error("Image URL must be less than 1000 characters")
+        return
+      }
+      // Basic URL validation
+      try {
+        new URL(formData.image_url.trim())
+      } catch {
+        toast.error("Please enter a valid image URL")
+        return
+      }
+    }
+
     try {
       const payload = {
-        name: formData.name,
-        location: formData.address,
+        name: formData.name.trim(),
+        location: formData.address.trim(),
         is_open: formData.status === "active",
-        contact_email: formData.contact_email,
-        contact_phone: formData.contact_phone
+        contact_email: formData.contact_email && formData.contact_email.trim().length > 0 ? formData.contact_email.trim() : null,
+        contact_phone: formData.contact_phone && formData.contact_phone.trim().length > 0 ? formData.contact_phone.trim() : null,
+        image_url: formData.image_url && formData.image_url.trim().length > 0 ? formData.image_url.trim() : null
       }
 
       if (editingVenue) {
@@ -128,9 +188,10 @@ export function Venues() {
       }
       setIsDialogOpen(false)
       fetchVenues(true)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save venue", error)
-      toast.error("Failed to save venue")
+      const errorMessage = error.response?.data?.detail || "Failed to save venue"
+      toast.error(errorMessage)
     }
   }
 
@@ -307,6 +368,29 @@ export function Venues() {
                 onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
                 className="col-span-3"
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="image_url" className="text-right">Image URL</Label>
+              <Input
+                id="image_url"
+                value={formData.image_url}
+                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                className="col-span-3"
+                placeholder="https://..."
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="is_open" className="text-right">Open Now</Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Switch
+                  id="is_open"
+                  checked={formData.status === "active"}
+                  onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? "active" : "inactive" })}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {formData.status === "active" ? "Open" : "Closed"}
+                </span>
+              </div>
             </div>
           </div>
           <DialogFooter>

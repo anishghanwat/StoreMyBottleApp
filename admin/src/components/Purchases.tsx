@@ -50,7 +50,12 @@ export function Purchases() {
     }
   }
 
+  const isFirstRender = React.useRef(true)
   React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     const applyFilters = async () => {
       setRefreshing(true)
       try {
@@ -170,6 +175,7 @@ export function Purchases() {
                     <TableHead>Price</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Payment</TableHead>
+                    <TableHead>Method</TableHead>
                     <TableHead className="text-right">Remaining</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -202,6 +208,9 @@ export function Purchases() {
                         <Badge variant={getStatusVariant(purchase.payment_status)}>
                           {getStatusLabel(purchase.payment_status)}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground capitalize">
+                        {purchase.payment_method || "—"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div>

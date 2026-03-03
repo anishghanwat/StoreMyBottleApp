@@ -210,7 +210,7 @@ export function Users() {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="customer">Customer</SelectItem>
+                  <SelectItem value="user">Customer</SelectItem>
                   <SelectItem value="bartender">Bartender</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>

@@ -80,11 +80,11 @@ const navItems = [
     icon: Percent,
     id: "promotions",
   },
-  // {
-  //   title: "Support Tickets",
-  //   icon: MessageSquare,
-  //   id: "tickets",
-  // },
+  {
+    title: "Support Tickets",
+    icon: MessageSquare,
+    id: "tickets",
+  },
   {
     title: "Audit Logs",
     icon: FileText,

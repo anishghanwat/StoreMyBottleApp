@@ -18,7 +18,6 @@ import { DashboardSkeletonLoader } from "@/components/ui/skeleton-loader"
 
 export function Dashboard() {
   const [loading, setLoading] = React.useState(true)
-  const [refreshing, setRefreshing] = React.useState(false)
   const [revenueData, setRevenueData] = React.useState<any>(null)
   const [salesData, setSalesData] = React.useState<any>(null)
   const [redemptionData, setRedemptionData] = React.useState<any>(null)
@@ -94,10 +93,10 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₹{revenueData?.total_revenue?.toLocaleString() || 0}
+              ₹{Number(revenueData?.total_revenue || 0).toLocaleString()}
             </div>
             <div className="mt-2 text-xs text-muted-foreground">
-              This month: ₹{revenueData?.revenue_this_month?.toLocaleString() || 0}
+              This month: ₹{Number(revenueData?.revenue_this_month || 0).toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -129,7 +128,7 @@ export function Dashboard() {
               {redemptionData?.redeemed_count?.toLocaleString() || 0}
             </div>
             <div className="mt-2 text-xs text-muted-foreground">
-              Rate: {redemptionData?.redemption_rate?.toFixed(1) || 0}%
+              Rate: {Number(redemptionData?.redemption_rate || 0).toFixed(1)}%
             </div>
           </CardContent>
         </Card>

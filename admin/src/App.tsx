@@ -26,7 +26,7 @@ import { Reports } from "@/components/Reports"
 import { VenueAnalytics } from "@/components/VenueAnalytics"
 import { Settings } from "@/components/Settings"
 import { Promotions } from "@/components/Promotions"
-// import { SupportTickets } from "@/components/SupportTickets"
+import { SupportTickets } from "@/components/SupportTickets"
 import { InventoryAuditLogs } from "@/components/InventoryAuditLogs"
 import { Login } from "@/components/Login"
 import { ForgotPassword } from "@/components/ForgotPassword"
@@ -146,8 +146,8 @@ export default function App() {
         return <Settings />
       case "promotions":
         return <Promotions />
-      // case "tickets":
-      //   return <SupportTickets />
+      case "tickets":
+        return <SupportTickets />
       case "logs":
         return <InventoryAuditLogs />
       default:
@@ -168,6 +168,7 @@ export default function App() {
       "venue-analytics": "Venue Analytics",
       settings: "Settings",
       promotions: "Promotions",
+      tickets: "Support Tickets",
       logs: "Audit Logs",
     }
     return pageTitles[currentPage] ?? currentPage.charAt(0).toUpperCase() + currentPage.slice(1)
@@ -219,8 +220,8 @@ export default function App() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCurrentPage('settings')}>Profile</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCurrentPage('settings')}>Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive" onClick={handleLogout}>Log out</DropdownMenuItem>
               </DropdownMenuContent>

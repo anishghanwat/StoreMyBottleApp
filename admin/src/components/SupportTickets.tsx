@@ -59,15 +59,17 @@ export function SupportTickets() {
       console.error("Failed to fetch tickets:", error)
       toast.error(error.response?.data?.detail || "Failed to fetch tickets")
     } finally {
-      setLoading(false)
-      setRefreshing(false)
+      if (!silent) setLoading(false)
+      else setRefreshing(false)
     }
   }
 
   const fetchUsers = async () => {
     try {
       const data = await adminService.getUsers()
-      setUsers(data.filter((u: any) => u.role === "admin" || u.role === "bartender"))
+      // getUsers returns {users: User[], total: number}
+      const usersArray = data.users || data
+      setUsers((usersArray as any[]).filter((u: any) => u.role === "admin" || u.role === "bartender"))
     } catch (error) {
       console.error("Failed to fetch users:", error)
     }
@@ -194,10 +196,10 @@ export function SupportTickets() {
 
   const getPriorityBadge = (priority: string) => {
     const colors: any = {
-      low: "bg-gray-100 text-gray-800",
-      medium: "bg-blue-100 text-blue-800",
-      high: "bg-orange-100 text-orange-800",
-      urgent: "bg-red-100 text-red-800"
+      low: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+      medium: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      high: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+      urgent: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
     }
     return <Badge className={colors[priority] || ""}>{priority}</Badge>
   }

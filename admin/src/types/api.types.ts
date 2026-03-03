@@ -48,6 +48,8 @@ export interface Venue {
     state?: string;
     country?: string;
     is_open: boolean;
+    contact_email?: string | null;
+    contact_phone?: string | null;
     image_url: string | null;
     created_at: string;
 }
@@ -59,6 +61,8 @@ export interface VenueCreateRequest {
     state?: string;
     country?: string;
     is_open?: boolean;
+    contact_email?: string | null;
+    contact_phone?: string | null;
     image_url?: string | null;
 }
 
@@ -164,7 +168,7 @@ export interface BartenderUpdateRequest {
 
 // ============ User Management Types ============
 export interface UserUpdateRoleRequest {
-    role: 'admin' | 'bartender' | 'customer';
+    role: 'admin' | 'bartender' | 'user';
     venue_id?: string | null;
 }
 

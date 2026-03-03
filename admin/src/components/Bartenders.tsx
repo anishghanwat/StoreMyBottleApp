@@ -119,8 +119,13 @@ export function Bartenders() {
   }, [])
 
   const handleAddBartender = async () => {
-    if (!addName || !addPassword || !addVenueId) {
-      toast.error("Please fill in all required fields")
+    // Validation
+    if (!addName || addName.trim().length === 0) {
+      toast.error("Please enter bartender name")
+      return
+    }
+    if (addName.trim().length > 255) {
+      toast.error("Name must be less than 255 characters")
       return
     }
 
@@ -129,12 +134,69 @@ export function Bartenders() {
       return
     }
 
+    if (addEmail && addEmail.trim().length > 0) {
+      if (addEmail.trim().length > 255) {
+        toast.error("Email must be less than 255 characters")
+        return
+      }
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(addEmail.trim())) {
+        toast.error("Please enter a valid email address")
+        return
+      }
+    }
+
+    if (addPhone && addPhone.trim().length > 0) {
+      if (addPhone.trim().length > 20) {
+        toast.error("Phone number must be less than 20 characters")
+        return
+      }
+      // Phone validation (digits, spaces, +, -, ())
+      const phoneRegex = /^[\d\s\+\-\(\)]+$/
+      if (!phoneRegex.test(addPhone.trim())) {
+        toast.error("Please enter a valid phone number")
+        return
+      }
+    }
+
+    if (!addPassword || addPassword.length === 0) {
+      toast.error("Please enter a password")
+      return
+    }
+    if (addPassword.length < 8) {
+      toast.error("Password must be at least 8 characters")
+      return
+    }
+    if (addPassword.length > 255) {
+      toast.error("Password must be less than 255 characters")
+      return
+    }
+    // Password strength validation
+    if (!/[A-Z]/.test(addPassword)) {
+      toast.error("Password must contain at least one uppercase letter")
+      return
+    }
+    if (!/[a-z]/.test(addPassword)) {
+      toast.error("Password must contain at least one lowercase letter")
+      return
+    }
+    if (!/[0-9]/.test(addPassword)) {
+      toast.error("Password must contain at least one number")
+      return
+    }
+
+    if (!addVenueId) {
+      toast.error("Please select a venue")
+      return
+    }
+
     setIsAdding(true)
     try {
       await adminService.createBartender({
-        name: addName,
-        email: addEmail || null,
-        phone: addPhone || null,
+        name: addName.trim(),
+        email: addEmail && addEmail.trim().length > 0 ? addEmail.trim() : null,
+        phone: addPhone && addPhone.trim().length > 0 ? addPhone.trim() : null,
         password: addPassword,
         venue_id: addVenueId
       })
@@ -169,17 +231,63 @@ export function Bartenders() {
   }
 
   const handleUpdateBartender = async () => {
-    if (!selectedBartender || !editName || !editVenueId) {
-      toast.error("Please fill in all required fields")
+    if (!selectedBartender) {
+      toast.error("No bartender selected")
+      return
+    }
+
+    // Validation
+    if (!editName || editName.trim().length === 0) {
+      toast.error("Please enter bartender name")
+      return
+    }
+    if (editName.trim().length > 255) {
+      toast.error("Name must be less than 255 characters")
+      return
+    }
+
+    if (!editEmail && !editPhone) {
+      toast.error("Please provide either email or phone")
+      return
+    }
+
+    if (editEmail && editEmail.trim().length > 0) {
+      if (editEmail.trim().length > 255) {
+        toast.error("Email must be less than 255 characters")
+        return
+      }
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(editEmail.trim())) {
+        toast.error("Please enter a valid email address")
+        return
+      }
+    }
+
+    if (editPhone && editPhone.trim().length > 0) {
+      if (editPhone.trim().length > 20) {
+        toast.error("Phone number must be less than 20 characters")
+        return
+      }
+      // Phone validation (digits, spaces, +, -, ())
+      const phoneRegex = /^[\d\s\+\-\(\)]+$/
+      if (!editPhone.trim()) {
+        toast.error("Please enter a valid phone number")
+        return
+      }
+    }
+
+    if (!editVenueId) {
+      toast.error("Please select a venue")
       return
     }
 
     setIsEditing(true)
     try {
       await adminService.updateBartender(selectedBartender.id, {
-        name: editName,
-        email: editEmail || null,
-        phone: editPhone || null,
+        name: editName.trim(),
+        email: editEmail && editEmail.trim().length > 0 ? editEmail.trim() : null,
+        phone: editPhone && editPhone.trim().length > 0 ? editPhone.trim() : null,
         venue_id: editVenueId
       })
 

@@ -58,41 +58,78 @@ export function ConfirmDialog({
 }
 
 // Hook for easier usage
+// Uses a ref for onConfirm to avoid stale closure bugs when storing async callbacks
 export function useConfirmDialog() {
     const [isOpen, setIsOpen] = React.useState(false)
     const [config, setConfig] = React.useState<{
         title: string
         description: string
-        onConfirm: () => void
         confirmText?: string
         variant?: "default" | "destructive"
     }>({
         title: "",
         description: "",
-        onConfirm: () => { },
     })
+
+    // Store onConfirm in a ref so it always has the latest closure
+    const onConfirmRef = React.useRef<() => void>(() => { })
+
+    // Also support promise-based usage: const confirmed = await confirm({...})
+    const resolveRef = React.useRef<((value: boolean) => void) | null>(null)
 
     const confirm = (options: {
         title: string
         description: string
-        onConfirm: () => void
+        onConfirm?: () => void
         confirmText?: string
         variant?: "default" | "destructive"
-    }) => {
-        setConfig(options)
+    }): Promise<boolean> => {
+        onConfirmRef.current = options.onConfirm ?? (() => { })
+        setConfig({
+            title: options.title,
+            description: options.description,
+            confirmText: options.confirmText,
+            variant: options.variant,
+        })
         setIsOpen(true)
+
+        // Return promise for await-based usage
+        return new Promise<boolean>((resolve) => {
+            resolveRef.current = resolve
+        })
+    }
+
+    const handleConfirm = () => {
+        onConfirmRef.current()
+        resolveRef.current?.(true)
+        resolveRef.current = null
+        setIsOpen(false)
+    }
+
+    const handleCancel = () => {
+        resolveRef.current?.(false)
+        resolveRef.current = null
+        setIsOpen(false)
     }
 
     const dialog = (
-        <ConfirmDialog
-            open={isOpen}
-            onOpenChange={setIsOpen}
-            title={config.title}
-            description={config.description}
-            onConfirm={config.onConfirm}
-            confirmText={config.confirmText}
-            variant={config.variant}
-        />
+        <AlertDialog open={isOpen} onOpenChange={(open) => { if (!open) handleCancel() }}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{config.title}</AlertDialogTitle>
+                    <AlertDialogDescription>{config.description}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={handleCancel}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={handleConfirm}
+                        className={config.variant === "destructive" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+                    >
+                        {config.confirmText ?? "Confirm"}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     )
 
     return { confirm, dialog }
