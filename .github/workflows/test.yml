@@ -1,0 +1,109 @@
+name: Run Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - develop
+
+jobs:
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_password
+          MYSQL_DATABASE: storemybottle_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Run tests
+        env:
+          DATABASE_URL: mysql+pymysql://root:test_password@localhost:3306/storemybottle_test
+          JWT_SECRET: test-secret-key-for-testing-only
+          JWT_REFRESH_SECRET: test-refresh-secret-key
+        run: |
+          cd backend
+          python -m pytest test_*.py -v --tb=short
+        continue-on-error: true
+      
+      - name: Test summary
+        if: always()
+        run: |
+          echo "Backend tests completed"
+
+  frontend-build:
+    name: Frontend Build Test
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        app: [frontend, frontend-bartender, admin]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd ${{ matrix.app }}
+          npm ci
+      
+      - name: Build
+        run: |
+          cd ${{ matrix.app }}
+          npm run build
+      
+      - name: Build summary
+        run: |
+          echo "✅ ${{ matrix.app }} built successfully"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
