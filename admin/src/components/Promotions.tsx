@@ -424,7 +424,7 @@ export function Promotions() {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[10000]">
                     <SelectItem value="percentage">Percentage</SelectItem>
                     <SelectItem value="fixed_amount">Fixed Amount</SelectItem>
                     <SelectItem value="free_peg">Free Peg</SelectItem>
@@ -495,7 +495,7 @@ export function Promotions() {
                 <SelectTrigger>
                   <SelectValue placeholder="All Venues" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[10000]">
                   <SelectItem value="all">All Venues</SelectItem>
                   {venues.map((venue) => (
                     <SelectItem key={venue.id} value={venue.id}>
@@ -533,7 +533,7 @@ export function Promotions() {
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[10000]">
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>

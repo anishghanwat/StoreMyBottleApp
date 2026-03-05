@@ -371,7 +371,7 @@ export function Bottles() {
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select venue" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[10000]">
                   {venues.map(v => (
                     <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
                   ))}

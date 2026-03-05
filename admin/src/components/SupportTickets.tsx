@@ -411,7 +411,7 @@ export function SupportTickets() {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[10000]">
                     <SelectItem value="technical">Technical</SelectItem>
                     <SelectItem value="billing">Billing</SelectItem>
                     <SelectItem value="account">Account</SelectItem>
@@ -426,7 +426,7 @@ export function SupportTickets() {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[10000]">
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="high">High</SelectItem>
