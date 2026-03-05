@@ -61,7 +61,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     command: npm run dev -- --host 0.0.0.0
     networks:
       - storemybottle_network
@@ -79,7 +79,7 @@ services:
       - ./frontend-bartender:/app
       - /app/node_modules
     environment:
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     command: npm run dev -- --host 0.0.0.0
     networks:
       - storemybottle_network
@@ -97,7 +97,7 @@ services:
       - ./admin:/app
       - /app/node_modules
     environment:
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     command: npm run dev -- --host 0.0.0.0
     networks:
       - storemybottle_network

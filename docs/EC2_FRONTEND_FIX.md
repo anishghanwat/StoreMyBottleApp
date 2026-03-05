@@ -19,14 +19,26 @@ Fixed port mappings:
 
 ### 2. Restart Containers on EC2
 
+First, update your .env file to include the frontend API URL:
+
 ```bash
 cd ~/StoreMyBottleApp
 
+# Edit .env file
+nano .env
+
+# Add this line (replace with your EC2 IP):
+VITE_API_URL=http://43.205.237.225:8000
+```
+
+Then restart containers:
+
+```bash
 # Pull latest changes
 git pull origin main
 
-# Restart admin container with new port mapping
-docker-compose up -d admin
+# Restart all frontend containers
+docker-compose up -d frontend bartender admin
 
 # Verify all services
 docker-compose ps
