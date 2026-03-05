@@ -74,7 +74,7 @@ services:
     container_name: storemybottle_bartender
     restart: always
     ports:
-      - "5174:5173"
+      - "5174:5174"
     volumes:
       - ./frontend-bartender:/app
       - /app/node_modules
@@ -92,7 +92,7 @@ services:
     container_name: storemybottle_admin
     restart: always
     ports:
-      - "5175:5173"
+      - "5175:3000"
     volumes:
       - ./admin:/app
       - /app/node_modules
