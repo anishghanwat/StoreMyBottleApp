@@ -120,22 +120,25 @@ export function Bottles() {
   }
 
   const handleDelete = async (id: string) => {
-    confirm({
-      title: "Delete Bottle",
-      description: "Are you sure you want to delete this bottle? This action cannot be undone.",
-      confirmText: "Delete",
-      variant: "destructive",
-      onConfirm: async () => {
-        try {
-          await adminService.deleteBottle(id)
-          toast.success("Bottle deleted successfully")
-          loadData(true)
-        } catch (error: any) {
-          console.error("Failed to delete bottle", error)
-          toast.error(error.response?.data?.detail || "Failed to delete bottle")
+    // Prevent dropdown from closing immediately
+    setTimeout(() => {
+      confirm({
+        title: "Delete Bottle",
+        description: "Are you sure you want to delete this bottle? This action cannot be undone.",
+        confirmText: "Delete",
+        variant: "destructive",
+        onConfirm: async () => {
+          try {
+            await adminService.deleteBottle(id)
+            toast.success("Bottle deleted successfully")
+            loadData(true)
+          } catch (error: any) {
+            console.error("Failed to delete bottle", error)
+            toast.error(error.response?.data?.detail || "Failed to delete bottle")
+          }
         }
-      }
-    })
+      })
+    }, 0)
   }
 
   const handleSave = async () => {

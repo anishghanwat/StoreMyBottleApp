@@ -154,22 +154,25 @@ export function Promotions() {
   }
 
   const handleDelete = async (id: string) => {
-    confirm({
-      title: "Delete Promotion",
-      description: "Are you sure you want to delete this promotion? This action cannot be undone.",
-      confirmText: "Delete",
-      variant: "destructive",
-      onConfirm: async () => {
-        try {
-          await adminService.deletePromotion(id)
-          toast.success("Promotion deleted successfully")
-          fetchPromotions(true)
-        } catch (error: any) {
-          console.error("Failed to delete promotion:", error)
-          toast.error(error.response?.data?.detail || "Failed to delete promotion")
+    // Prevent dropdown from closing immediately
+    setTimeout(() => {
+      confirm({
+        title: "Delete Promotion",
+        description: "Are you sure you want to delete this promotion? This action cannot be undone.",
+        confirmText: "Delete",
+        variant: "destructive",
+        onConfirm: async () => {
+          try {
+            await adminService.deletePromotion(id)
+            toast.success("Promotion deleted successfully")
+            fetchPromotions(true)
+          } catch (error: any) {
+            console.error("Failed to delete promotion:", error)
+            toast.error(error.response?.data?.detail || "Failed to delete promotion")
+          }
         }
-      }
-    })
+      })
+    }, 0)
   }
 
   const copyCode = (code: string) => {

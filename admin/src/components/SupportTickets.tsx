@@ -153,25 +153,28 @@ export function SupportTickets() {
   }
 
   const handleDelete = async (id: string) => {
-    confirm({
-      title: "Delete Ticket",
-      description: "Are you sure you want to delete this ticket? This action cannot be undone.",
-      confirmText: "Delete",
-      variant: "destructive",
-      onConfirm: async () => {
-        try {
-          await adminService.deleteTicket(id)
-          toast.success("Ticket deleted successfully")
-          fetchTickets()
-          if (selectedTicket?.id === id) {
-            setIsDetailOpen(false)
+    // Prevent dropdown from closing immediately
+    setTimeout(() => {
+      confirm({
+        title: "Delete Ticket",
+        description: "Are you sure you want to delete this ticket? This action cannot be undone.",
+        confirmText: "Delete",
+        variant: "destructive",
+        onConfirm: async () => {
+          try {
+            await adminService.deleteTicket(id)
+            toast.success("Ticket deleted successfully")
+            fetchTickets()
+            if (selectedTicket?.id === id) {
+              setIsDetailOpen(false)
+            }
+          } catch (error: any) {
+            console.error("Failed to delete ticket:", error)
+            toast.error(error.response?.data?.detail || "Failed to delete ticket")
           }
-        } catch (error: any) {
-          console.error("Failed to delete ticket:", error)
-          toast.error(error.response?.data?.detail || "Failed to delete ticket")
         }
-      }
-    })
+      })
+    }, 0)
   }
 
   const filteredTickets = tickets.filter(ticket =>

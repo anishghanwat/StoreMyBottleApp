@@ -303,22 +303,25 @@ export function Bartenders() {
   }
 
   const handleDeleteClick = (bartender: Bartender) => {
-    confirm({
-      title: "Delete Bartender",
-      description: `Are you sure you want to delete ${bartender.name}? This action cannot be undone.`,
-      confirmText: "Delete",
-      variant: "destructive",
-      onConfirm: async () => {
-        try {
-          await adminService.deleteBartender(bartender.id)
-          toast.success("Bartender deleted successfully")
-          fetchBartenders(true)
-        } catch (error: any) {
-          console.error("Failed to delete bartender", error)
-          toast.error(error.response?.data?.detail || "Failed to delete bartender")
+    // Prevent dropdown from closing immediately
+    setTimeout(() => {
+      confirm({
+        title: "Delete Bartender",
+        description: `Are you sure you want to delete ${bartender.name}? This action cannot be undone.`,
+        confirmText: "Delete",
+        variant: "destructive",
+        onConfirm: async () => {
+          try {
+            await adminService.deleteBartender(bartender.id)
+            toast.success("Bartender deleted successfully")
+            fetchBartenders(true)
+          } catch (error: any) {
+            console.error("Failed to delete bartender", error)
+            toast.error(error.response?.data?.detail || "Failed to delete bartender")
+          }
         }
-      }
-    })
+      })
+    }, 0)
   }
 
   // Filter bartenders
