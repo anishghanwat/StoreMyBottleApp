@@ -17,7 +17,7 @@ export default defineConfig({
     basicSsl(), // Required for camera access on network
   ],
   server: {
-    host: true,
+    host: true, // Listen on all local IPs
     port: 5174,
   },
   resolve: {
@@ -29,8 +29,4 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
-  server: {
-    host: true, // Listen on all local IPs
-    port: 5174,
-  }
 })

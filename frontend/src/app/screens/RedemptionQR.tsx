@@ -265,6 +265,22 @@ export default function RedemptionQR() {
               <div className={`w-2 h-2 rounded-full animate-pulse ${isLow ? "bg-red-400" : "bg-violet-400"}`} />
               {minutes}:{seconds.toString().padStart(2, "0")} remaining
             </div>
+
+            {/* Timestamp watermark - security feature */}
+            {redemption.qr_data && (() => {
+              try {
+                const qrData = JSON.parse(redemption.qr_data);
+                if (qrData.created) {
+                  const createdDate = new Date(qrData.created);
+                  return (
+                    <div className="text-[10px] text-[#4A4A6A] text-center">
+                      Generated: {createdDate.toLocaleTimeString()}
+                    </div>
+                  );
+                }
+              } catch { }
+              return null;
+            })()}
           </motion.div>
 
           {/* Pour details card */}

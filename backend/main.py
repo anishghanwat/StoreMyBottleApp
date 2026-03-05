@@ -1,13 +1,108 @@
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.exc import SQLAlchemyError
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from config import settings
 from database import engine, Base
 from routers import venues, auth, purchases, redemptions, profile, admin
+
+# Create rate limiter
+limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+
+
+# Security Headers Middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Add security headers to all responses.
+    Implements OWASP security best practices.
+    """
+    async def dispatch(self, request: Request, call_next):
+        # Skip security headers for API documentation endpoints
+        if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
+            response = await call_next(request)
+            return response
+        
+        response = await call_next(request)
+        
+        # HSTS (HTTP Strict Transport Security)
+        # Forces browsers to use HTTPS for all future requests
+        if settings.ENVIRONMENT == "production":
+            # Production: Enforce HTTPS for 1 year, include subdomains
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+        else:
+            # Development: Shorter duration for testing
+            response.headers["Strict-Transport-Security"] = "max-age=3600"
+        
+        # X-Content-Type-Options
+        # Prevents MIME type sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        
+        # X-Frame-Options
+        # Prevents clickjacking attacks
+        response.headers["X-Frame-Options"] = "DENY"
+        
+        # X-XSS-Protection
+        # Enables browser XSS filter (legacy, but still useful)
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        
+        # Content-Security-Policy
+        # Prevents XSS, clickjacking, and other code injection attacks
+        csp_directives = [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",  # Allow Swagger UI CDN
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",  # Allow Swagger UI styles
+            "img-src 'self' data: https:",
+            "font-src 'self' data:",
+            "connect-src 'self'",
+            "frame-ancestors 'none'",
+            "base-uri 'self'",
+            "form-action 'self'"
+        ]
+        response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
+        
+        # Referrer-Policy
+        # Controls how much referrer information is sent
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        
+        # Permissions-Policy (formerly Feature-Policy)
+        # Controls which browser features can be used
+        permissions = [
+            "geolocation=()",
+            "microphone=()",
+            "camera=()",
+            "payment=()",
+            "usb=()",
+            "magnetometer=()",
+            "gyroscope=()",
+            "accelerometer=()"
+        ]
+        response.headers["Permissions-Policy"] = ", ".join(permissions)
+        
+        return response
+
+
+# HTTPS Redirect Middleware (Production only)
+class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
+    """
+    Redirect all HTTP requests to HTTPS in production.
+    """
+    async def dispatch(self, request: Request, call_next):
+        # Only redirect in production
+        if settings.ENVIRONMENT == "production":
+            # Check if request is HTTP (not HTTPS)
+            if request.url.scheme == "http":
+                # Build HTTPS URL
+                https_url = request.url.replace(scheme="https")
+                return RedirectResponse(url=str(https_url), status_code=301)
+        
+        return await call_next(request)
 
 # Create FastAPI app
 app = FastAPI(
@@ -18,27 +113,28 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS middleware
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Add security middlewares
+# Order matters: HTTPS redirect should be first, then security headers
+app.add_middleware(SecurityHeadersMiddleware)
+if settings.ENVIRONMENT == "production":
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+# CORS middleware - Secure configuration
+# No wildcards allowed when using credentials (HttpOnly cookies)
+cors_origins = settings.get_cors_origins()
+
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=["*"] with credentials is invalid. using regex for local network
-    allow_origins=[
-        settings.FRONTEND_URL, 
-        "http://localhost:5173", 
-        "http://localhost:5174",
-        "https://localhost:5173",
-        "https://localhost:5174",
-        "https://192.168.31.5:5174",
-        "http://192.168.31.5:5174",
-        "http://localhost:3000",
-        "https://localhost:3000",
-        "http://localhost:5175",
-        "http://localhost:5176"
-    ],
-    allow_origin_regex=r"https?://192\.168\.\d+\.\d+(:\d+)?",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=cors_origins,  # Specific origins only (no wildcards)
+    allow_credentials=True,  # Required for HttpOnly cookies
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept"],
+    expose_headers=["Content-Length", "Content-Type"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 
@@ -74,6 +170,9 @@ async def startup_event():
     print("🚀 Starting StoreMyBottle API...")
     print(f"📝 Environment: {settings.ENVIRONMENT}")
     print(f"🌐 Frontend URL: {settings.FRONTEND_URL}")
+    print(f"🔒 CORS Origins: {', '.join(settings.get_cors_origins())}")
+    print(f"🔐 HTTPS Enforcement: {'✅ Enabled' if settings.ENVIRONMENT == 'production' else '⚠️  Disabled (dev mode)'}")
+    print(f"🛡️  Security Headers: ✅ Enabled")
     
     # Auto-initialize database on startup (for production deployments)
     try:

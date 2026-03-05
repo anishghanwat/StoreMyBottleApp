@@ -4,12 +4,12 @@ from datetime import datetime, timedelta, timezone
 import json
 
 from database import get_db
-from models import User, Purchase, Redemption, RedemptionStatus, PaymentStatus
+from models import User, Purchase, Redemption, RedemptionStatus, PaymentStatus, Venue
 from schemas import (
     RedemptionCreateRequest, RedemptionResponse, QRValidationRequest,
     QRValidationResponse, RedemptionHistoryList, RedemptionHistoryItem
 )
-from auth import get_current_user, get_current_active_bartender, generate_qr_token
+from auth import get_current_user, get_current_active_bartender, generate_qr_token, verify_qr_token_access, verify_venue_access, verify_redemption_ownership
 
 router = APIRouter(prefix="/api/redemptions", tags=["redemptions"])
 
@@ -62,11 +62,13 @@ def generate_redemption_qr(
             detail="Bottle has expired (valid for 30 days)"
         )
 
-    # Generate QR token
+    # Generate cryptographically secure QR token
     qr_token = generate_qr_token()
+    
+    # QR code expires in 15 minutes
     qr_expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
     
-    # Create redemption
+    # Create redemption with device binding
     redemption = Redemption(
         purchase_id=purchase.id,
         user_id=current_user.id,
@@ -74,21 +76,25 @@ def generate_redemption_qr(
         peg_size_ml=request.peg_size_ml,
         qr_token=qr_token,
         qr_expires_at=qr_expires_at,
-        status=RedemptionStatus.PENDING
+        status=RedemptionStatus.PENDING,
+        device_fingerprint=request.device_fingerprint  # SECURITY: Device binding
     )
     
     db.add(redemption)
     db.commit()
     db.refresh(redemption)
     
-    # Construct QR data JSON
+    # Construct QR data JSON with timestamp watermark
+    current_time = datetime.now(timezone.utc)
     qr_data_dict = {
         "id": redemption.qr_token,
         "venue": purchase.venue.name,
         "bottle": f"{purchase.bottle.brand} {purchase.bottle.name}",
         "ml": request.peg_size_ml,
         "exp": qr_expires_at.isoformat(),
-        "created": datetime.now(timezone.utc).isoformat()
+        "created": current_time.isoformat(),
+        "timestamp": int(current_time.timestamp()),  # SECURITY: Unix timestamp watermark
+        "device": request.device_fingerprint[:20] if request.device_fingerprint else None  # Partial fingerprint for display
     }
     
     return RedemptionResponse(
@@ -122,14 +128,13 @@ def validate_redemption_qr(
         )
     
     # Check if already redeemed
-    if redemption.status == RedemptionStatus.REDEEMED:
+    if redemption.status != RedemptionStatus.PENDING:
         return QRValidationResponse(
             success=False,
-            message="QR code already used"
+            message=f"QR code already {redemption.status.value}"
         )
     
-    # Check if expired
-    # Check if expired
+    # Check expiration
     expiry = redemption.qr_expires_at
     if expiry.tzinfo is None:
         expiry = expiry.replace(tzinfo=timezone.utc)
@@ -139,15 +144,33 @@ def validate_redemption_qr(
         db.commit()
         return QRValidationResponse(
             success=False,
-            message="QR code expired"
+            message="QR code has expired"
         )
     
-    # Check if cancelled
-    if redemption.status == RedemptionStatus.CANCELLED:
-        return QRValidationResponse(
-            success=False,
-            message="QR code cancelled"
-        )
+    # SECURITY ENHANCEMENT: Check device binding
+    # If QR was generated with device fingerprint, validate it matches
+    if redemption.device_fingerprint and hasattr(request, 'device_fingerprint'):
+        if request.device_fingerprint != redemption.device_fingerprint:
+            return QRValidationResponse(
+                success=False,
+                message="QR code can only be used on the device that generated it"
+            )
+    
+    # AUTHORIZATION: Check venue access
+    # Admin can redeem at any venue
+    if current_user.role != "admin":
+        # Bartender can only redeem at their venue
+        if current_user.role == "bartender":
+            if current_user.venue_id != redemption.venue_id:
+                return QRValidationResponse(
+                    success=False,
+                    message=f"This QR code is for a different venue. You can only redeem at your assigned venue."
+                )
+        else:
+            return QRValidationResponse(
+                success=False,
+                message="Not authorized to redeem QR codes"
+            )
     
     # Get purchase and update remaining ml with row locking to prevent race conditions
     purchase = db.query(Purchase).filter(Purchase.id == redemption.purchase_id).with_for_update().first()
@@ -264,21 +287,16 @@ def get_redemption_history(
 
 @router.get("/venue/{venue_id}/recent", response_model=RedemptionHistoryList)
 def get_venue_recent_redemptions(
-    venue_id: str,
+    venue: Venue = Depends(verify_venue_access),
     limit: int = 10,
     current_user: User = Depends(get_current_active_bartender),
     db: Session = Depends(get_db)
 ):
     """Get recent redemptions at a venue (bartender endpoint)"""
-    # Verify bartender is assigned to this venue
-    if current_user.venue_id != venue_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to view this venue's redemptions"
-        )
+    # Authorization already done by verify_venue_access
     
     redemptions = db.query(Redemption).filter(
-        Redemption.venue_id == venue_id,
+        Redemption.venue_id == venue.id,
         Redemption.status == RedemptionStatus.REDEEMED
     ).order_by(Redemption.redeemed_at.desc()).limit(limit).all()
     

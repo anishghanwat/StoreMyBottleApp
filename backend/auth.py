@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 import bcrypt
@@ -30,8 +30,74 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         print(f"Password verification error: {e}")
         return False
 
-# OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """
+    Validate password strength according to security requirements.
+    
+    Requirements:
+    - Minimum 8 characters (12 recommended)
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    - At least one special character
+    - Maximum 128 characters (reasonable limit)
+    
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    import re
+    
+    # Check minimum length
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+    
+    # Check maximum length (prevent DoS via bcrypt)
+    if len(password) > 128:
+        return False, "Password must be less than 128 characters"
+    
+    # Check for uppercase letter
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter"
+    
+    # Check for lowercase letter
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter"
+    
+    # Check for digit
+    if not re.search(r"\d", password):
+        return False, "Password must contain at least one number"
+    
+    # Check for special character
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>_\-+=\[\]\\\/~`';]", password):
+        return False, "Password must contain at least one special character (!@#$%^&* etc.)"
+    
+    # Check against common passwords (basic list)
+    common_passwords = {
+        'password', 'password123', '12345678', 'qwerty', 'abc123',
+        'monkey', '1234567', 'letmein', 'trustno1', 'dragon',
+        'baseball', 'iloveyou', 'master', 'sunshine', 'ashley',
+        'bailey', 'passw0rd', 'shadow', '123123', '654321',
+        'superman', 'qazwsx', 'michael', 'football', 'password1',
+        'admin', 'admin123', 'root', 'toor', 'pass', 'test',
+        'guest', 'oracle', 'changeme', 'welcome', 'welcome123'
+    }
+    
+    if password.lower() in common_passwords:
+        return False, "Password is too common. Please choose a more unique password"
+    
+    # Check for sequential characters (123, abc, etc.)
+    if re.search(r"(012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)", password.lower()):
+        return False, "Password contains sequential characters. Please choose a more complex password"
+    
+    # Check for repeated characters (aaa, 111, etc.)
+    if re.search(r"(.)\1{2,}", password):
+        return False, "Password contains repeated characters. Please choose a more complex password"
+    
+    return True, "Password is strong"
+
+# OAuth2 scheme (optional - we also support cookies)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login", auto_error=False)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -140,12 +206,33 @@ def cleanup_expired_sessions(db: Session):
     ).update({"is_active": False})
     db.commit()
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def get_current_user(
+    token: Optional[str] = Depends(oauth2_scheme),
+    request: Request = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get current user from JWT token.
+    Checks cookies first (HttpOnly), then falls back to Authorization header.
+    """
+    from fastapi import Request
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Not authenticated",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    # Try to get token from cookie first (more secure)
+    if request and hasattr(request, 'cookies'):
+        cookie_token = request.cookies.get("access_token")
+        if cookie_token:
+            token = cookie_token
+    
+    # If no token found in cookie or header, raise exception
+    if not token:
+        raise credentials_exception
+    
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         user_id: str = payload.get("sub")
@@ -180,13 +267,15 @@ async def get_current_active_admin(current_user: User = Depends(get_current_acti
     return current_user
 
 def generate_qr_token() -> str:
-    import uuid
-    import base64
-    # Generate a random UUID and encode it to look like a token
-    token = str(uuid.uuid4())
-    # Optionally base64 encode for shorter representation if desired, 
-    # but UUID is fine. Let's make it a bit more "token-like"
-    return base64.urlsafe_b64encode(uuid.uuid4().bytes).decode().rstrip("=")
+    """
+    Generate cryptographically secure QR token.
+    Uses secrets module for cryptographic randomness.
+    Returns a URL-safe base64 encoded token (32 bytes = 43 characters).
+    """
+    import secrets
+    # Generate 32 bytes of cryptographically secure random data
+    # This provides 256 bits of entropy, making it virtually impossible to guess
+    return secrets.token_urlsafe(32)
 
 
 def get_password_hash(password: str) -> str:
@@ -497,3 +586,228 @@ def send_password_reset_email(email: str, token: str, user_name: str) -> bool:
             return False
     
     return False
+
+
+# ============ Authorization Helpers ============
+
+async def verify_purchase_ownership(
+    purchase_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Verify that the current user owns the purchase or is an admin.
+    Returns the purchase if authorized, raises 403 otherwise.
+    """
+    from models import Purchase
+    
+    purchase = db.query(Purchase).filter(Purchase.id == purchase_id).first()
+    
+    if not purchase:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Purchase not found"
+        )
+    
+    # Admin can access any purchase
+    if current_user.role == "admin":
+        return purchase
+    
+    # User can only access their own purchases
+    if purchase.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this purchase"
+        )
+    
+    return purchase
+
+
+async def verify_redemption_ownership(
+    redemption_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Verify that the current user owns the redemption or is an admin/bartender.
+    Returns the redemption if authorized, raises 403 otherwise.
+    """
+    from models import Redemption
+    
+    redemption = db.query(Redemption).filter(Redemption.id == redemption_id).first()
+    
+    if not redemption:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Redemption not found"
+        )
+    
+    # Admin can access any redemption
+    if current_user.role == "admin":
+        return redemption
+    
+    # Bartender can access redemptions at their venue
+    if current_user.role == "bartender":
+        if current_user.venue_id != redemption.venue_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access redemptions at this venue"
+            )
+        return redemption
+    
+    # User can only access their own redemptions
+    if redemption.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this redemption"
+        )
+    
+    return redemption
+
+
+async def verify_venue_access(
+    venue_id: str,
+    current_user: User = Depends(get_current_active_bartender),
+    db: Session = Depends(get_db)
+):
+    """
+    Verify that a bartender has access to the specified venue.
+    Admins have access to all venues.
+    Returns the venue if authorized, raises 403 otherwise.
+    """
+    from models import Venue
+    
+    venue = db.query(Venue).filter(Venue.id == venue_id).first()
+    
+    if not venue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Venue not found"
+        )
+    
+    # Admin can access any venue
+    if current_user.role == "admin":
+        return venue
+    
+    # Bartender can only access their assigned venue
+    if current_user.role == "bartender":
+        if current_user.venue_id != venue_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Not authorized to access this venue. You are assigned to venue {current_user.venue_id}"
+            )
+        return venue
+    
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not authorized to access venues"
+    )
+
+
+async def verify_user_access(
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Verify that the current user can access another user's data.
+    Users can only access their own data, admins can access any user.
+    Returns the target user if authorized, raises 403 otherwise.
+    """
+    target_user = db.query(User).filter(User.id == user_id).first()
+    
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Admin can access any user
+    if current_user.role == "admin":
+        return target_user
+    
+    # User can only access their own data
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this user's data"
+        )
+    
+    return target_user
+
+
+def require_role(*allowed_roles: str):
+    """
+    Decorator factory to require specific roles.
+    Usage: @require_role("admin", "bartender")
+    """
+    async def role_checker(current_user: User = Depends(get_current_user)):
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires one of these roles: {', '.join(allowed_roles)}"
+            )
+        return current_user
+    return role_checker
+
+
+async def verify_qr_token_access(
+    qr_token: str,
+    current_user: User = Depends(get_current_active_bartender),
+    db: Session = Depends(get_db)
+):
+    """
+    Verify that a bartender can redeem a QR code.
+    Checks:
+    1. QR code exists and is valid
+    2. QR code is for bartender's venue
+    3. QR code hasn't expired
+    4. QR code hasn't been used
+    
+    Returns the redemption if authorized, raises appropriate error otherwise.
+    """
+    from models import Redemption, RedemptionStatus
+    
+    redemption = db.query(Redemption).filter(
+        Redemption.qr_token == qr_token
+    ).first()
+    
+    if not redemption:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid QR code"
+        )
+    
+    # Check if already redeemed
+    if redemption.status != RedemptionStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"QR code already {redemption.status.value}"
+        )
+    
+    # Check expiration
+    if redemption.qr_expires_at < datetime.utcnow():
+        redemption.status = RedemptionStatus.EXPIRED
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="QR code has expired"
+        )
+    
+    # Admin can redeem at any venue
+    if current_user.role == "admin":
+        return redemption
+    
+    # Bartender can only redeem at their venue
+    if current_user.role == "bartender":
+        if current_user.venue_id != redemption.venue_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"This QR code is for a different venue. You can only redeem at your assigned venue."
+            )
+        return redemption
+    
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not authorized to redeem QR codes"
+    )

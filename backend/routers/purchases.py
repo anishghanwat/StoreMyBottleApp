@@ -10,7 +10,7 @@ from schemas import (
     PurchaseCreateRequest, PurchaseConfirmRequest, PurchaseResponse,
     UserBottleResponse, UserBottleList, PurchaseRequestResponse, ProcessPurchaseRequest
 )
-from auth import get_current_user, get_current_active_bartender
+from auth import get_current_user, get_current_active_bartender, verify_purchase_ownership, verify_venue_access
 
 router = APIRouter(prefix="/api/purchases", tags=["purchases"])
 
@@ -259,28 +259,16 @@ def get_purchase_history(
 
 @router.get("/{purchase_id}", response_model=PurchaseResponse)
 def get_purchase(
-    purchase_id: str,
-    current_user: User = Depends(get_current_user),
+    purchase: Purchase = Depends(verify_purchase_ownership),
     db: Session = Depends(get_db)
 ):
     """Get purchase details"""
-    purchase = db.query(Purchase).filter(
-        Purchase.id == purchase_id,
-        Purchase.user_id == current_user.id
-    ).first()
-    
-    if not purchase:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Purchase not found"
-        )
-    
     return purchase
 
 
 @router.get("/venue/{venue_id}/pending", response_model=List[PurchaseRequestResponse])
 def get_pending_purchases_for_venue(
-    venue_id: str,
+    venue: Venue = Depends(verify_venue_access),
     current_user: User = Depends(get_current_active_bartender),
     db: Session = Depends(get_db)
 ):
@@ -290,17 +278,11 @@ def get_pending_purchases_for_venue(
     - Still pending (not confirmed/failed)
     - Created within the last 15 minutes
     """
-    # Verify bartender belongs to venue (optional, depends on policy)
-    if current_user.venue_id and current_user.venue_id != venue_id:
-        # Allowing override if admin, but strict for now
-        # raise HTTPException(status_code=403, detail="Not authorized for this venue")
-        pass 
-
     # Calculate expiration time (15 minutes ago)
     expiration_time = datetime.now(timezone.utc) - timedelta(minutes=15)
 
     purchases = db.query(Purchase).filter(
-        Purchase.venue_id == venue_id,
+        Purchase.venue_id == venue.id,
         Purchase.payment_status == PaymentStatus.PENDING,
         Purchase.created_at >= expiration_time  # Only show purchases from last 15 minutes
     ).order_by(Purchase.created_at.desc()).all()

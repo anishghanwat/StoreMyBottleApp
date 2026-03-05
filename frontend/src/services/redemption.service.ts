@@ -5,6 +5,7 @@ import {
     QRValidationRequest,
     QRValidationResponse,
 } from '../types/api.types';
+import { generateDeviceFingerprint } from '../utils/deviceFingerprint';
 
 export const redemptionService = {
     // Create a new redemption
@@ -12,6 +13,7 @@ export const redemptionService = {
         const response = await apiClient.post<Redemption>('/redemptions/generate-qr', {
             purchase_id: purchaseId,
             peg_size_ml: pegSize,
+            device_fingerprint: generateDeviceFingerprint(), // SECURITY: Device binding
         } as RedemptionCreateRequest);
         return response.data;
     },

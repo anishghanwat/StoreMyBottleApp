@@ -1,8 +1,9 @@
-from pydantic import BaseModel, EmailStr, Field, field_serializer
+from pydantic import BaseModel, EmailStr, Field, field_serializer, field_validator
 from typing import Optional, List
 from datetime import datetime, timezone
 from decimal import Decimal
 from models import PaymentStatus, PaymentMethod, RedemptionStatus
+from sanitization import sanitize_name, sanitize_address, sanitize_email, sanitize_phone, sanitize_url
 
 
 def ensure_timezone_aware(dt: Optional[datetime]) -> Optional[datetime]:
@@ -39,7 +40,40 @@ class VenueResponse(VenueBase):
 
 
 class VenueCreate(VenueBase):
-    pass
+    @field_validator('name')
+    @classmethod
+    def sanitize_name_field(cls, v):
+        if v:
+            return sanitize_name(v)
+        return v
+    
+    @field_validator('location')
+    @classmethod
+    def sanitize_location_field(cls, v):
+        if v:
+            return sanitize_address(v)
+        return v
+    
+    @field_validator('contact_email')
+    @classmethod
+    def sanitize_email_field(cls, v):
+        if v:
+            return sanitize_email(v)
+        return v
+    
+    @field_validator('contact_phone')
+    @classmethod
+    def sanitize_phone_field(cls, v):
+        if v:
+            return sanitize_phone(v)
+        return v
+    
+    @field_validator('image_url')
+    @classmethod
+    def sanitize_url_field(cls, v):
+        if v:
+            return sanitize_url(v)
+        return v
 
 
 class VenueList(BaseModel):
@@ -65,6 +99,20 @@ class BottleBase(BaseModel):
 class BottleCreate(BottleBase):
     venue_id: str
     is_available: bool = True
+    
+    @field_validator('brand', 'name')
+    @classmethod
+    def sanitize_text_fields(cls, v):
+        if v:
+            return sanitize_name(v)
+        return v
+    
+    @field_validator('image_url')
+    @classmethod
+    def sanitize_image_url(cls, v):
+        if v:
+            return sanitize_url(v)
+        return v
     
     class Config:
         populate_by_name = True
@@ -126,6 +174,20 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
     name: str
+    
+    @field_validator('name')
+    @classmethod
+    def sanitize_name_field(cls, v):
+        if v:
+            return sanitize_name(v)
+        return v
+    
+    @field_validator('email')
+    @classmethod
+    def sanitize_email_field(cls, v):
+        if v:
+            return sanitize_email(v)
+        return v
 
 
 class GoogleLoginRequest(BaseModel):
@@ -290,6 +352,7 @@ class ProcessPurchaseRequest(BaseModel):
 class RedemptionCreateRequest(BaseModel):
     purchase_id: str
     peg_size_ml: int = Field(..., ge=30, le=60)
+    device_fingerprint: Optional[str] = None  # Optional device binding
 
 
 class RedemptionResponse(BaseModel):
@@ -319,6 +382,7 @@ class RedemptionResponse(BaseModel):
 
 class QRValidationRequest(BaseModel):
     qr_token: str
+    device_fingerprint: Optional[str] = None  # Optional device fingerprint for validation
 
 
 class QRValidationResponse(BaseModel):
@@ -394,6 +458,20 @@ class ProfileResponse(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
+    
+    @field_validator('name')
+    @classmethod
+    def sanitize_name_field(cls, v):
+        if v:
+            return sanitize_name(v)
+        return v
+    
+    @field_validator('email')
+    @classmethod
+    def sanitize_email_field(cls, v):
+        if v:
+            return sanitize_email(v)
+        return v
 
 
 class UserRoleUpdate(BaseModel):
@@ -429,6 +507,27 @@ class BartenderCreate(BaseModel):
     phone: Optional[str] = None
     password: str
     venue_id: str
+    
+    @field_validator('name')
+    @classmethod
+    def sanitize_name_field(cls, v):
+        if v:
+            return sanitize_name(v)
+        return v
+    
+    @field_validator('email')
+    @classmethod
+    def sanitize_email_field(cls, v):
+        if v:
+            return sanitize_email(v)
+        return v
+    
+    @field_validator('phone')
+    @classmethod
+    def sanitize_phone_field(cls, v):
+        if v:
+            return sanitize_phone(v)
+        return v
 
 
 class BartenderUpdate(BaseModel):
@@ -436,6 +535,27 @@ class BartenderUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
+    
+    @field_validator('name')
+    @classmethod
+    def sanitize_name_field(cls, v):
+        if v:
+            return sanitize_name(v)
+        return v
+    
+    @field_validator('email')
+    @classmethod
+    def sanitize_email_field(cls, v):
+        if v:
+            return sanitize_email(v)
+        return v
+    
+    @field_validator('phone')
+    @classmethod
+    def sanitize_phone_field(cls, v):
+        if v:
+            return sanitize_phone(v)
+        return v
     venue_id: Optional[str] = None
 
 
@@ -702,7 +822,20 @@ class PromotionBase(BaseModel):
 
 class PromotionCreate(PromotionBase):
     """Create promotion schema"""
-    pass
+    @field_validator('code', 'name')
+    @classmethod
+    def sanitize_text_fields(cls, v):
+        if v:
+            return sanitize_name(v)
+        return v
+    
+    @field_validator('description')
+    @classmethod
+    def sanitize_description_field(cls, v):
+        if v:
+            from sanitization import sanitize_description
+            return sanitize_description(v)
+        return v
 
 class PromotionUpdate(BaseModel):
     """Update promotion schema"""
@@ -719,6 +852,21 @@ class PromotionUpdate(BaseModel):
     valid_from: Optional[datetime] = None
     valid_until: Optional[datetime] = None
     status: Optional[str] = None
+    
+    @field_validator('code', 'name')
+    @classmethod
+    def sanitize_text_fields(cls, v):
+        if v:
+            return sanitize_name(v)
+        return v
+    
+    @field_validator('description')
+    @classmethod
+    def sanitize_description_field(cls, v):
+        if v:
+            from sanitization import sanitize_description
+            return sanitize_description(v)
+        return v
 
 class PromotionResponse(PromotionBase):
     """Promotion response schema"""
@@ -760,7 +908,13 @@ class TicketCommentBase(BaseModel):
 
 class TicketCommentCreate(TicketCommentBase):
     """Create ticket comment schema"""
-    pass
+    @field_validator('comment')
+    @classmethod
+    def sanitize_comment_field(cls, v):
+        if v:
+            from sanitization import sanitize_description
+            return sanitize_description(v)
+        return v
 
 class TicketCommentResponse(TicketCommentBase):
     """Ticket comment response schema"""
@@ -782,7 +936,20 @@ class SupportTicketBase(BaseModel):
 
 class SupportTicketCreate(SupportTicketBase):
     """Create support ticket schema"""
-    pass
+    @field_validator('subject')
+    @classmethod
+    def sanitize_subject_field(cls, v):
+        if v:
+            return sanitize_name(v)
+        return v
+    
+    @field_validator('description')
+    @classmethod
+    def sanitize_description_field(cls, v):
+        if v:
+            from sanitization import sanitize_description
+            return sanitize_description(v)
+        return v
 
 class SupportTicketUpdate(BaseModel):
     """Update support ticket schema"""
@@ -792,6 +959,21 @@ class SupportTicketUpdate(BaseModel):
     priority: Optional[str] = None
     status: Optional[str] = None
     assigned_to_id: Optional[str] = None
+    
+    @field_validator('subject')
+    @classmethod
+    def sanitize_subject_field(cls, v):
+        if v:
+            return sanitize_name(v)
+        return v
+    
+    @field_validator('description')
+    @classmethod
+    def sanitize_description_field(cls, v):
+        if v:
+            from sanitization import sanitize_description
+            return sanitize_description(v)
+        return v
 
 class SupportTicketResponse(SupportTicketBase):
     """Support ticket response schema"""

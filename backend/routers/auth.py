@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from database import get_db
 from config import settings
@@ -16,19 +18,61 @@ from auth import (
     invalidate_all_user_sessions, verify_google_token, create_otp, verify_otp,
     send_otp_sms, get_current_user, hash_password, verify_password,
     create_password_reset_token, verify_password_reset_token, 
-    use_password_reset_token, send_password_reset_email
+    use_password_reset_token, send_password_reset_email,
+    validate_password_strength
 )
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
+# Create limiter instance
+limiter = Limiter(key_func=get_remote_address)
+
+
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
+    """
+    Set HttpOnly cookies for access and refresh tokens.
+    This is more secure than localStorage as cookies cannot be accessed by JavaScript.
+    """
+    # Determine if we're in production (use Secure flag)
+    is_production = settings.ENVIRONMENT == "production"
+    
+    # Set access token cookie (30 minutes)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,  # Cannot be accessed by JavaScript
+        secure=is_production,  # HTTPS only in production
+        samesite="lax",  # CSRF protection (lax allows navigation)
+        max_age=1800,  # 30 minutes
+        path="/"
+    )
+    
+    # Set refresh token cookie (7 days)
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=is_production,
+        samesite="lax",
+        max_age=604800,  # 7 days
+        path="/"
+    )
+
+
+def clear_auth_cookies(response: Response):
+    """Clear authentication cookies on logout"""
+    response.delete_cookie(key="access_token", path="/")
+    response.delete_cookie(key="refresh_token", path="/")
+
 
 @router.post("/login", response_model=TokenResponse)
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")  # 5 login attempts per minute per IP
+def login(request_data: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     """Login with email and password"""
     try:
-        print(f"LOGIN ATTEMPT: {request.email}, pwd_len={len(request.password)}")
+        print(f"LOGIN ATTEMPT: {request_data.email}, pwd_len={len(request_data.password)}")
         # Find user by email
-        user = db.query(User).filter(User.email == request.email).first()
+        user = db.query(User).filter(User.email == request_data.email).first()
         
         if not user:
             raise HTTPException(
@@ -37,7 +81,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             )
         
         # Check password
-        if not user.hashed_password or not verify_password(request.password, user.hashed_password):
+        if not user.hashed_password or not verify_password(request_data.password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
@@ -64,6 +108,9 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             access_token=access_token,
             refresh_token=refresh_token
         )
+        
+        # Set HttpOnly cookies
+        set_auth_cookies(response, access_token, refresh_token)
         
         # Get venue name if venue_id exists
         venue_name = None
@@ -102,10 +149,11 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/signup", response_model=TokenResponse)
-def signup(request: SignupRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/hour")  # 3 signup attempts per hour per IP
+def signup(request_data: SignupRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     """Sign up with email and password"""
     # Check if user already exists
-    existing_user = db.query(User).filter(User.email == request.email).first()
+    existing_user = db.query(User).filter(User.email == request_data.email).first()
     
     if existing_user:
         raise HTTPException(
@@ -113,12 +161,20 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
+    # Validate password strength
+    is_valid, error_message = validate_password_strength(request_data.password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_message
+        )
+    
     # Create new user with hashed password
-    hashed_password = hash_password(request.password)
+    hashed_password = hash_password(request_data.password)
     
     user = User(
-        email=request.email,
-        name=request.name,
+        email=request_data.email,
+        name=request_data.name,
         hashed_password=hashed_password,
         role="customer"  # Default role
     )
@@ -137,6 +193,9 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)):
         access_token=access_token,
         refresh_token=refresh_token
     )
+    
+    # Set HttpOnly cookies
+    set_auth_cookies(response, access_token, refresh_token)
     
     user_response = UserResponse(
         id=user.id,
@@ -157,10 +216,11 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/google", response_model=TokenResponse)
-def google_login(request: GoogleLoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")  # 10 Google login attempts per minute per IP
+def google_login(request_data: GoogleLoginRequest, request: Request, db: Session = Depends(get_db)):
     """Login with Google OAuth token"""
     # Verify Google token
-    google_user = verify_google_token(request.token)
+    google_user = verify_google_token(request_data.token)
     
     if not google_user:
         raise HTTPException(
@@ -197,13 +257,14 @@ def google_login(request: GoogleLoginRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/phone/send-otp")
-def send_otp(request: PhoneSendOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/hour")  # 3 OTP requests per hour per IP
+def send_otp(request_data: PhoneSendOTPRequest, request: Request, db: Session = Depends(get_db)):
     """Send OTP to phone number"""
     # Create OTP
-    otp = create_otp(db, request.phone)
+    otp = create_otp(db, request_data.phone)
     
     # Send OTP via SMS
-    success = send_otp_sms(request.phone, otp.otp_code)
+    success = send_otp_sms(request_data.phone, otp.otp_code)
     
     if not success:
         raise HTTPException(
@@ -227,10 +288,11 @@ def send_otp(request: PhoneSendOTPRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/phone/verify-otp", response_model=TokenResponse)
-def verify_otp_endpoint(request: PhoneVerifyOTPRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")  # 5 OTP verification attempts per minute per IP
+def verify_otp_endpoint(request_data: PhoneVerifyOTPRequest, request: Request, db: Session = Depends(get_db)):
     """Verify OTP and login"""
     # Verify OTP
-    is_valid = verify_otp(db, request.phone, request.otp_code)
+    is_valid = verify_otp(db, request_data.phone, request_data.otp_code)
     
     if not is_valid:
         raise HTTPException(
@@ -239,13 +301,13 @@ def verify_otp_endpoint(request: PhoneVerifyOTPRequest, db: Session = Depends(ge
         )
     
     # Check if user exists
-    user = db.query(User).filter(User.phone == request.phone).first()
+    user = db.query(User).filter(User.phone == request_data.phone).first()
     
     if not user:
         # Create new user with phone
         user = User(
-            phone=request.phone,
-            name=f"User {request.phone[-4:]}",  # Default name
+            phone=request_data.phone,
+            name=f"User {request_data.phone[-4:]}",  # Default name
             role="customer"
         )
         db.add(user)
@@ -311,7 +373,7 @@ def get_current_user_profile(current_user: User = Depends(get_current_user), db:
 # ============ Session Management Endpoints ============
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh_access_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+def refresh_access_token(request: RefreshTokenRequest, response: Response, db: Session = Depends(get_db)):
     """Refresh access token using refresh token"""
     # Get session by refresh token
     session = get_session_by_refresh_token(db, request.refresh_token)
@@ -347,6 +409,9 @@ def refresh_access_token(request: RefreshTokenRequest, db: Session = Depends(get
     # Update session with new tokens
     update_session_tokens(db, session.id, new_access_token, new_refresh_token)
     
+    # Set new HttpOnly cookies
+    set_auth_cookies(response, new_access_token, new_refresh_token)
+    
     # Get venue name
     venue_name = None
     if user.venue_id:
@@ -374,16 +439,20 @@ def refresh_access_token(request: RefreshTokenRequest, db: Session = Depends(get
 
 
 @router.post("/logout")
-def logout(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+def logout(request: RefreshTokenRequest, response: Response, db: Session = Depends(get_db)):
     """Logout and invalidate session"""
     invalidate_session(db, request.refresh_token)
+    # Clear HttpOnly cookies
+    clear_auth_cookies(response)
     return {"message": "Logged out successfully"}
 
 
 @router.post("/logout-all")
-def logout_all_devices(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def logout_all_devices(response: Response, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Logout from all devices"""
     invalidate_all_user_sessions(db, current_user.id)
+    # Clear HttpOnly cookies
+    clear_auth_cookies(response)
     return {"message": "Logged out from all devices"}
 
 
@@ -417,10 +486,11 @@ def get_user_sessions(current_user: User = Depends(get_current_user), db: Sessio
 # ============ Password Reset Endpoints ============
 
 @router.post("/forgot-password")
-def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/day")  # 3 password reset requests per day per IP
+def forgot_password(request_data: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
     """Request password reset - sends email with reset link"""
     # Find user by email
-    user = db.query(User).filter(User.email == request.email).first()
+    user = db.query(User).filter(User.email == request_data.email).first()
     
     # Always return success (don't reveal if email exists)
     if not user:
@@ -442,10 +512,20 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
 
 
 @router.post("/reset-password")
-def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/hour")  # 5 password reset attempts per hour per IP
+def reset_password(request_data: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
     """Reset password using token from email"""
+    # Validate password strength
+    from auth import validate_password_strength
+    is_valid, error_message = validate_password_strength(request_data.new_password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_message
+        )
+    
     # Verify and use token
-    success = use_password_reset_token(db, request.token, request.new_password)
+    success = use_password_reset_token(db, request_data.token, request_data.new_password)
     
     if not success:
         raise HTTPException(

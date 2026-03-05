@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { sessionManager } from '../utils/session';
+import { generateDeviceFingerprint } from '../utils/deviceFingerprint';
 
 // Use environment variable for API URL, fallback to auto-detect for local dev
 const getApiUrl = () => {
@@ -89,6 +90,21 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        // Handle 422 Validation Errors from Pydantic
+        if (error.response?.status === 422) {
+            const validationErrors = error.response?.data?.detail;
+            if (Array.isArray(validationErrors)) {
+                // Extract error messages from Pydantic validation errors
+                const errorMessages = validationErrors.map((err: any) => {
+                    const field = err.loc ? err.loc[err.loc.length - 1] : 'field';
+                    return `${field}: ${err.msg}`;
+                }).join(', ');
+                error.message = errorMessages;
+                error.response.data.detail = errorMessages;
+            }
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
                 // Wait for token refresh to complete
@@ -134,7 +150,10 @@ export const authService = {
     },
 
     validateQR: async (qrToken: string) => {
-        const response = await api.post('/redemptions/validate', { qr_token: qrToken });
+        const response = await api.post('/redemptions/validate', {
+            qr_token: qrToken,
+            device_fingerprint: generateDeviceFingerprint() // SECURITY: Device binding validation
+        });
         return response.data;
     },
 
@@ -214,7 +233,10 @@ export const redemptionService = {
         return response.data;
     },
     validate: async (qrToken: string) => {
-        const response = await api.post('/redemptions/validate', { qr_token: qrToken });
+        const response = await api.post('/redemptions/validate', {
+            qr_token: qrToken,
+            device_fingerprint: generateDeviceFingerprint() // SECURITY: Device binding validation
+        });
         return response.data;
     }
 };

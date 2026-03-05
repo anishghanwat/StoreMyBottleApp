@@ -39,7 +39,18 @@ export default function BartenderLogin() {
         toast.success("Account created successfully!");
       }
     } catch (err: any) {
-      const msg = err.response?.data?.detail || err.message || "Authentication failed.";
+      let msg = "Authentication failed.";
+      const detail = err.response?.data?.detail;
+      if (err.response?.status === 429) {
+        msg = "Too many attempts. Please wait a minute before trying again.";
+      } else if (Array.isArray(detail)) {
+        // FastAPI 422 validation error — extract the human-readable msg field
+        msg = detail.map((e: any) => e.msg || e.message || String(e)).join(", ");
+      } else if (typeof detail === "string") {
+        msg = detail;
+      } else if (err.message) {
+        msg = err.message;
+      }
       setError(msg);
       toast.error(msg);
     } finally {

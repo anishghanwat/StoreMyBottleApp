@@ -99,6 +99,23 @@ apiClient.interceptors.response.use(
     async (error: AxiosError) => {
         const originalRequest: any = error.config;
 
+        // Handle 422 Validation Errors from Pydantic
+        if (error.response?.status === 422) {
+            const validationErrors = error.response?.data?.detail;
+            if (Array.isArray(validationErrors)) {
+                // Extract error messages from Pydantic validation errors
+                const errorMessages = validationErrors.map((err: any) => {
+                    const field = err.loc ? err.loc[err.loc.length - 1] : 'field';
+                    return `${field}: ${err.msg}`;
+                }).join(', ');
+                error.message = errorMessages;
+                if (error.response.data) {
+                    error.response.data.detail = errorMessages;
+                }
+            }
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
                 // Wait for token refresh to complete

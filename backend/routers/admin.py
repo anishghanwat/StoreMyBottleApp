@@ -557,7 +557,15 @@ def create_bartender(
     db: Session = Depends(get_db)
 ):
     """Create a new bartender"""
-    from auth import get_password_hash
+    from auth import get_password_hash, validate_password_strength
+    
+    # Validate password strength
+    is_valid, error_message = validate_password_strength(bartender.password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_message
+        )
     
     # Check if email or phone already exists
     if bartender.email:

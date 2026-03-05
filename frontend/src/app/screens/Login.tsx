@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router";
-import { ArrowLeft, Mail, Lock, User, Loader2, Wine, AlertCircle } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, Loader2, Wine, AlertCircle, Check, X, Clock } from "lucide-react";
 import { authService } from "../../services/auth.service";
 import { motion } from "motion/react";
 import { toast } from "sonner";
@@ -16,10 +16,17 @@ export default function Login() {
     email?: string;
     password?: string;
   }>({});
+  const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Cleanup countdown timer on unmount
+  useEffect(() => {
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, []);
 
   // Validation helpers
   const validateEmail = (email: string): boolean => {
@@ -27,21 +34,23 @@ export default function Login() {
     return emailRegex.test(email);
   };
 
+  // Password rule checks (mirrors backend validate_password_strength)
+  const pwdRules = [
+    { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+    { label: "One uppercase letter (A-Z)", test: (p: string) => /[A-Z]/.test(p) },
+    { label: "One lowercase letter (a-z)", test: (p: string) => /[a-z]/.test(p) },
+    { label: "One number (0-9)", test: (p: string) => /[0-9]/.test(p) },
+    { label: "One special character (!@#$…)", test: (p: string) => /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/~`;']/.test(p) },
+  ];
+
   const validatePassword = (password: string): { valid: boolean; message?: string } => {
-    if (password.length < 8) {
-      return { valid: false, message: "Password must be at least 8 characters" };
-    }
-    if (!/[A-Z]/.test(password)) {
-      return { valid: false, message: "Password must contain at least one uppercase letter" };
-    }
-    if (!/[a-z]/.test(password)) {
-      return { valid: false, message: "Password must contain at least one lowercase letter" };
-    }
-    if (!/[0-9]/.test(password)) {
-      return { valid: false, message: "Password must contain at least one number" };
+    for (const rule of pwdRules) {
+      if (!rule.test(password)) return { valid: false, message: rule.label + " required" };
     }
     return { valid: true };
   };
+
+  const pwdStrength = (p: string) => pwdRules.filter(r => r.test(p)).length;
 
   const validateName = (name: string): boolean => {
     return name.trim().length >= 2;
@@ -74,60 +83,58 @@ export default function Login() {
     return isValid;
   };
 
+  // Start a visible rate-limit countdown using Retry-After header
+  const startRateLimitCountdown = (err: any) => {
+    const retryAfter = parseInt(
+      err.response?.headers?.["retry-after"] ||
+      err.response?.headers?.["x-ratelimit-reset"] ||
+      "60",
+      10
+    );
+    const seconds = isNaN(retryAfter) ? 60 : retryAfter;
+    setRateLimitCountdown(seconds);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    countdownRef.current = setInterval(() => {
+      setRateLimitCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!);
+          countdownRef.current = null;
+          setError(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
   // Parse backend error messages
   const parseErrorMessage = (err: any): string => {
-    // Handle different error response formats
+    if (err.response?.status === 429) {
+      startRateLimitCountdown(err);
+      return "429"; // sentinel — UI will render the countdown instead
+    }
+
     if (err.response?.data?.detail) {
       const detail = err.response.data.detail;
-
-      // Handle array of errors (FastAPI validation errors)
-      if (Array.isArray(detail)) {
-        return detail.map((e: any) => e.msg || e.message).join(", ");
-      }
-
-      // Handle string detail
+      if (Array.isArray(detail)) return detail.map((e: any) => e.msg || e.message).join(", ");
       if (typeof detail === "string") {
-        // Map common backend errors to user-friendly messages
-        if (detail.includes("already registered") || detail.includes("already exists")) {
+        if (detail.includes("already registered") || detail.includes("already exists"))
           return "This email is already registered. Try signing in instead.";
-        }
-        if (detail.includes("Invalid credentials") || detail.includes("Incorrect")) {
+        if (detail.includes("Invalid credentials") || detail.includes("Incorrect"))
           return "Invalid email or password. Please try again.";
-        }
-        if (detail.includes("not found")) {
+        if (detail.includes("not found"))
           return "No account found with this email. Try signing up instead.";
-        }
-        if (detail.includes("password")) {
-          return "Password does not meet requirements.";
-        }
+        if (detail.includes("password"))
+          return detail; // return the specific backend password error verbatim
         return detail;
       }
     }
-
-    // Handle network errors
-    if (err.message === "Network Error" || !err.response) {
+    if (err.message === "Network Error" || !err.response)
       return "Unable to connect to server. Please check your internet connection.";
-    }
-
-    // Handle timeout
-    if (err.code === "ECONNABORTED") {
-      return "Request timed out. Please try again.";
-    }
-
-    // Handle specific status codes
-    if (err.response?.status === 401) {
-      return "Invalid email or password.";
-    }
-    if (err.response?.status === 403) {
-      return "Access denied. Please contact support.";
-    }
-    if (err.response?.status === 429) {
-      return "Too many attempts. Please try again later.";
-    }
-    if (err.response?.status >= 500) {
-      return "Server error. Please try again later.";
-    }
-
+    if (err.code === "ECONNABORTED") return "Request timed out. Please try again.";
+    if (err.response?.status === 401) return "Invalid email or password.";
+    if (err.response?.status === 403) return "Access denied. Please contact support.";
+    if (err.response?.status >= 500) return "Server error. Please try again later.";
     return "Authentication failed. Please try again.";
   };
 
@@ -236,8 +243,25 @@ export default function Login() {
           </button>
         </div>
 
+        {/* Rate-limit countdown banner */}
+        {rateLimitCountdown > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-4 mb-4 flex items-start gap-3"
+          >
+            <Clock className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-orange-400 text-sm font-semibold">Too many attempts</p>
+              <p className="text-orange-300/80 text-xs mt-0.5">
+                Please wait <span className="font-bold tabular-nums">{rateLimitCountdown}s</span> before trying again.
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Error */}
-        {error && (
+        {error && error !== "429" && rateLimitCountdown === 0 && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -345,9 +369,49 @@ export default function Login() {
                 {fieldErrors.password}
               </motion.p>
             )}
-            {isSignup && !fieldErrors.password && (
+
+            {/* Live password strength meter — signup only */}
+            {isSignup && password.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                transition={{ duration: 0.2 }}
+                className="mt-3 space-y-2.5 overflow-hidden"
+              >
+                {/* Strength bar */}
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map(level => {
+                    const strength = pwdStrength(password);
+                    const filled = strength >= level;
+                    const color = strength <= 1 ? "bg-red-500" : strength <= 2 ? "bg-orange-500" : strength <= 3 ? "bg-yellow-500" : strength <= 4 ? "bg-lime-500" : "bg-emerald-500";
+                    return (
+                      <div
+                        key={level}
+                        className={`h-1 flex-1 rounded-full transition-all duration-300 ${filled ? color : "bg-white/10"
+                          }`}
+                      />
+                    );
+                  })}
+                </div>
+                {/* Rule checklist */}
+                <div className="grid grid-cols-1 gap-1">
+                  {pwdRules.map((rule) => {
+                    const passed = rule.test(password);
+                    return (
+                      <div key={rule.label} className={`flex items-center gap-1.5 text-xs transition-colors duration-200 ${passed ? "text-emerald-400" : "text-[#4A4A6A]"}`}>
+                        {passed
+                          ? <Check className="w-3 h-3 flex-shrink-0" />
+                          : <X className="w-3 h-3 flex-shrink-0" />}
+                        <span>{rule.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+            {isSignup && password.length === 0 && !fieldErrors.password && (
               <p className="text-[#4A4A6A] text-xs mt-1.5 ml-1">
-                Min 8 characters with uppercase, lowercase, and number
+                Min 8 chars · uppercase · lowercase · number · special char
               </p>
             )}
           </div>
@@ -365,13 +429,18 @@ export default function Login() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || rateLimitCountdown > 0}
             className="btn-primary w-full py-4 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
           >
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
                 {isSignup ? "Creating account..." : "Signing in..."}
+              </>
+            ) : rateLimitCountdown > 0 ? (
+              <>
+                <Clock className="w-5 h-5" />
+                Try again in {rateLimitCountdown}s
               </>
             ) : (
               isSignup ? "Create Account" : "Sign In"
