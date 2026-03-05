@@ -196,26 +196,23 @@ export function Venues() {
   }
 
   const handleDelete = async (id: string) => {
-    // Prevent dropdown from closing immediately
-    setTimeout(() => {
-      confirm({
-        title: "Delete Venue",
-        description: "Are you sure you want to delete this venue? This action cannot be undone.",
-        confirmText: "Delete",
-        variant: "destructive",
-        onConfirm: async () => {
-          try {
-            await adminService.deleteVenue(id)
-            toast.success("Venue deleted successfully")
-            fetchVenues(true)
-          } catch (error: any) {
-            console.error("Failed to delete venue", error)
-            const errorMessage = error.response?.data?.detail || "Failed to delete venue"
-            toast.error(errorMessage)
-          }
+    confirm({
+      title: "Delete Venue",
+      description: "Are you sure you want to delete this venue? This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await adminService.deleteVenue(id)
+          toast.success("Venue deleted successfully")
+          fetchVenues(true)
+        } catch (error: any) {
+          console.error("Failed to delete venue", error)
+          const errorMessage = error.response?.data?.detail || "Failed to delete venue"
+          toast.error(errorMessage)
         }
-      })
-    }, 0)
+      }
+    })
   }
 
   return (

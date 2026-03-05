@@ -209,7 +209,7 @@ export function Users() {
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
-                <SelectContent className="z-[10000]">
+                <SelectContent style={{ zIndex: 10000 }}>
                   <SelectItem value="user">Customer</SelectItem>
                   <SelectItem value="bartender">Bartender</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
@@ -225,7 +225,7 @@ export function Users() {
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select a venue" />
                   </SelectTrigger>
-                  <SelectContent className="z-[10000]">
+                  <SelectContent style={{ zIndex: 10000 }}>
                     {venues.map((venue) => (
                       <SelectItem key={venue.id} value={venue.id}>
                         {venue.name}
