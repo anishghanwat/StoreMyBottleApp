@@ -1,0 +1,89 @@
+services:
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: storemybottle_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: storemybottle
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - storemybottle_network
+
+  # Backend API
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: storemybottle_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/storemybottle
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      ENVIRONMENT: production
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - storemybottle_network
+
+  # Customer Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${API_URL}
+    container_name: storemybottle_frontend
+    restart: always
+    ports:
+      - "80:80"
+    networks:
+      - storemybottle_network
+
+  # Bartender Frontend
+  bartender:
+    build:
+      context: ./frontend-bartender
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${API_URL}
+    container_name: storemybottle_bartender
+    restart: always
+    ports:
+      - "8080:80"
+    networks:
+      - storemybottle_network
+
+  # Admin Portal
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${API_URL}
+    container_name: storemybottle_admin
+    restart: always
+    ports:
+      - "8081:80"
+    networks:
+      - storemybottle_network
+
+volumes:
+  mysql_data:
+
+networks:
+  storemybottle_network:
+    driver: bridge
