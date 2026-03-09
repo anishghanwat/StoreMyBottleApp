@@ -92,13 +92,23 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     """
     Redirect all HTTP requests to HTTPS in production.
+    When behind a reverse proxy (like Nginx), check X-Forwarded-Proto header.
     """
     async def dispatch(self, request: Request, call_next):
         # Only redirect in production
         if settings.ENVIRONMENT == "production":
-            # Check if request is HTTP (not HTTPS)
-            if request.url.scheme == "http":
-                # Build HTTPS URL
+            # Check X-Forwarded-Proto header (set by Nginx)
+            forwarded_proto = request.headers.get("x-forwarded-proto", "")
+            
+            # If no proxy header, fall back to checking request scheme
+            if forwarded_proto:
+                # Behind proxy: trust the X-Forwarded-Proto header
+                if forwarded_proto == "http":
+                    # Build HTTPS URL
+                    https_url = request.url.replace(scheme="https")
+                    return RedirectResponse(url=str(https_url), status_code=301)
+            elif request.url.scheme == "http":
+                # Direct connection: check request scheme
                 https_url = request.url.replace(scheme="https")
                 return RedirectResponse(url=str(https_url), status_code=301)
         
