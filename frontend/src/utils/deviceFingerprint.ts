@@ -1,6 +1,7 @@
 /**
  * Generate a device fingerprint for QR code security
  * This creates a unique identifier based on browser/device characteristics
+ * Uses a stable hash function to ensure consistency
  */
 export function generateDeviceFingerprint(): string {
     const components: string[] = [];
@@ -23,17 +24,16 @@ export function generateDeviceFingerprint(): string {
     // Platform
     components.push(navigator.platform);
 
-    // Create hash from components
+    // Create fingerprint string
     const fingerprint = components.join('|');
 
-    // Simple hash function (not cryptographic, just for fingerprinting)
-    let hash = 0;
+    // Use a more stable hash function (FNV-1a)
+    let hash = 2166136261; // FNV offset basis
     for (let i = 0; i < fingerprint.length; i++) {
-        const char = fingerprint.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
+        hash ^= fingerprint.charCodeAt(i);
+        hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
     }
 
-    // Convert to hex string
-    return Math.abs(hash).toString(36);
+    // Convert to unsigned 32-bit integer and then to base36 string
+    return (hash >>> 0).toString(36);
 }
