@@ -80,6 +80,8 @@ def generate_redemption_qr(
         device_fingerprint=request.device_fingerprint  # SECURITY: Device binding
     )
     
+    print(f"🔐 Backend - QR Generated with fingerprint: {request.device_fingerprint}")
+    
     db.add(redemption)
     db.commit()
     db.refresh(redemption)
@@ -150,6 +152,11 @@ def validate_redemption_qr(
     # SECURITY ENHANCEMENT: Check device binding
     # If QR was generated with device fingerprint, validate it matches
     if redemption.device_fingerprint and hasattr(request, 'device_fingerprint'):
+        print(f"🔐 Backend - Validating fingerprints:")
+        print(f"   Generated: {redemption.device_fingerprint}")
+        print(f"   Scanning:  {request.device_fingerprint}")
+        print(f"   Match: {request.device_fingerprint == redemption.device_fingerprint}")
+        
         if request.device_fingerprint != redemption.device_fingerprint:
             return QRValidationResponse(
                 success=False,
