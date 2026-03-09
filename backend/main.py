@@ -128,10 +128,8 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add security middlewares
-# Order matters: HTTPS redirect should be first, then security headers
+# Note: HTTPS redirect is handled by Nginx reverse proxy, not by the app
 app.add_middleware(SecurityHeadersMiddleware)
-if settings.ENVIRONMENT == "production":
-    app.add_middleware(HTTPSRedirectMiddleware)
 
 # CORS middleware - Secure configuration
 # No wildcards allowed when using credentials (HttpOnly cookies)
