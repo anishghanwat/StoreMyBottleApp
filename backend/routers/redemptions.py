@@ -149,12 +149,15 @@ def validate_redemption_qr(
     
     # SECURITY ENHANCEMENT: Check device binding
     # If QR was generated with device fingerprint, validate it matches
-    if redemption.device_fingerprint and hasattr(request, 'device_fingerprint'):
-        if request.device_fingerprint != redemption.device_fingerprint:
-            return QRValidationResponse(
-                success=False,
-                message="QR code can only be used on the device that generated it"
-            )
+    # Only enforce in production to allow easier testing in development
+    from config import settings
+    if settings.ENVIRONMENT == "production":
+        if redemption.device_fingerprint and hasattr(request, 'device_fingerprint'):
+            if request.device_fingerprint != redemption.device_fingerprint:
+                return QRValidationResponse(
+                    success=False,
+                    message="QR code can only be used on the device that generated it"
+                )
     
     # AUTHORIZATION: Check venue access
     # Admin can redeem at any venue
