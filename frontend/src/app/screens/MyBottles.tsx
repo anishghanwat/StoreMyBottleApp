@@ -322,7 +322,7 @@ export default function MyBottles() {
 
       {/* Bottle Cards */}
       {displayed.length > 0 ? (
-        <div className="px-4 space-y-4">
+        <div className="px-4 space-y-4 pb-24">
           {displayed.map((bottle, i) => {
             const pct = (bottle.remainingMl / bottle.totalMl) * 100;
             const isEmpty = bottle.remainingMl === 0;
