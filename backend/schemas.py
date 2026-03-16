@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, field_serializer, field_validator
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from decimal import Decimal
 from models import PaymentStatus, PaymentMethod, RedemptionStatus
 from sanitization import sanitize_name, sanitize_address, sanitize_email, sanitize_phone, sanitize_url
@@ -174,6 +174,7 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
     name: str
+    date_of_birth: date  # required — server-side age validation
     
     @field_validator('name')
     @classmethod
@@ -224,6 +225,8 @@ class UserResponse(BaseModel):
     role: str
     venue_id: Optional[str] = None
     venue_name: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    terms_accepted_at: Optional[datetime] = None
     created_at: datetime
     
     class Config:

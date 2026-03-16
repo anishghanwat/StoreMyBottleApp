@@ -283,6 +283,11 @@ export default function BottleMenu() {
 
       {/* Bottom Navigation */}
       <BottomNav active="home" />
+
+      {/* Responsible drinking footer */}
+      <p className="text-center text-[#4A4A6A] text-xs pb-20 pt-2 px-4">
+        🍷 Drink responsibly · For adults 25+ only · Don't drink and drive
+      </p>
     </div>
   );
 }

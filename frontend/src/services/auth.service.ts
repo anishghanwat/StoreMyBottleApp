@@ -30,11 +30,12 @@ export const authService = {
     },
 
     // Signup method
-    async signup(email: string, password: string, name: string): Promise<TokenResponse> {
+    async signup(email: string, password: string, name: string, dateOfBirth: string): Promise<TokenResponse> {
         const response = await apiClient.post<TokenResponse>('/auth/signup', {
             email,
             password,
             name,
+            date_of_birth: dateOfBirth,
         });
 
         // Store tokens and user using session manager

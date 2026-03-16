@@ -169,14 +169,30 @@ def signup(request_data: SignupRequest, request: Request, response: Response, db
             detail=error_message
         )
     
+    # Server-side age validation (minimum 25 — strictest Indian state threshold)
+    from datetime import date as date_type
+    today = date_type.today()
+    dob = request_data.date_of_birth
+    age = today.year - dob.year
+    if (today.month, today.day) < (dob.month, dob.day):
+        age -= 1
+    if age < 25:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must be 25 or older to use this service"
+        )
+    
     # Create new user with hashed password
     hashed_password = hash_password(request_data.password)
     
+    from datetime import timezone as tz
     user = User(
         email=request_data.email,
         name=request_data.name,
         hashed_password=hashed_password,
-        role="customer"  # Default role
+        role="customer",
+        date_of_birth=dob,
+        terms_accepted_at=datetime.now(tz.utc),
     )
     db.add(user)
     db.commit()
@@ -205,6 +221,8 @@ def signup(request_data: SignupRequest, request: Request, response: Response, db
         role="customer",
         venue_id=user.venue_id,
         venue_name=None,
+        date_of_birth=user.date_of_birth,
+        terms_accepted_at=user.terms_accepted_at,
         created_at=user.created_at
     )
     

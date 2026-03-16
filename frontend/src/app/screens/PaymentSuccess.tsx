@@ -102,6 +102,10 @@ export default function PaymentSuccess() {
           Browse More Venues
         </button>
       </motion.div>
+
+      <p className="text-[#4A4A6A] text-xs text-center pb-8 px-6">
+        🥂 Enjoy responsibly · Please don't drink and drive
+      </p>
     </div>
   );
 }

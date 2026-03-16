@@ -15,6 +15,7 @@ export default function Login() {
     name?: string;
     email?: string;
     password?: string;
+    dob?: string;
   }>({});
   const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -22,6 +23,8 @@ export default function Login() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [dob, setDob] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Cleanup countdown timer on unmount
   useEffect(() => {
@@ -56,6 +59,23 @@ export default function Login() {
     return name.trim().length >= 2;
   };
 
+  // Max DOB date: today minus 25 years
+  const maxDob = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 25);
+    return d.toISOString().split("T")[0];
+  })();
+
+  const isOldEnough = (dobStr: string): boolean => {
+    if (!dobStr) return false;
+    const birth = new Date(dobStr);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age >= 25;
+  };
+
   // Client-side validation
   const validateForm = (): boolean => {
     const errors: typeof fieldErrors = {};
@@ -65,6 +85,16 @@ export default function Login() {
       if (!validateName(name)) {
         errors.name = "Name must be at least 2 characters";
         isValid = false;
+      }
+      if (!dob) {
+        errors.dob = "Date of birth is required";
+        isValid = false;
+      } else if (!isOldEnough(dob)) {
+        errors.dob = "You must be 25 or older to use this service";
+        isValid = false;
+      }
+      if (!termsAccepted) {
+        isValid = false; // button is disabled anyway, but guard here too
       }
     }
 
@@ -151,7 +181,7 @@ export default function Login() {
     setLoading(true);
     try {
       if (isSignup) {
-        await authService.signup(email.trim(), password, name.trim());
+        await authService.signup(email.trim(), password, name.trim(), dob);
         toast.success("Welcome! 🎉");
       } else {
         await authService.login(email.trim(), password);
@@ -219,6 +249,8 @@ export default function Login() {
               setFieldErrors({});
               setName("");
               setPassword("");
+              setDob("");
+              setTermsAccepted(false);
             }}
             className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${!isSignup
               ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25"
@@ -233,6 +265,8 @@ export default function Login() {
               setError(null);
               setFieldErrors({});
               setPassword("");
+              setDob("");
+              setTermsAccepted(false);
             }}
             className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${isSignup
               ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25"
@@ -308,6 +342,41 @@ export default function Login() {
                 >
                   {fieldErrors.name}
                 </motion.p>
+              )}
+            </div>
+          )}
+
+          {/* Date of Birth — signup only */}
+          {isSignup && (
+            <div>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={dob}
+                  onChange={(e) => {
+                    setDob(e.target.value);
+                    if (fieldErrors.dob) setFieldErrors({ ...fieldErrors, dob: undefined });
+                  }}
+                  max={maxDob}
+                  required
+                  className={`input-nightlife w-full py-4 pl-4 pr-4 text-white [color-scheme:dark] ${fieldErrors.dob ? "border-red-500/50 focus:border-red-500" : ""}`}
+                />
+                <label className="absolute -top-2 left-3 text-[10px] text-[#4A4A6A] bg-[#111118] px-1">
+                  Date of Birth
+                </label>
+              </div>
+              {fieldErrors.dob ? (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-400 text-xs mt-1.5 ml-1"
+                >
+                  {fieldErrors.dob}
+                </motion.p>
+              ) : (
+                <p className="text-[#4A4A6A] text-xs mt-1.5 ml-1">
+                  Must be 25 or older (Maharashtra / Delhi legal requirement)
+                </p>
               )}
             </div>
           )}
@@ -427,9 +496,32 @@ export default function Login() {
             </div>
           )}
 
+          {/* Terms & Conditions checkbox — signup only */}
+          {isSignup && (
+            <div className="flex items-start gap-3 pt-1">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-violet-500 cursor-pointer flex-shrink-0"
+              />
+              <label htmlFor="terms" className="text-xs text-[#7171A0] leading-relaxed cursor-pointer">
+                I confirm I am 25 years or older and agree to the{" "}
+                <Link to="/terms" className="text-violet-400 underline hover:text-violet-300">
+                  Terms & Conditions
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy" className="text-violet-400 underline hover:text-violet-300">
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={loading || rateLimitCountdown > 0}
+            disabled={loading || rateLimitCountdown > 0 || (isSignup && !termsAccepted)}
             className="btn-primary w-full py-4 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
           >
             {loading ? (
