@@ -52,7 +52,7 @@ services:
     container_name: storemybottle_frontend_prod
     restart: always
     ports:
-      - "80:80"
+      - "5173:80"
     networks:
       - storemybottle_network
 
@@ -66,7 +66,7 @@ services:
     container_name: storemybottle_bartender_prod
     restart: always
     ports:
-      - "81:80"
+      - "5174:80"
     networks:
       - storemybottle_network
 
@@ -80,7 +80,7 @@ services:
     container_name: storemybottle_admin_prod
     restart: always
     ports:
-      - "82:80"
+      - "3000:80"
     networks:
       - storemybottle_network
 
