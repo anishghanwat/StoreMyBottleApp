@@ -185,14 +185,14 @@ def signup(request_data: SignupRequest, request: Request, response: Response, db
     # Create new user with hashed password
     hashed_password = hash_password(request_data.password)
     
-    from datetime import timezone as tz
+    from datetime import datetime as dt, timezone as tz
     user = User(
         email=request_data.email,
         name=request_data.name,
         hashed_password=hashed_password,
         role="customer",
         date_of_birth=dob,
-        terms_accepted_at=datetime.now(tz.utc),
+        terms_accepted_at=dt.now(tz.utc),
     )
     db.add(user)
     db.commit()
