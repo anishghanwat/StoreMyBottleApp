@@ -3,8 +3,10 @@ import { useNavigate } from "react-router";
 import {
   ScanLine, LogOut, Wine, Check, X, Clock,
   TrendingUp, Users, Package, History, Tag,
-  Sparkles, DollarSign, ChevronRight
+  Sparkles, DollarSign, ChevronRight, Tablet
 } from "lucide-react";
+
+const KIOSK_KEY = "bartender_kiosk_mode";
 import { motion, AnimatePresence } from "motion/react";
 import { purchaseService, venueService, redemptionService, promotionService, authService } from "../../services/api";
 import { useLocationAndGreeting } from "../../utils/useLocationAndGreeting";
@@ -41,6 +43,14 @@ export default function BartenderHome() {
   const [activeTab, setActiveTab] = useState<Tab>("requests");
 
   const { greeting } = useLocationAndGreeting();
+  const [kioskMode, setKioskMode] = useState(localStorage.getItem(KIOSK_KEY) === "true");
+
+  const toggleKiosk = () => {
+    const next = !kioskMode;
+    setKioskMode(next);
+    localStorage.setItem(KIOSK_KEY, String(next));
+    if (next) navigate("/scan");
+  };
 
   useEffect(() => {
     if (bartender.venue_id) {
@@ -123,6 +133,13 @@ export default function BartenderHome() {
           </div>
           <div className="flex items-center gap-2">
             <div className="shift-badge-on">On Duty</div>
+            <button
+              onClick={toggleKiosk}
+              title="Kiosk mode — stays in scan screen"
+              className={`p-2.5 rounded-xl border transition-colors ${kioskMode ? "bg-violet-500/20 border-violet-500/40 text-violet-400" : "bg-white/[0.04] border-white/[0.06] text-[#6B6B9A] hover:text-white"}`}
+            >
+              <Tablet className="w-4 h-4" />
+            </button>
             <button
               onClick={handleLogout}
               className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#6B6B9A] hover:text-white transition-colors"

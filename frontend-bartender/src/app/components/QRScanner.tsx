@@ -1,168 +1,290 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { X, ScanLine, Loader2 } from "lucide-react";
-import { motion } from "motion/react";
+import { X, CheckCircle2, AlertTriangle, AlertCircle, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import QrScanner from "react-qr-scanner";
 import { authService } from "../../services/api";
 import { toast } from "sonner";
 
 interface QRScannerProps {
   onClose: () => void;
+  kioskMode?: boolean;
 }
 
-export default function QRScanner({ onClose }: QRScannerProps) {
+type ScanResult =
+  | null
+  | { type: "success"; customer: string; bottle: string; mlPoured: number; remainingMl: number; totalMl: number; redemptionId: string; isLow: boolean; isEmpty: boolean }
+  | { type: "warning"; message: string }
+  | { type: "error"; message: string };
+
+export default function QRScanner({ onClose, kioskMode = false }: QRScannerProps) {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState("");
-  const [warning, setWarning] = useState("");
+  const [scanResult, setScanResult] = useState<ScanResult>(null);
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-dismiss overlay and reset to scan-ready
+  useEffect(() => {
+    if (!scanResult) return;
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+
+    const delay =
+      scanResult.type === "success" && (scanResult.isLow || scanResult.isEmpty) ? 3000
+        : scanResult.type === "error" ? 2500
+          : scanResult.type === "warning" ? 2000
+            : 1500;
+
+    resetTimer.current = setTimeout(() => {
+      setScanResult(null);
+      setIsProcessing(false);
+    }, delay);
+
+    return () => { if (resetTimer.current) clearTimeout(resetTimer.current); };
+  }, [scanResult]);
 
   const handleScan = async (data: any) => {
-    if (data && !isProcessing && !warning && !error) {
-      setIsProcessing(true);
-      setError("");
-      setWarning("");
+    if (!data || isProcessing || scanResult) return;
+    setIsProcessing(true);
 
+    try {
+      const qrContent = data?.text || data;
+      let token = qrContent;
       try {
-        const qrContent = data?.text || data; // react-qr-scanner returns object or string
-        console.log("Scanned:", qrContent);
+        const parsed = JSON.parse(qrContent);
+        if (parsed.id) token = parsed.id;
+      } catch { /* not JSON, use raw */ }
 
-        // Parse QR content if it's JSON (our app generates JSON)
-        let token = qrContent;
-        try {
-          const parsed = JSON.parse(qrContent);
-          if (parsed.id) token = parsed.id;
-        } catch (e) {
-          // Not JSON, assume token
-        }
+      const response = await authService.validateQR(token);
 
-        const response = await authService.validateQR(token);
+      if (response.success && response.redemption) {
+        const r = response.redemption;
+        const remainingMl = r.remaining_ml ?? 0;
+        const totalMl = r.total_ml ?? 750;
+        const isLow = totalMl > 0 && (remainingMl / totalMl) < 0.2;
+        const isEmpty = remainingMl === 0;
 
-        if (response.success && response.redemption) {
-          const r = response.redemption;
-          // Parse qr_data from response if it's a string
-          let qrDataObj: any = {};
-          try {
-            qrDataObj = JSON.parse(r.qr_data);
-          } catch (e) { }
+        if (navigator.vibrate) navigator.vibrate(isEmpty ? [100, 50, 100] : isLow ? [100, 50, 50] : 80);
 
-          toast.success("QR code validated!");
-          navigate("/drink-details", {
-            state: {
-              redemptionId: r.id,
-              bottle: r.bottle_name ? `${r.bottle_brand} ${r.bottle_name}` : (qrDataObj.bottle || "Unknown Bottle"),
-              pegSize: r.peg_size_ml,
-              customer: r.customer_name || "Valued Customer",
-              remainingMl: r.remaining_ml ?? 0,
-              totalMl: r.total_ml ?? 750,
-              qrId: r.qr_token
-            }
-          });
+        setScanResult({
+          type: "success",
+          customer: r.customer_name || "Customer",
+          bottle: r.bottle_name ? `${r.bottle_brand} ${r.bottle_name}` : "Bottle",
+          mlPoured: r.peg_size_ml,
+          remainingMl,
+          totalMl,
+          redemptionId: r.id,
+          isLow,
+          isEmpty,
+        });
+      } else {
+        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+        const msg = response.message || "Invalid QR code";
+        if (msg.toLowerCase().includes("already")) {
+          setScanResult({ type: "warning", message: "Already served" });
         } else {
-          if (response.message === "QR code already used") {
-            setWarning("Already Served");
-            toast.error("QR code already used");
-            setTimeout(() => {
-              setWarning("");
-              setIsProcessing(false);
-            }, 3000);
-          } else {
-            setError(response.message || "Invalid QR Code");
-            toast.error(response.message || "Invalid QR code");
-            setTimeout(() => {
-              setError("");
-              setIsProcessing(false);
-            }, 2000);
-          }
+          setScanResult({ type: "error", message: msg });
         }
-      } catch (err: any) {
-        console.error("Validation error:", err);
-        const errorMsg = err.response?.data?.detail || "Validation Failed";
-        setError(errorMsg);
-        toast.error(errorMsg);
-        setTimeout(() => {
-          setError("");
-          setIsProcessing(false);
-        }, 2000);
+        toast.error(msg);
       }
+    } catch (err: any) {
+      if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+      const msg = err.response?.data?.detail || "Validation failed";
+      setScanResult({ type: "error", message: msg });
+      toast.error(msg);
     }
   };
 
   const handleError = (err: any) => {
     console.error(err);
-    setError("Camera error. Please ensure permissions are granted.");
+    setScanResult({ type: "error", message: "Camera error — check permissions" });
+  };
+
+  const handleViewDetails = () => {
+    if (!scanResult || scanResult.type !== "success") return;
+    if (resetTimer.current) clearTimeout(resetTimer.current);
+    navigate("/drink-details", {
+      state: {
+        redemptionId: scanResult.redemptionId,
+        bottle: scanResult.bottle,
+        pegSize: scanResult.mlPoured,
+        customer: scanResult.customer,
+        remainingMl: scanResult.remainingMl,
+        totalMl: scanResult.totalMl,
+      },
+    });
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0a0a0f]">
-      {/* Close Button */}
-      <button
-        onClick={onClose}
-        className="absolute top-6 right-6 z-10 w-12 h-12 rounded-full bg-[rgba(17,17,27,0.8)] border border-purple-500/30 flex items-center justify-center hover:bg-[rgba(17,17,27,1)] transition-colors"
-      >
-        <X className="w-6 h-6 text-white" />
-      </button>
+    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-20 px-5 pt-12 pb-4 flex items-center justify-between">
+        <button
+          onClick={onClose}
+          className="p-2.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+          <p className="text-xs font-semibold text-white">
+            {isProcessing ? "Validating…" : scanResult ? "" : "Ready to scan"}
+          </p>
+        </div>
+        <div className="w-10" />
+      </div>
 
-      {/* Scanner Frame */}
-      <div className="flex flex-col items-center justify-center h-full p-6">
-        <div className="relative w-full max-w-sm aspect-square bg-black rounded-3xl overflow-hidden">
-          <QrScanner
-            delay={300}
-            onError={handleError}
-            onScan={handleScan}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            constraints={{
-              video: { facingMode: "environment" }
-            }}
-          />
+      {/* Camera — always mounted */}
+      <div className="flex-1 relative">
+        <QrScanner
+          delay={scanResult ? false : 300}
+          onError={handleError}
+          onScan={handleScan}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          constraints={{ video: { facingMode: "environment" } }}
+        />
 
-          {/* Overlay UI */}
-          <div className="absolute inset-0 border-2 border-purple-500/50 rounded-3xl pointer-events-none">
-            <div className="absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4 border-purple-500 rounded-tl-3xl" />
-            <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-purple-500 rounded-tr-3xl" />
-            <div className="absolute bottom-0 left-0 w-16 h-16 border-b-4 border-l-4 border-purple-500 rounded-bl-3xl" />
-            <div className="absolute bottom-0 right-0 w-16 h-16 border-b-4 border-r-4 border-purple-500 rounded-br-3xl" />
+        {/* Scan target overlay */}
+        {!scanResult && (
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div className="relative w-64 h-64">
+              <div className="absolute top-0 left-0 w-9 h-9 scan-corner-tl -mt-1 -ml-1" />
+              <div className="absolute top-0 right-0 w-9 h-9 scan-corner-tr -mt-1 -mr-1" />
+              <div className="absolute bottom-0 left-0 w-9 h-9 scan-corner-bl -mb-1 -ml-1" />
+              <div className="absolute bottom-0 right-0 w-9 h-9 scan-corner-br -mb-1 -mr-1" />
+              {!isProcessing && <div className="scan-laser" />}
+            </div>
           </div>
+        )}
 
-          {/* Scanning Line */}
-          {!isProcessing && !error && !warning && (
+        {/* Processing spinner */}
+        {isProcessing && !scanResult && (
+          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center backdrop-blur-sm">
+            <div className="w-12 h-12 border-[3px] border-violet-500 border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-white font-semibold text-sm">Validating…</p>
+          </div>
+        )}
+
+        {/* Result overlays */}
+        <AnimatePresence>
+          {scanResult && (
             <motion.div
-              className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-purple-400 to-transparent shadow-lg shadow-purple-400/50"
-              animate={{ top: ["10%", "90%", "10%"] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            />
-          )}
+              key="result"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 flex flex-col items-center justify-center p-6"
+              style={{
+                background:
+                  scanResult.type === "success"
+                    ? "rgba(6,6,13,0.92)"
+                    : scanResult.type === "warning"
+                      ? "rgba(120,80,0,0.92)"
+                      : "rgba(80,10,10,0.92)",
+              }}
+            >
+              {/* SUCCESS */}
+              {scanResult.type === "success" && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", damping: 14, stiffness: 200 }}
+                  className="w-full max-w-sm"
+                >
+                  {/* Icon */}
+                  <div className="flex justify-center mb-5">
+                    <div className={`w-20 h-20 rounded-full flex items-center justify-center shadow-2xl ${scanResult.isEmpty ? "bg-violet-600 shadow-violet-500/40" : "bg-emerald-500 shadow-emerald-500/40"}`}>
+                      <CheckCircle2 className="w-10 h-10 text-white" />
+                    </div>
+                  </div>
 
-          {/* Processing State */}
-          {isProcessing && !error && !warning && (
-            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center backdrop-blur-sm">
-              <Loader2 className="w-12 h-12 text-purple-500 animate-spin mb-4" />
-              <p className="text-white font-semibold">Validating...</p>
-            </div>
-          )}
+                  {/* Main info */}
+                  <div className="text-center mb-5">
+                    <p className="text-4xl font-black text-white mb-1">
+                      {scanResult.mlPoured}<span className="text-xl font-normal text-white/60 ml-1">ml</span>
+                    </p>
+                    <p className="text-lg font-bold text-white/90">{scanResult.customer}</p>
+                    <p className="text-sm text-white/50 mt-0.5">{scanResult.bottle}</p>
+                  </div>
 
-          {/* Warning State (Already Redeemed) */}
-          {warning && (
-            <div className="absolute inset-0 bg-yellow-900/80 flex flex-col items-center justify-center backdrop-blur-sm p-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-yellow-500 flex items-center justify-center mb-4">
-                <X className="w-8 h-8 text-black" />
-              </div>
-              <p className="text-white font-bold text-xl mb-1">{warning}</p>
-              <p className="text-yellow-200 text-sm">This code was used previously</p>
-            </div>
-          )}
+                  {/* Remaining bar */}
+                  <div className="bg-white/10 rounded-2xl p-4 mb-4">
+                    <div className="flex justify-between text-xs text-white/60 mb-2">
+                      <span>Remaining</span>
+                      <span className={`font-bold ${scanResult.isLow ? "text-amber-400" : "text-white"}`}>
+                        {scanResult.remainingMl} ml
+                      </span>
+                    </div>
+                    <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${scanResult.isEmpty ? "bg-white/20" : scanResult.isLow ? "bg-amber-400" : "bg-emerald-400"}`}
+                        style={{ width: `${Math.max(0, (scanResult.remainingMl / scanResult.totalMl) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="absolute inset-0 bg-red-900/80 flex flex-col items-center justify-center backdrop-blur-sm p-4 text-center">
-              <X className="w-12 h-12 text-white mb-4" />
-              <p className="text-white font-semibold">{error}</p>
-            </div>
-          )}
-        </div>
+                  {/* Low / empty warning */}
+                  {(scanResult.isLow || scanResult.isEmpty) && (
+                    <div className={`flex items-center gap-2 p-3 rounded-xl mb-4 ${scanResult.isEmpty ? "bg-violet-500/20 border border-violet-500/30" : "bg-amber-500/20 border border-amber-500/30"}`}>
+                      <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${scanResult.isEmpty ? "text-violet-400" : "text-amber-400"}`} />
+                      <p className={`text-sm font-semibold ${scanResult.isEmpty ? "text-violet-300" : "text-amber-300"}`}>
+                        {scanResult.isEmpty ? "Bottle is now empty 🏁" : `Low — only ${scanResult.remainingMl}ml left`}
+                      </p>
+                    </div>
+                  )}
 
-        <div className="mt-8 text-center">
-          <p className="text-gray-400">Position the QR code within the frame</p>
-        </div>
+                  {/* View details link */}
+                  <button
+                    onClick={handleViewDetails}
+                    className="w-full flex items-center justify-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors py-2"
+                  >
+                    View details <ChevronRight className="w-3 h-3" />
+                  </button>
+                </motion.div>
+              )}
+
+              {/* WARNING */}
+              {scanResult.type === "warning" && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="text-center"
+                >
+                  <div className="w-20 h-20 rounded-full bg-amber-500 flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-amber-500/40">
+                    <AlertTriangle className="w-10 h-10 text-white" />
+                  </div>
+                  <p className="text-2xl font-black text-white mb-2">{scanResult.message}</p>
+                  <p className="text-sm text-white/50">This QR was already used</p>
+                </motion.div>
+              )}
+
+              {/* ERROR */}
+              {scanResult.type === "error" && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="text-center"
+                >
+                  <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-red-500/40">
+                    <AlertCircle className="w-10 h-10 text-white" />
+                  </div>
+                  <p className="text-2xl font-black text-white mb-2">{scanResult.message}</p>
+                  <p className="text-xs text-white/40 mt-4">Tap anywhere to scan again</p>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Bottom instruction — only when idle */}
+        {!scanResult && !isProcessing && (
+          <div className="absolute bottom-12 left-0 right-0 text-center pointer-events-none">
+            <p className="text-white/70 text-base font-semibold drop-shadow-lg">
+              Point at customer's QR code
+            </p>
+            {kioskMode && (
+              <p className="text-white/30 text-xs mt-1">Kiosk mode active</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
