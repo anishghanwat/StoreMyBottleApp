@@ -25,14 +25,7 @@ jobs:
             echo "Pulling latest code..."
             git pull origin main
 
-            echo "Stopping any host services on ports 80/81/82..."
-            sudo systemctl stop nginx 2>/dev/null || true
-            sudo fuser -k 80/tcp 2>/dev/null || true
-            sudo fuser -k 81/tcp 2>/dev/null || true
-            sudo fuser -k 82/tcp 2>/dev/null || true
-
             echo "Rebuilding and restarting services..."
-            docker compose -f docker-compose.prod.yml down --remove-orphans
             docker compose -f docker-compose.prod.yml up --build -d
 
             echo "Waiting for backend health check..."
