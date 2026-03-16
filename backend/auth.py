@@ -588,6 +588,12 @@ def send_password_reset_email(email: str, token: str, user_name: str) -> bool:
     return False
 
 
+def send_password_reset_email(email: str, token: str, user_name: str) -> bool:
+    """Delegate to centralised email_service module."""
+    from email_service import send_password_reset_email as _send
+    return _send(email, token, user_name)
+
+
 # ============ Authorization Helpers ============
 
 async def verify_purchase_ownership(

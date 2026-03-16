@@ -18,9 +18,9 @@ from auth import (
     invalidate_all_user_sessions, verify_google_token, create_otp, verify_otp,
     send_otp_sms, get_current_user, hash_password, verify_password,
     create_password_reset_token, verify_password_reset_token, 
-    use_password_reset_token, send_password_reset_email,
-    validate_password_strength
+    use_password_reset_token, validate_password_strength
 )
+from email_service import send_welcome_email, send_password_reset_email
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -212,7 +212,13 @@ def signup(request_data: SignupRequest, request: Request, response: Response, db
     
     # Set HttpOnly cookies
     set_auth_cookies(response, access_token, refresh_token)
-    
+
+    # Send welcome email (non-blocking)
+    try:
+        send_welcome_email(user.email, user.name)
+    except Exception as e:
+        print(f"Welcome email failed: {e}")
+
     user_response = UserResponse(
         id=user.id,
         email=user.email,

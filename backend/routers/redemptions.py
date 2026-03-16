@@ -231,6 +231,25 @@ def validate_redemption_qr(
             remaining_ml=purchase.remaining_ml,
             total_ml=purchase.total_ml
         )
+
+        # Send redemption receipt email (non-blocking)
+        try:
+            from email_service import send_redemption_receipt_email
+            customer = purchase.user
+            if customer and customer.email:
+                redeemed_at_str = redemption.redeemed_at.strftime("%d %b %Y, %I:%M %p") if redemption.redeemed_at else "Just now"
+                send_redemption_receipt_email(
+                    email=customer.email,
+                    user_name=customer.name,
+                    bottle_name=purchase.bottle.name,
+                    bottle_brand=purchase.bottle.brand,
+                    venue_name=purchase.venue.name,
+                    peg_size_ml=redemption.peg_size_ml,
+                    remaining_ml=purchase.remaining_ml,
+                    redeemed_at=redeemed_at_str,
+                )
+        except Exception as e:
+            print(f"Redemption receipt email failed: {e}")
         
         return QRValidationResponse(
             success=True,

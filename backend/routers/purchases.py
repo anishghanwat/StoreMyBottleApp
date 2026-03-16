@@ -103,6 +103,32 @@ def confirm_purchase(
     
     db.refresh(purchase)
     
+    # Send purchase confirmation email (non-blocking)
+    try:
+        from email_service import send_purchase_confirmation_email
+        from datetime import timedelta
+        user = db.query(User).filter(User.id == purchase.user_id).first()
+        if user and user.email:
+            bottle = purchase.bottle
+            venue = purchase.venue
+            purchase_date = purchase.purchased_at or purchase.created_at
+            if purchase_date.tzinfo is None:
+                purchase_date = purchase_date.replace(tzinfo=timezone.utc)
+            expires_at = (purchase_date + timedelta(days=30)).strftime("%d %b %Y")
+            send_purchase_confirmation_email(
+                email=user.email,
+                user_name=user.name,
+                bottle_name=bottle.name,
+                bottle_brand=bottle.brand,
+                venue_name=venue.name,
+                amount=str(purchase.purchase_price),
+                volume_ml=purchase.total_ml,
+                expires_at=expires_at,
+                purchase_id=purchase.id,
+            )
+    except Exception as e:
+        print(f"Purchase confirmation email failed: {e}")
+
     return purchase
 
 
@@ -357,5 +383,31 @@ def process_purchase(
         )
     
     db.refresh(purchase)
-    
+
+    # Send purchase confirmation email when bartender confirms (non-blocking)
+    if request.action == "confirm":
+        try:
+            from email_service import send_purchase_confirmation_email
+            user = db.query(User).filter(User.id == purchase.user_id).first()
+            if user and user.email:
+                bottle = purchase.bottle
+                venue = purchase.venue
+                purchase_date = purchase.purchased_at or purchase.created_at
+                if purchase_date.tzinfo is None:
+                    purchase_date = purchase_date.replace(tzinfo=timezone.utc)
+                expires_at = (purchase_date + timedelta(days=30)).strftime("%d %b %Y")
+                send_purchase_confirmation_email(
+                    email=user.email,
+                    user_name=user.name,
+                    bottle_name=bottle.name,
+                    bottle_brand=bottle.brand,
+                    venue_name=venue.name,
+                    amount=str(purchase.purchase_price),
+                    volume_ml=purchase.total_ml,
+                    expires_at=expires_at,
+                    purchase_id=purchase.id,
+                )
+        except Exception as e:
+            print(f"Purchase confirmation email failed: {e}")
+
     return purchase
