@@ -26,7 +26,8 @@ jobs:
             git pull origin main
 
             echo "Rebuilding and restarting services..."
-            docker compose -f docker-compose.prod.yml up --build -d --remove-orphans
+            docker compose -f docker-compose.prod.yml down --remove-orphans
+            docker compose -f docker-compose.prod.yml up --build -d
 
             echo "Waiting for backend health check..."
             sleep 10
