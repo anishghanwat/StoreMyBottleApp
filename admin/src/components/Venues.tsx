@@ -30,6 +30,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { adminService } from "@/services/api"
+import { ImageUpload } from "@/components/ui/image-upload"
 import { TableSkeletonLoader } from "@/components/ui/skeleton-loader"
 import { EmptyState } from "@/components/ui/empty-state"
 import { SearchFilterBar } from "@/components/ui/search-filter-bar"
@@ -158,13 +159,6 @@ export function Venues() {
     if (formData.image_url && formData.image_url.trim().length > 0) {
       if (formData.image_url.trim().length > 1000) {
         toast.error("Image URL must be less than 1000 characters")
-        return
-      }
-      // Basic URL validation
-      try {
-        new URL(formData.image_url.trim())
-      } catch {
-        toast.error("Please enter a valid image URL")
         return
       }
     }
@@ -374,15 +368,15 @@ export function Venues() {
                   className="col-span-3"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="image_url" className="text-right">Image URL</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  className="col-span-3"
-                  placeholder="https://..."
-                />
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right pt-2">Image</Label>
+                <div className="col-span-3">
+                  <ImageUpload
+                    value={formData.image_url}
+                    onChange={(url) => setFormData({ ...formData, image_url: url })}
+                    folder="venues"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="is_open" className="text-right">Open Now</Label>
