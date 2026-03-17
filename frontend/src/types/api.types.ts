@@ -61,6 +61,8 @@ export interface UserBottle {
     remainingMl: number;
     image: string;
     expiresAt: string;
+    purchasePrice?: number;
+    purchasedAt?: string;
 }
 
 export interface Redemption {

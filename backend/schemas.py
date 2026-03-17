@@ -288,11 +288,17 @@ class UserBottleResponse(BaseModel):
     remaining_ml: int = Field(alias="remainingMl")
     image_url: str = Field(alias="image")
     expires_at: datetime = Field(alias="expiresAt")
-    
+    purchase_price: Optional[Decimal] = Field(None, alias="purchasePrice")
+    purchased_at: Optional[datetime] = Field(None, alias="purchasedAt")
+
     @field_serializer('expires_at')
     def serialize_expires_at(self, dt: datetime, _info):
         return ensure_timezone_aware(dt)
-    
+
+    @field_serializer('purchased_at')
+    def serialize_purchased_at(self, dt: Optional[datetime], _info):
+        return ensure_timezone_aware(dt) if dt else None
+
     class Config:
         from_attributes = True
         populate_by_name = True

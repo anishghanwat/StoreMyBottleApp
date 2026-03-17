@@ -88,7 +88,17 @@ function BottleCard({ bottle, index, activeTab }: {
             Redeem a Peg →
           </Link>
         )}
-        {isExpired && (
+        {activeTab === 'history' && bottle.purchasedAt && (
+          <div className="flex items-center justify-between text-xs pt-1 border-t border-white/[0.05]">
+            <span className="text-[#4A4A6A]">
+              Purchased {new Date(bottle.purchasedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+            </span>
+            {bottle.purchasePrice != null && (
+              <span className="font-semibold text-violet-400">₹{Math.round(bottle.purchasePrice).toLocaleString("en-IN")}</span>
+            )}
+          </div>
+        )}
+        {isExpired && activeTab === 'current' && (
           <div className="flex items-center justify-center gap-2 text-red-400/70 text-xs py-2">
             <Clock className="w-3.5 h-3.5" />
             Expired on {expiresAt.toLocaleDateString()} · Cannot be redeemed

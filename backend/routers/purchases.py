@@ -274,7 +274,9 @@ def get_purchase_history(
             totalMl=purchase.total_ml,
             remainingMl=purchase.remaining_ml,
             image=bottle.image_url or "",
-            expiresAt=expires_at
+            expiresAt=expires_at,
+            purchasePrice=purchase.purchase_price,
+            purchasedAt=purchase.purchased_at or purchase.created_at
         )
         user_bottles.append(user_bottle)
     
