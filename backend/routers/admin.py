@@ -124,11 +124,6 @@ def update_venue(
     if not venue:
         raise HTTPException(status_code=404, detail="Venue not found")
     
-    print("--------------------------------------------------")
-    print(f"DEBUG: Updating venue {venue_id}")
-    print(f"DEBUG: Payload: {venue_update.dict()}")
-    print("--------------------------------------------------")
-
     for key, value in venue_update.dict().items():
         setattr(venue, key, value)
     

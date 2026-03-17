@@ -70,7 +70,6 @@ def clear_auth_cookies(response: Response):
 def login(request_data: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     """Login with email and password"""
     try:
-        print(f"LOGIN ATTEMPT: {request_data.email}, pwd_len={len(request_data.password)}")
         # Find user by email
         user = db.query(User).filter(User.email == request_data.email).first()
         
@@ -139,10 +138,10 @@ def login(request_data: LoginRequest, request: Request, response: Response, db: 
     except HTTPException as he:
         raise he
     except Exception as e:
-        print(f"LOGIN ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc()
         raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed"
+        )        raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Login failed: {str(e)}"
         )
@@ -302,12 +301,6 @@ def send_otp(request_data: PhoneSendOTPRequest, request: Request, db: Session = 
         "expires_in_minutes": 5
     }
 
-    try:
-        if settings.ENVIRONMENT == "development":
-            response["debug_otp"] = otp.otp_code
-    except Exception as e:
-        print(f"ERROR ADDING DEBUG OTP: {e}")
-    
     return response
 
 

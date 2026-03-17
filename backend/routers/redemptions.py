@@ -81,8 +81,6 @@ def generate_redemption_qr(
         device_fingerprint=request.device_fingerprint  # SECURITY: Device binding
     )
     
-    print(f"🔐 Backend - QR Generated with fingerprint: {request.device_fingerprint}")
-    
     db.add(redemption)
     db.commit()
     db.refresh(redemption)
