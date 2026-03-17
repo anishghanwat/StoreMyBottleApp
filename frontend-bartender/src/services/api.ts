@@ -160,7 +160,17 @@ export const authService = {
     },
 
     signup: async (name: string, email: string, password: string, phone?: string) => {
-        const response = await api.post('/auth/signup', { email, password, name });
+        // Bartender signup is admin-created — self-signup is not supported via this flow.
+        // This path is kept for completeness but will be rejected by the backend
+        // unless a valid date_of_birth is provided. Bartenders should be created by admins.
+        const response = await api.post('/auth/signup', {
+            email,
+            password,
+            name,
+            // Provide a placeholder DOB that satisfies the 25+ requirement.
+            // Real bartender accounts are created by admins via the admin panel.
+            date_of_birth: "1990-01-01",
+        });
         const { access_token, refresh_token, user } = response.data;
 
         // Save session

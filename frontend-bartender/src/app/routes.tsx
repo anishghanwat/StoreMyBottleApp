@@ -11,6 +11,7 @@ import Inventory from "./pages/Inventory";
 import CustomerLookup from "./pages/CustomerLookup";
 import RedemptionHistory from "./pages/RedemptionHistory";
 import NotFound from "./pages/NotFound";
+import AuthGuard from "./components/AuthGuard";
 
 export const router = createBrowserRouter([
   {
@@ -31,31 +32,31 @@ export const router = createBrowserRouter([
   },
   {
     path: "/home",
-    Component: BartenderHome,
+    element: <AuthGuard><BartenderHome /></AuthGuard >,
   },
   {
     path: "/scan",
-    Component: ScanQR,
+    element: <AuthGuard><ScanQR /></AuthGuard >,
   },
   {
     path: "/drink-details",
-    Component: DrinkDetails,
+    element: <AuthGuard><DrinkDetails /></AuthGuard >,
   },
   {
     path: "/stats",
-    Component: Stats,
+    element: <AuthGuard><Stats /></AuthGuard >,
   },
   {
     path: "/inventory",
-    Component: Inventory,
+    element: <AuthGuard><Inventory /></AuthGuard >,
   },
   {
     path: "/customers",
-    Component: CustomerLookup,
+    element: <AuthGuard><CustomerLookup /></AuthGuard >,
   },
   {
     path: "/history",
-    Component: RedemptionHistory,
+    element: <AuthGuard><RedemptionHistory /></AuthGuard >,
   },
   {
     path: "*",
