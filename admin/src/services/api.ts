@@ -216,8 +216,8 @@ export const adminService = {
         return response.data;
     },
 
-    getUsers: async (skip = 0, limit = 50): Promise<{ users: User[]; total: number }> => {
-        const response = await api.get<{ users: User[]; total: number }>(`/api/admin/users?skip=${skip}&limit=${limit}`);
+    getUsers: async (skip = 0, limit = 100): Promise<User[]> => {
+        const response = await api.get<User[]>(`/api/admin/users?skip=${skip}&limit=${limit}`);
         return response.data;
     },
 

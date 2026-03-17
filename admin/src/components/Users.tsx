@@ -32,6 +32,7 @@ import { Label } from "@/components/ui/label"
 import { TableSkeletonLoader } from "@/components/ui/skeleton-loader"
 import { EmptyState } from "@/components/ui/empty-state"
 import { SearchFilterBar } from "@/components/ui/search-filter-bar"
+import { parseApiError } from "@/utils/parseApiError"
 import { toast } from "sonner"
 
 function calcAge(dob: string | null): number | null {
@@ -54,23 +55,19 @@ export function Users() {
   const [loading, setLoading] = React.useState(true)
   const [refreshing, setRefreshing] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [roleFilter, setRoleFilter] = React.useState("all")
   const [selectedUser, setSelectedUser] = React.useState<any | null>(null)
 
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [editRole, setEditRole] = React.useState("")
   const [editVenueId, setEditVenueId] = React.useState("")
+  const [saving, setSaving] = React.useState(false)
   const [venues, setVenues] = React.useState<any[]>([])
 
   React.useEffect(() => {
-    const loadVenues = async () => {
-      try {
-        const data = await adminService.getVenues()
-        setVenues(data)
-      } catch (error) {
-        console.error("Failed to fetch venues", error)
-      }
-    }
-    loadVenues()
+    adminService.getVenues()
+      .then(setVenues)
+      .catch(() => { })
   }, [])
 
   const fetchUsers = async (silent = false) => {
@@ -78,10 +75,9 @@ export function Users() {
     else setRefreshing(true)
     try {
       const data = await adminService.getUsers()
-      setUsers(Array.isArray(data) ? data : data.users ?? [])
-    } catch (error) {
-      console.error("Failed to fetch users", error)
-      toast.error("Failed to load users")
+      setUsers(Array.isArray(data) ? data : (data as any).users ?? [])
+    } catch (error: any) {
+      toast.error(parseApiError(error, "Failed to load users"))
     } finally {
       if (!silent) setLoading(false)
       else setRefreshing(false)
@@ -90,15 +86,18 @@ export function Users() {
 
   React.useEffect(() => { fetchUsers() }, [])
 
-  const filteredUsers = users.filter(user =>
-    user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.role?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredUsers = users.filter(user => {
+    const matchesSearch =
+      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.role?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesRole = roleFilter === "all" || user.role === roleFilter
+    return matchesSearch && matchesRole
+  })
 
-  const missingDob = filteredUsers.filter(u => u.role === "customer" && !u.date_of_birth).length
-  const missingTerms = filteredUsers.filter(u => u.role === "customer" && !u.terms_accepted_at).length
+  const missingDob = users.filter(u => u.role === "customer" && !u.date_of_birth).length
+  const missingTerms = users.filter(u => u.role === "customer" && !u.terms_accepted_at).length
 
   const handleEditClick = (user: any) => {
     setSelectedUser(user)
@@ -109,16 +108,25 @@ export function Users() {
 
   const handleSaveRole = async () => {
     if (!selectedUser) return
+    setSaving(true)
     try {
       await adminService.updateUserRole(selectedUser.id, editRole, editVenueId || null)
       toast.success("User role updated successfully")
       setIsEditOpen(false)
       fetchUsers(true)
-    } catch (error) {
-      console.error("Failed to update role", error)
-      toast.error("Failed to update user role")
+    } catch (error: any) {
+      toast.error(parseApiError(error, "Failed to update user role"))
+    } finally {
+      setSaving(false)
     }
   }
+
+  const roleOptions = [
+    { value: "all", label: "All Roles" },
+    { value: "customer", label: "Customer" },
+    { value: "bartender", label: "Bartender" },
+    { value: "admin", label: "Admin" },
+  ]
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -153,6 +161,15 @@ export function Users() {
             searchPlaceholder="Search users by name, email, phone, or role..."
             searchValue={searchQuery}
             onSearchChange={setSearchQuery}
+            filters={[
+              {
+                id: "role",
+                label: "All Roles",
+                value: roleFilter,
+                onChange: setRoleFilter,
+                options: roleOptions,
+              }
+            ]}
             onRefresh={() => fetchUsers(true)}
             refreshing={refreshing}
           />
@@ -162,7 +179,7 @@ export function Users() {
             <EmptyState
               icon={UsersIcon}
               title="No users found"
-              description={searchQuery ? "Try adjusting your search query" : "No users in the system yet"}
+              description={searchQuery || roleFilter !== "all" ? "Try adjusting your search or filters" : "No users in the system yet"}
             />
           ) : (
             <div className="rounded-md border overflow-x-auto">
@@ -174,7 +191,8 @@ export function Users() {
                     <TableHead>Contact</TableHead>
                     <TableHead>Age / DOB</TableHead>
                     <TableHead>Terms Accepted</TableHead>
-                    <TableHead className="text-right">Venue</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead>Venue</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -204,8 +222,8 @@ export function Users() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col text-sm">
-                            <span>{user.email}</span>
-                            <span className="text-xs text-muted-foreground">{user.phone || "-"}</span>
+                            <span>{user.email || "—"}</span>
+                            <span className="text-xs text-muted-foreground">{user.phone || "—"}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -240,7 +258,8 @@ export function Users() {
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">{user.venue_name || "-"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{fmtDate(user.created_at)}</TableCell>
+                        <TableCell className="text-sm">{user.venue_name || "—"}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => handleEditClick(user)}>Edit Role</Button>
                         </TableCell>
@@ -268,7 +287,7 @@ export function Users() {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent style={{ zIndex: 10000 }}>
-                  <SelectItem value="user">Customer</SelectItem>
+                  <SelectItem value="customer">Customer</SelectItem>
                   <SelectItem value="bartender">Bartender</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
@@ -291,7 +310,10 @@ export function Users() {
             )}
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={handleSaveRole}>Save changes</Button>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveRole} disabled={saving}>
+              {saving ? "Saving..." : "Save changes"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

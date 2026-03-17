@@ -67,8 +67,7 @@ export function SupportTickets() {
   const fetchUsers = async () => {
     try {
       const data = await adminService.getUsers()
-      // getUsers returns {users: User[], total: number}
-      const usersArray = data.users || data
+      const usersArray = Array.isArray(data) ? data : (data as any).users ?? []
       setUsers((usersArray as any[]).filter((u: any) => u.role === "admin" || u.role === "bartender"))
     } catch (error) {
       // non-critical
