@@ -91,6 +91,7 @@ class User(Base):
     role = Column(String(50), default="customer", nullable=False)
     venue_id = Column(String(36), ForeignKey("venues.id", ondelete="SET NULL"), nullable=True)
     google_id = Column(String(255), unique=True, nullable=True, index=True)
+    profile_image_url = Column(String(1000), nullable=True)
     date_of_birth = Column(Date, nullable=True)
     terms_accepted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

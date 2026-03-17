@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from decimal import Decimal
 from typing import List, Optional
+import cloudinary
+import cloudinary.uploader
+import os
 
 from database import get_db
 from models import User, Purchase, Redemption, PaymentStatus, RedemptionStatus, Bottle, Venue
@@ -10,6 +13,14 @@ from schemas import ProfileResponse, ProfileUpdateRequest, UserResponse
 from auth import get_current_user, get_current_active_bartender
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True,
+)
 
 
 @router.get("", response_model=ProfileResponse)
@@ -69,6 +80,37 @@ def update_profile(
     db.refresh(current_user)
     
     return UserResponse.model_validate(current_user)
+
+
+@router.post("/upload-avatar", response_model=UserResponse)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Upload profile avatar to Cloudinary"""
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    # Limit file size to 5MB
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image must be under 5MB")
+
+    try:
+        result = cloudinary.uploader.upload(
+            contents,
+            folder="storemybottle/avatars",
+            public_id=f"user_{current_user.id}",
+            overwrite=True,
+            transformation=[{"width": 400, "height": 400, "crop": "fill", "gravity": "face"}],
+        )
+        current_user.profile_image_url = result["secure_url"]
+        db.commit()
+        db.refresh(current_user)
+        return UserResponse.model_validate(current_user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to upload image")
 
 
 @router.get("/search", response_model=List[UserResponse])

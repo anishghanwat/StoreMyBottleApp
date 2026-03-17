@@ -230,6 +230,7 @@ class UserResponse(BaseModel):
     role: str
     venue_id: Optional[str] = None
     venue_name: Optional[str] = None
+    profile_image_url: Optional[str] = None
     date_of_birth: Optional[date] = None
     terms_accepted_at: Optional[datetime] = None
     created_at: datetime

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router";
-import { Home, Wine, User, LogOut, Settings, Shield, HelpCircle, Edit2, X, Check, TrendingUp, History } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Home, Wine, User, LogOut, Settings, Shield, HelpCircle, Edit2, X, Check, TrendingUp, History, Camera } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { profileService } from "../../services/profile.service";
 import { authService } from "../../services/auth.service";
 import { Profile as UserProfile } from "../../types/api.types";
@@ -19,6 +19,8 @@ export default function Profile() {
     const [editName, setEditName] = useState("");
     const [editEmail, setEditEmail] = useState("");
     const [saving, setSaving] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!authService.isAuthenticated()) {
@@ -64,6 +66,22 @@ export default function Profile() {
         navigate("/login");
     };
 
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            setUploadingAvatar(true);
+            const updatedUser = await profileService.uploadAvatar(file);
+            if (profile) setProfile({ ...profile, user: updatedUser });
+            toast.success("Profile photo updated");
+        } catch (err: any) {
+            toast.error(parseApiError(err, "Failed to upload photo"));
+        } finally {
+            setUploadingAvatar(false);
+            if (avatarInputRef.current) avatarInputRef.current.value = "";
+        }
+    };
+
     const getInitials = (name: string) =>
         name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -101,8 +119,41 @@ export default function Profile() {
                 <div className="card-surface p-5">
                     <div className="flex items-start gap-4">
                         {/* Avatar */}
-                        <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center text-xl font-black flex-shrink-0">
-                            {getInitials(profile.user.name)}
+                        <div className="relative flex-shrink-0">
+                            <div
+                                className="w-16 h-16 rounded-full overflow-hidden cursor-pointer"
+                                onClick={() => avatarInputRef.current?.click()}
+                            >
+                                {profile.user.profile_image_url ? (
+                                    <img
+                                        src={profile.user.profile_image_url}
+                                        alt={profile.user.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xl font-black">
+                                        {getInitials(profile.user.name)}
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => avatarInputRef.current?.click()}
+                                disabled={uploadingAvatar}
+                                className="absolute -bottom-1 -right-1 w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center border-2 border-[#09090F]"
+                                aria-label="Change profile photo"
+                            >
+                                {uploadingAvatar
+                                    ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                                    : <Camera className="w-3 h-3 text-white" />
+                                }
+                            </button>
+                            <input
+                                ref={avatarInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleAvatarChange}
+                            />
                         </div>
 
                         <div className="flex-1 min-w-0">

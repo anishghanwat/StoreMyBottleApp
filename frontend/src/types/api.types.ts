@@ -27,6 +27,8 @@ export interface User {
     email: string | null;
     phone: string | null;
     name: string;
+    role?: string;
+    profile_image_url?: string | null;
     created_at: string;
 }
 
