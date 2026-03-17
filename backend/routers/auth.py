@@ -10,7 +10,7 @@ from schemas import (
     LoginRequest, SignupRequest,
     GoogleLoginRequest, PhoneSendOTPRequest, PhoneVerifyOTPRequest,
     RefreshTokenRequest, ForgotPasswordRequest, ResetPasswordRequest,
-    TokenResponse, UserResponse
+    ChangePasswordRequest, TokenResponse, UserResponse
 )
 from auth import (
     create_access_token, create_refresh_token, create_session, 
@@ -571,3 +571,26 @@ def verify_reset_token(token: str, db: Session = Depends(get_db)):
         "valid": True,
         "message": "Token is valid"
     }
+
+
+@router.post("/change-password")
+def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change password for authenticated user"""
+    if not verify_password(request.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+
+    is_valid, msg = validate_password_strength(request.new_password)
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+
+    current_user.hashed_password = hash_password(request.new_password)
+    db.commit()
+
+    return {"message": "Password changed successfully"}
