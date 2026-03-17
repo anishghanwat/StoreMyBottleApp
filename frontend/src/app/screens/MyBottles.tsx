@@ -323,125 +323,159 @@ export default function MyBottles() {
       {/* Bottle Cards */}
       {displayed.length > 0 ? (
         <div className="px-4 space-y-4 pb-24">
-          {displayed.map((bottle, i) => {
-            const pct = (bottle.remainingMl / bottle.totalMl) * 100;
-            const isEmpty = bottle.remainingMl === 0;
-            const expiresAt = new Date(bottle.expiresAt);
-            const isExpired = Date.now() > expiresAt.getTime();
-            const daysLeft = Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / 86400000));
-
+          {activeTab === 'current' && (() => {
+            const active = displayed.filter(b => !b.expiresAt || Date.now() <= new Date(b.expiresAt).getTime());
+            const expired = displayed.filter(b => b.expiresAt && Date.now() > new Date(b.expiresAt).getTime());
             return (
-              <motion.div
-                key={bottle.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06 }}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className={`card-surface overflow-hidden ${(isEmpty || isExpired) ? "opacity-60" : ""}`}
-              >
-                <div className="p-4">
-                  {/* Top row */}
-                  <div className="flex gap-3 mb-4">
-                    <div className="w-16 h-16 bg-[#1A1A26] rounded-2xl flex items-center justify-center p-2 flex-shrink-0 border border-white/[0.06]">
-                      <ImageWithFallback
-                        src={bottle.image || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
-                        alt={bottle.bottleName}
-                        className="w-full h-full object-contain"
-                      />
+              <>
+                {active.length === 0 && expired.length > 0 && (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+                      <Clock className="w-8 h-8 text-red-400/60" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] text-violet-400 font-semibold uppercase tracking-wider mb-0.5">{bottle.bottleBrand}</p>
-                      <h3 className="font-bold text-base leading-tight truncate mb-1">{bottle.bottleName}</h3>
-                      <div className="flex items-center gap-1">
-                        <Wine className="w-3 h-3 text-[#4A4A6A]" />
-                        <span className="text-xs text-[#7171A0] truncate">{bottle.venueName}</span>
-                      </div>
-                    </div>
-                    {/* Status badge */}
-                    {isExpired ? (
-                      <span className="chip chip-inactive text-[10px] h-fit">Expired</span>
-                    ) : isEmpty ? (
-                      <span className="chip chip-inactive text-[10px] h-fit">Empty</span>
-                    ) : (
-                      <span className="chip chip-green text-[10px] h-fit">Active</span>
-                    )}
+                    <h3 className="text-base font-bold mb-1">All bottles expired</h3>
+                    <p className="text-[#7171A0] text-sm mb-6 max-w-xs">These bottles can no longer be redeemed. Buy a new one to start fresh.</p>
+                    <Link to="/" className="btn-primary px-8 py-3.5 rounded-2xl font-bold text-sm text-white">Browse Venues</Link>
                   </div>
-
-                  {/* Progress */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-[#7171A0]">Remaining</span>
-                      <span className="font-bold">
-                        <span className={pct > 30 ? "text-white" : "text-amber-400"}>{bottle.remainingMl} ml</span>
-                        <span className="text-[#4A4A6A] font-normal"> / {bottle.totalMl} ml</span>
-                      </span>
+                )}
+                {active.map((bottle, i) => <BottleCard key={bottle.id} bottle={bottle} index={i} currentTime={currentTime} activeTab={activeTab} navigate={navigate} />)}
+                {expired.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-3 pt-2">
+                      <div className="flex-1 h-px bg-white/[0.06]" />
+                      <span className="text-[11px] text-red-400/60 font-semibold uppercase tracking-widest">Expired ({expired.length})</span>
+                      <div className="flex-1 h-px bg-white/[0.06]" />
                     </div>
-                    <div className="progress-bar">
-                      <div
-                        className={`progress-fill ${isEmpty || isExpired ? "opacity-30" : ""}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    {!isEmpty && !isExpired && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-[#4A4A6A]" />
-                        <span className="text-[11px] text-[#7171A0]">
-                          {daysLeft === 0 ? "Expires today!" : `Expires in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* CTA */}
-                  {!isEmpty && !isExpired && activeTab === 'current' && (
-                    <Link
-                      to={`/redeem/${bottle.id}`}
-                      className="btn-primary block w-full py-3.5 rounded-xl font-bold text-sm text-white text-center"
-                    >
-                      Redeem a Peg →
-                    </Link>
-                  )}
-                  {isExpired && !isEmpty && (
-                    <div className="flex items-center justify-center gap-2 text-red-400/70 text-xs py-2">
-                      <Clock className="w-3.5 h-3.5" />
-                      Expired on {expiresAt.toLocaleDateString()}
-                    </div>
-                  )}
-                  {isEmpty && (
-                    <div className="flex items-center justify-center gap-2 text-[#4A4A6A] text-xs py-2">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Fully redeemed
-                    </div>
-                  )}
-                </div>
-              </motion.div>
+                    <p className="text-xs text-[#4A4A6A] text-center -mt-2">These bottles can no longer be redeemed</p>
+                    {expired.map((bottle, i) => <BottleCard key={bottle.id} bottle={bottle} index={i} currentTime={currentTime} activeTab={activeTab} navigate={navigate} />)}
+                  </>
+                )}
+              </>
             );
-          })}
+          })()}
+          {activeTab === 'history' && displayed.map((bottle, i) => (
+            <BottleCard key={bottle.id} bottle={bottle} index={i} currentTime={currentTime} activeTab={activeTab} navigate={navigate} />
+          ))}
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
-          <div className="w-20 h-20 rounded-full bg-[#111118] border border-white/[0.07] flex items-center justify-center mb-5">
-            <Wine className="w-10 h-10 text-[#2A2A3A]" />
+            const pct = (bottle.remainingMl / bottle.totalMl) * 100;
+      const isEmpty = bottle.remainingMl === 0;
+      const expiresAt = new Date(bottle.expiresAt);
+            const isExpired = Date.now() > expiresAt.getTime();
+      const daysLeft = Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / 86400000));
+
+      return (
+      <motion.div
+        key={bottle.id}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: i * 0.06 }}
+        whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.98 }}
+        className={`card-surface overflow-hidden ${(isEmpty || isExpired) ? "opacity-60" : ""}`}
+      >
+        <div className="p-4">
+          {/* Top row */}
+          <div className="flex gap-3 mb-4">
+            <div className="w-16 h-16 bg-[#1A1A26] rounded-2xl flex items-center justify-center p-2 flex-shrink-0 border border-white/[0.06]">
+              <ImageWithFallback
+                src={bottle.image || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
+                alt={bottle.bottleName}
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-violet-400 font-semibold uppercase tracking-wider mb-0.5">{bottle.bottleBrand}</p>
+              <h3 className="font-bold text-base leading-tight truncate mb-1">{bottle.bottleName}</h3>
+              <div className="flex items-center gap-1">
+                <Wine className="w-3 h-3 text-[#4A4A6A]" />
+                <span className="text-xs text-[#7171A0] truncate">{bottle.venueName}</span>
+              </div>
+            </div>
+            {/* Status badge */}
+            {isExpired ? (
+              <span className="chip chip-inactive text-[10px] h-fit">Expired</span>
+            ) : isEmpty ? (
+              <span className="chip chip-inactive text-[10px] h-fit">Empty</span>
+            ) : (
+              <span className="chip chip-green text-[10px] h-fit">Active</span>
+            )}
           </div>
-          <h3 className="text-lg font-bold mb-2">
-            {activeTab === 'current' ? 'No active bottles' : 'No purchase history'}
-          </h3>
-          <p className="text-[#7171A0] text-sm mb-8 max-w-xs">
-            {activeTab === 'current'
-              ? 'Buy your first bottle at a venue and store it here'
-              : 'Your purchase history will appear here'}
-          </p>
-          {activeTab === 'current' && (
-            <Link to="/" className="btn-primary px-8 py-3.5 rounded-2xl font-bold text-sm text-white">
-              Browse Venues
+
+          {/* Progress */}
+          <div className="space-y-2 mb-4">
+            <div className="flex justify-between text-xs">
+              <span className="text-[#7171A0]">Remaining</span>
+              <span className="font-bold">
+                <span className={pct > 30 ? "text-white" : "text-amber-400"}>{bottle.remainingMl} ml</span>
+                <span className="text-[#4A4A6A] font-normal"> / {bottle.totalMl} ml</span>
+              </span>
+            </div>
+            <div className="progress-bar">
+              <div
+                className={`progress-fill ${isEmpty || isExpired ? "opacity-30" : ""}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {!isEmpty && !isExpired && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-[#4A4A6A]" />
+                <span className="text-[11px] text-[#7171A0]">
+                  {daysLeft === 0 ? "Expires today!" : `Expires in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* CTA */}
+          {!isEmpty && !isExpired && activeTab === 'current' && (
+            <Link
+              to={`/redeem/${bottle.id}`}
+              className="btn-primary block w-full py-3.5 rounded-xl font-bold text-sm text-white text-center"
+            >
+              Redeem a Peg →
             </Link>
           )}
+          {isExpired && !isEmpty && (
+            <div className="flex items-center justify-center gap-2 text-red-400/70 text-xs py-2">
+              <Clock className="w-3.5 h-3.5" />
+              Expired on {expiresAt.toLocaleDateString()}
+            </div>
+          )}
+          {isEmpty && (
+            <div className="flex items-center justify-center gap-2 text-[#4A4A6A] text-xs py-2">
+              <Sparkles className="w-3.5 h-3.5" />
+              Fully redeemed
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Bottom Navigation */}
-      <BottomNav active="bottles" />
+      </motion.div>
+      );
+          })}
     </div>
+  ) : (
+    <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+      <div className="w-20 h-20 rounded-full bg-[#111118] border border-white/[0.07] flex items-center justify-center mb-5">
+        <Wine className="w-10 h-10 text-[#2A2A3A]" />
+      </div>
+      <h3 className="text-lg font-bold mb-2">
+        {activeTab === 'current' ? 'No active bottles' : 'No purchase history'}
+      </h3>
+      <p className="text-[#7171A0] text-sm mb-8 max-w-xs">
+        {activeTab === 'current'
+          ? 'Buy your first bottle at a venue and store it here'
+          : 'Your purchase history will appear here'}
+      </p>
+      {activeTab === 'current' && (
+        <Link to="/" className="btn-primary px-8 py-3.5 rounded-2xl font-bold text-sm text-white">
+          Browse Venues
+        </Link>
+      )}
+    </div>
+  )
+}
+
+{/* Bottom Navigation */ }
+<BottomNav active="bottles" />
+    </div >
   );
 }
