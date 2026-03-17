@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Wine, TrendingUp, Users, Clock, Calendar, Award, Zap, Check } from "lucide-react";
+import { ArrowLeft, Wine, Users, Clock, Award, Check } from "lucide-react";
 import { venueService, redemptionService } from "../../services/api";
 import { motion } from "motion/react";
 
 interface ExtendedStats {
     served_today: number; active_bottles: number;
     total_customers_today?: number;
-    peak_hour?: string; week_total?: number; month_total?: number;
+    peak_hour?: string;
 }
 
 export default function Stats() {
@@ -39,7 +39,7 @@ export default function Stats() {
             const hourCounts: Record<number, number> = {};
             todayR.forEach((r: any) => { const h = new Date(r.redeemed_at || r.created_at).getHours(); hourCounts[h] = (hourCounts[h] || 0) + 1; });
             const peakHour = Object.keys(hourCounts).reduce((a, b) => hourCounts[+a] > hourCounts[+b] ? a : b, "0");
-            setStats({ ...statsData, total_customers_today: uniqueCustomers, peak_hour: peakHour ? `${peakHour}:00` : "N/A", week_total: Math.floor(statsData.served_today * 6.5), month_total: Math.floor(statsData.served_today * 28) });
+            setStats({ ...statsData, total_customers_today: uniqueCustomers, peak_hour: peakHour ? `${peakHour}:00` : "N/A" });
             setRecentActivity(redemptions.slice(0, 5));
         } catch { }
         finally { setLoading(false); }
@@ -86,26 +86,6 @@ export default function Stats() {
                                     <p className={`text-2xl font-black`}>{m.value}</p>
                                 </motion.div>
                             ))}
-                        </div>
-
-                        {/* Trends */}
-                        <div>
-                            <p className="text-xs font-bold text-[#6B6B9A] uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Trends
-                            </p>
-                            <div className="grid grid-cols-3 gap-3">
-                                {[
-                                    { label: "Today", val: stats.served_today },
-                                    { label: "This Week", val: stats.week_total || 0 },
-                                    { label: "This Month", val: stats.month_total || 0 },
-                                ].map((t, i) => (
-                                    <motion.div key={t.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.06 }} className="bar-card p-4 text-center">
-                                        <Calendar className="w-4 h-4 text-violet-400 mx-auto mb-2" />
-                                        <p className="text-xl font-black">{t.val}</p>
-                                        <p className="text-[11px] text-[#6B6B9A] mt-1">{t.label}</p>
-                                    </motion.div>
-                                ))}
-                            </div>
                         </div>
 
                         {/* Venue card */}
