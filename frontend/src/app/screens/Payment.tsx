@@ -6,6 +6,7 @@ import { authService } from "../../services/auth.service";
 import { Bottle, Venue, Purchase } from "../../types/api.types";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { parseApiError } from "../../utils/parseApiError";
 
 const PAYMENT_METHODS = [
   { icon: Smartphone, label: "UPI / QR Code", hint: "Google Pay, PhonePe, Paytm" },
@@ -82,7 +83,7 @@ export default function Payment() {
       }
       toast.success("Resumed pending payment");
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || "Failed to load purchase. It may have expired.";
+      const errorMsg = parseApiError(err, "Failed to load purchase. It may have expired.");
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -97,7 +98,7 @@ export default function Payment() {
       setPurchase(newPurchase);
       toast.success("Purchase initiated successfully!");
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || "Failed to initiate purchase. Please try again.";
+      const errorMsg = parseApiError(err, "Failed to initiate purchase. Please try again.");
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {

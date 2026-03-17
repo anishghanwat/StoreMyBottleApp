@@ -4,6 +4,7 @@ import { Wine, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
 import { authService } from "../../services/api";
 import { toast } from "sonner";
+import { parseApiError } from "../../utils/parseApiError";
 
 export default function ForgotPassword() {
     const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function ForgotPassword() {
             setIsSuccess(true);
             toast.success("Reset link sent! Check your email.");
         } catch (err: any) {
-            const msg = err.response?.data?.detail || "Failed to send reset link. Please try again.";
+            const msg = parseApiError(err, "Failed to send reset link. Please try again.");
             toast.error(msg);
         } finally {
             setIsLoading(false);

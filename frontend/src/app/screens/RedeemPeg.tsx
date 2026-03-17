@@ -7,6 +7,7 @@ import { UserBottle } from "../../types/api.types";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { parseApiError } from "../../utils/parseApiError";
 
 const PEG_SIZES = [
   { ml: 30, label: "Small", subtitle: "Classic peg" },
@@ -38,7 +39,7 @@ export default function RedeemPeg() {
         toast.error(errorMsg);
       }
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || "Failed to load bottle";
+      const errorMsg = parseApiError(err, "Failed to load bottle");
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -57,7 +58,7 @@ export default function RedeemPeg() {
       localStorage.setItem("activeRedemptionBottleId", bottleId);
       navigate(`/redeem-qr/${bottleId}`, { state: { redemption, bottle } });
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || "Failed to create redemption. Please try again.";
+      const errorMsg = parseApiError(err, "Failed to create redemption. Please try again.");
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {

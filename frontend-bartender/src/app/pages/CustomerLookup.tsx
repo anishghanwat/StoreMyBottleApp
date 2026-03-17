@@ -4,6 +4,7 @@ import { ArrowLeft, Search, Wine, Package } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { profileService } from "../../services/api";
+import { parseApiError } from "../../utils/parseApiError";
 
 interface Customer {
     id: string; name: string; email: string | null; phone: string | null;
@@ -46,7 +47,7 @@ export default function CustomerLookup() {
             setCustomerBottles(bottles);
             toast.success("Customer found");
         } catch (err: any) {
-            const msg = err.response?.data?.detail || "Customer not found";
+            const msg = parseApiError(err, "Customer not found");
             toast.error(msg);
         } finally {
             setIsLoading(false);

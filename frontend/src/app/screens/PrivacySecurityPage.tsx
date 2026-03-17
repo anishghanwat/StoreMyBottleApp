@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from "react";
 import apiClient from "../../services/api";
 import { authService } from "../../services/auth.service";
 import { toast } from "sonner";
+import { parseApiError } from "../../utils/parseApiError";
 
 interface Session {
     id: string;
@@ -57,7 +58,7 @@ export default function PrivacySecurityPage() {
             toast.success("Password changed successfully");
             setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
         } catch (err: any) {
-            toast.error(err.response?.data?.detail || "Failed to change password");
+            toast.error(parseApiError(err, "Failed to change password"));
         } finally {
             setChangingPassword(false);
         }
@@ -71,7 +72,7 @@ export default function PrivacySecurityPage() {
             toast.success("Logged out from all devices");
             navigate("/login");
         } catch (err: any) {
-            toast.error(err.response?.data?.detail || "Failed to logout all devices");
+            toast.error(parseApiError(err, "Failed to logout all devices"));
         } finally {
             setLoggingOutAll(false);
         }

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import QrScanner from "react-qr-scanner";
 import { authService } from "../../services/api";
 import { toast } from "sonner";
+import { parseApiError } from "../../utils/parseApiError";
 
 interface QRScannerProps {
   onClose: () => void;
@@ -88,7 +89,7 @@ export default function QRScanner({ onClose, kioskMode = false }: QRScannerProps
       }
     } catch (err: any) {
       if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-      const msg = err.response?.data?.detail || "Validation failed";
+      const msg = parseApiError(err, "Validation failed");
       setScanResult({ type: "error", message: msg });
       toast.error(msg);
     }

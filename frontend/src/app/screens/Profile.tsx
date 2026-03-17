@@ -6,6 +6,7 @@ import { authService } from "../../services/auth.service";
 import { Profile as UserProfile } from "../../types/api.types";
 import { toast } from "sonner";
 import { BottomNav } from "../components/ui/BottomNav";
+import { parseApiError } from "../../utils/parseApiError";
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -35,7 +36,7 @@ export default function Profile() {
             setEditName(data.user.name);
             setEditEmail(data.user.email || "");
         } catch (err: any) {
-            const errorMsg = err.response?.data?.detail || "Failed to load profile";
+            const errorMsg = parseApiError(err, "Failed to load profile");
             setError(errorMsg);
             toast.error(errorMsg);
         } finally {
@@ -51,7 +52,7 @@ export default function Profile() {
             setIsEditing(false);
             toast.success("Profile updated successfully!");
         } catch (err: any) {
-            toast.error(err.response?.data?.detail || "Failed to update profile");
+            toast.error(parseApiError(err, "Failed to update profile"));
         } finally {
             setSaving(false);
         }

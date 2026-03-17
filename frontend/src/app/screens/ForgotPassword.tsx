@@ -4,6 +4,7 @@ import { ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { authService } from "../../services/auth.service";
 import { toast } from "sonner";
+import { parseApiError } from "../../utils/parseApiError";
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState("");
@@ -24,7 +25,7 @@ export default function ForgotPassword() {
             setIsSuccess(true);
             toast.success("Check your email for reset instructions");
         } catch (error: any) {
-            toast.error(error.response?.data?.detail || "Failed to send reset email");
+            toast.error(parseApiError(error, "Failed to send reset email"));
         } finally {
             setIsLoading(false);
         }

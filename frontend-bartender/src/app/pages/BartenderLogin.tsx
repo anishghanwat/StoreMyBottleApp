@@ -4,6 +4,7 @@ import { Wine, LogIn, UserPlus, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
 import { authService } from "../../services/api";
 import { toast } from "sonner";
+import { parseApiError } from "../../utils/parseApiError";
 
 export default function BartenderLogin() {
   const navigate = useNavigate();
@@ -39,18 +40,7 @@ export default function BartenderLogin() {
         toast.success("Account created successfully!");
       }
     } catch (err: any) {
-      let msg = "Authentication failed.";
-      const detail = err.response?.data?.detail;
-      if (err.response?.status === 429) {
-        msg = "Too many attempts. Please wait a minute before trying again.";
-      } else if (Array.isArray(detail)) {
-        // FastAPI 422 validation error — extract the human-readable msg field
-        msg = detail.map((e: any) => e.msg || e.message || String(e)).join(", ");
-      } else if (typeof detail === "string") {
-        msg = detail;
-      } else if (err.message) {
-        msg = err.message;
-      }
+      const msg = parseApiError(err, "Authentication failed.");
       setError(msg);
       toast.error(msg);
     } finally {

@@ -4,6 +4,7 @@ import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { authService } from "../../services/auth.service";
 import { toast } from "sonner";
+import { parseApiError } from "../../utils/parseApiError";
 
 export default function ResetPassword() {
     const navigate = useNavigate();
@@ -75,7 +76,7 @@ export default function ResetPassword() {
             toast.success("Password reset successfully!");
             setTimeout(() => navigate("/login"), 2000);
         } catch (error: any) {
-            toast.error(error.response?.data?.detail || "Failed to reset password");
+            toast.error(parseApiError(error, "Failed to reset password"));
         } finally {
             setIsLoading(false);
         }
