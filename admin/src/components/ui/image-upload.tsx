@@ -16,18 +16,20 @@ declare global {
 
 export function ImageUpload({ value, onChange, folder = "general" }: ImageUploadProps) {
     const [loading, setLoading] = useState(false)
+    const [scriptLoaded, setScriptLoaded] = useState(!!window.cloudinary)
     const widgetRef = useRef<any>(null)
 
     useEffect(() => {
-        if (window.cloudinary) return
+        if (window.cloudinary) { setScriptLoaded(true); return }
         const script = document.createElement("script")
         script.src = "https://upload-widget.cloudinary.com/global/all.js"
         script.async = true
+        script.onload = () => setScriptLoaded(true)
         document.body.appendChild(script)
     }, [])
 
     const openWidget = () => {
-        if (!window.cloudinary) return
+        if (!scriptLoaded) return
         setLoading(true)
 
         widgetRef.current = window.cloudinary.createUploadWidget(
@@ -74,6 +76,14 @@ export function ImageUpload({ value, onChange, folder = "general" }: ImageUpload
         widgetRef.current.open()
     }
 
+    const buttonLabel = !scriptLoaded
+        ? "Loading uploader..."
+        : loading
+            ? "Opening..."
+            : value
+                ? "Change Image"
+                : "Upload Image"
+
     return (
         <div className="flex flex-col gap-2">
             {value ? (
@@ -93,9 +103,9 @@ export function ImageUpload({ value, onChange, folder = "general" }: ImageUpload
                     <p className="text-sm">No image uploaded</p>
                 </div>
             )}
-            <Button type="button" variant="outline" onClick={openWidget} disabled={loading} className="w-full">
+            <Button type="button" variant="outline" onClick={openWidget} disabled={loading || !scriptLoaded} className="w-full">
                 <Upload className="w-4 h-4 mr-2" />
-                {loading ? "Opening..." : value ? "Change Image" : "Upload Image"}
+                {buttonLabel}
             </Button>
         </div>
     )

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 import json
 
 from database import get_db
@@ -295,6 +296,44 @@ def get_redemption_history(
         redemptions=history_items,
         total=len(history_items)
     )
+
+
+@router.get("/venue/{venue_id}/history", response_model=RedemptionHistoryList)
+def get_venue_full_history(
+    venue: Venue = Depends(verify_venue_access),
+    status_filter: Optional[str] = None,
+    limit: int = 200,
+    current_user: User = Depends(get_current_active_bartender),
+    db: Session = Depends(get_db)
+):
+    """Get full redemption history at a venue with optional status filter (bartender endpoint)"""
+    query = db.query(Redemption).filter(Redemption.venue_id == venue.id)
+    if status_filter:
+        try:
+            query = query.filter(Redemption.status == RedemptionStatus(status_filter))
+        except ValueError:
+            pass
+    redemptions = query.order_by(Redemption.created_at.desc()).limit(limit).all()
+
+    history_items = []
+    for redemption in redemptions:
+        purchase = redemption.purchase
+        bottle = purchase.bottle
+        v = purchase.venue
+        user = purchase.user
+        history_items.append(RedemptionHistoryItem(
+            id=redemption.id,
+            bottle_name=bottle.name,
+            bottle_brand=bottle.brand,
+            venue_name=v.name,
+            peg_size_ml=redemption.peg_size_ml,
+            status=redemption.status,
+            redeemed_at=redemption.redeemed_at,
+            created_at=redemption.created_at,
+            user_name=user.name
+        ))
+
+    return RedemptionHistoryList(redemptions=history_items, total=len(history_items))
 
 
 @router.get("/venue/{venue_id}/recent", response_model=RedemptionHistoryList)

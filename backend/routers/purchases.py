@@ -91,6 +91,7 @@ def confirm_purchase(
     purchase.payment_status = PaymentStatus.CONFIRMED
     purchase.payment_method = request.payment_method
     purchase.purchased_at = datetime.now(timezone.utc)
+    purchase.expires_at = purchase.purchased_at + timedelta(days=30)
     
     try:
         db.commit()
@@ -364,6 +365,7 @@ def process_purchase(
              purchase.payment_method = PaymentMethod.CASH
              
         purchase.purchased_at = datetime.now(timezone.utc)
+        purchase.expires_at = purchase.purchased_at + timedelta(days=30)
         
     elif request.action == "reject":
         purchase.payment_status = PaymentStatus.FAILED
