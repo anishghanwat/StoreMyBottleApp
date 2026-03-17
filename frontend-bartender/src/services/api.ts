@@ -258,6 +258,10 @@ export const profileService = {
         const response = await api.get('/profile');
         return response.data;
     },
+    searchCustomers: async (q: string) => {
+        const response = await api.get(`/profile/search?q=${encodeURIComponent(q)}`);
+        return response.data;
+    },
     getUserBottles: async (userId: string) => {
         const response = await api.get(`/profile/${userId}/bottles`);
         return response.data;

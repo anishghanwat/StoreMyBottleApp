@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Search, Wine, Package, TrendingUp } from "lucide-react";
+import { ArrowLeft, Search, Wine, Package } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { profileService } from "../../services/api";
 
 interface Customer {
     id: string; name: string; email: string | null; phone: string | null;
-    total_bottles: number; total_spent: number; total_redemptions: number; created_at: string;
+    created_at: string;
 }
 
 interface CustomerBottle {
@@ -34,20 +35,22 @@ export default function CustomerLookup() {
             return;
         }
         setIsLoading(true);
+        setSelectedCustomer(null);
+        setCustomerBottles([]);
         try {
-            // Placeholder — real implementation would call profileService.searchCustomer
-            setSelectedCustomer({
-                id: "1", name: searchQuery,
-                email: "customer@example.com", phone: "+91 98765 43210",
-                total_bottles: 3, total_spent: 15000, total_redemptions: 12,
-                created_at: new Date().toISOString(),
-            });
-            setCustomerBottles([]);
+            const results: Customer[] = await profileService.searchCustomers(searchQuery.trim());
+            const customer = results[0];
+            setSelectedCustomer(customer);
+            // Fetch their active bottles
+            const bottles = await profileService.getUserBottles(customer.id);
+            setCustomerBottles(bottles);
             toast.success("Customer found");
         } catch (err: any) {
-            toast.error("Customer not found");
+            const msg = err.response?.data?.detail || "Customer not found";
+            toast.error(msg);
+        } finally {
+            setIsLoading(false);
         }
-        finally { setIsLoading(false); }
     };
 
     if (!bartender) return null;
@@ -97,7 +100,7 @@ export default function CustomerLookup() {
                     <div className="space-y-4">
                         {/* Customer profile card */}
                         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="bar-card p-5">
-                            <div className="flex items-center gap-4 mb-5">
+                            <div className="flex items-center gap-4 mb-4">
                                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center text-2xl font-black flex-shrink-0">
                                     {selectedCustomer.name.charAt(0).toUpperCase()}
                                 </div>
@@ -108,22 +111,7 @@ export default function CustomerLookup() {
                                 </div>
                             </div>
 
-                            {/* Stats row */}
-                            <div className="grid grid-cols-3 gap-3">
-                                {[
-                                    { label: "Bottles", value: selectedCustomer.total_bottles, icon: Package, color: "text-violet-400" },
-                                    { label: "Spent", value: `₹${selectedCustomer.total_spent.toLocaleString()}`, icon: TrendingUp, color: "text-[#F5C518]" },
-                                    { label: "Redeemed", value: selectedCustomer.total_redemptions, icon: Wine, color: "text-emerald-400" },
-                                ].map(s => (
-                                    <div key={s.label} className="bar-card p-3 text-center">
-                                        <s.icon className={`w-4 h-4 ${s.color} mx-auto mb-1`} />
-                                        <p className={`text-base font-black ${s.label === "Spent" ? "text-[#F5C518]" : ""}`}>{s.value}</p>
-                                        <p className="text-[10px] text-[#6B6B9A]">{s.label}</p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="mt-4 pt-4 border-t border-white/[0.05] flex items-center justify-between text-xs">
+                            <div className="pt-3 border-t border-white/[0.05] flex items-center justify-between text-xs">
                                 <span className="text-[#6B6B9A]">Member since</span>
                                 <span className="font-semibold">{new Date(selectedCustomer.created_at).toLocaleDateString()}</span>
                             </div>
