@@ -1,9 +1,6 @@
 import apiClient from './api';
 import { sessionManager } from '../utils/session';
 import {
-    GoogleLoginRequest,
-    PhoneSendOTPRequest,
-    PhoneVerifyOTPRequest,
     TokenResponse,
     User,
 } from '../types/api.types';
@@ -37,51 +34,6 @@ export const authService = {
             name,
             date_of_birth: dateOfBirth,
         });
-
-        // Store tokens and user using session manager
-        if (response.data.refresh_token) {
-            sessionManager.saveSession(
-                response.data.access_token,
-                response.data.refresh_token,
-                response.data.user
-            );
-        }
-
-        return response.data;
-    },
-
-    // Google OAuth login
-    async googleLogin(token: string): Promise<TokenResponse> {
-        const response = await apiClient.post<TokenResponse>('/auth/google', {
-            token,
-        } as GoogleLoginRequest);
-
-        // Store tokens and user using session manager
-        if (response.data.refresh_token) {
-            sessionManager.saveSession(
-                response.data.access_token,
-                response.data.refresh_token,
-                response.data.user
-            );
-        }
-
-        return response.data;
-    },
-
-    // Send OTP to phone
-    async sendOTP(phone: string): Promise<{ message: string }> {
-        const response = await apiClient.post('/auth/phone/send-otp', {
-            phone,
-        } as PhoneSendOTPRequest);
-        return response.data;
-    },
-
-    // Verify OTP
-    async verifyOTP(phone: string, otpCode: string): Promise<TokenResponse> {
-        const response = await apiClient.post<TokenResponse>('/auth/phone/verify-otp', {
-            phone,
-            otp_code: otpCode,
-        } as PhoneVerifyOTPRequest);
 
         // Store tokens and user using session manager
         if (response.data.refresh_token) {

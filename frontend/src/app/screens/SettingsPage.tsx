@@ -1,12 +1,9 @@
 import { ArrowLeft, Bell, Moon, Globe, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useState } from "react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
     const navigate = useNavigate();
-    const [notifications, setNotifications] = useState(true);
-    const [expiryAlerts, setExpiryAlerts] = useState(true);
 
     return (
         <div className="min-h-screen bg-[#09090F] text-white">
@@ -33,12 +30,7 @@ export default function SettingsPage() {
                                 <p className="text-xs text-[#4A4A6A]">Order updates and alerts</p>
                             </div>
                         </div>
-                        <button
-                            onClick={() => { setNotifications(v => !v); toast.success(notifications ? "Notifications disabled" : "Notifications enabled"); }}
-                            className={`w-11 h-6 rounded-full transition-colors relative ${notifications ? "bg-violet-600" : "bg-white/10"}`}
-                        >
-                            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notifications ? "translate-x-5" : "translate-x-0.5"}`} />
-                        </button>
+                        <span className="text-xs text-[#4A4A6A]">Coming soon</span>
                     </div>
 
                     <div className="flex items-center justify-between py-3">
@@ -51,12 +43,7 @@ export default function SettingsPage() {
                                 <p className="text-xs text-[#4A4A6A]">7-day and 1-day warnings</p>
                             </div>
                         </div>
-                        <button
-                            onClick={() => { setExpiryAlerts(v => !v); toast.success(expiryAlerts ? "Expiry alerts disabled" : "Expiry alerts enabled"); }}
-                            className={`w-11 h-6 rounded-full transition-colors relative ${expiryAlerts ? "bg-violet-600" : "bg-white/10"}`}
-                        >
-                            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${expiryAlerts ? "translate-x-5" : "translate-x-0.5"}`} />
-                        </button>
+                        <span className="text-xs text-[#4A4A6A]">Coming soon</span>
                     </div>
                 </div>
 

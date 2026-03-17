@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Wine, TrendingUp, Users, DollarSign, Clock, Calendar, Award, Zap, Check } from "lucide-react";
+import { ArrowLeft, Wine, TrendingUp, Users, Clock, Calendar, Award, Zap, Check } from "lucide-react";
 import { venueService, redemptionService } from "../../services/api";
 import { motion } from "motion/react";
 
 interface ExtendedStats {
     served_today: number; active_bottles: number;
-    total_revenue_today?: number; total_customers_today?: number;
+    total_customers_today?: number;
     peak_hour?: string; week_total?: number; month_total?: number;
 }
 
@@ -39,7 +39,7 @@ export default function Stats() {
             const hourCounts: Record<number, number> = {};
             todayR.forEach((r: any) => { const h = new Date(r.redeemed_at || r.created_at).getHours(); hourCounts[h] = (hourCounts[h] || 0) + 1; });
             const peakHour = Object.keys(hourCounts).reduce((a, b) => hourCounts[+a] > hourCounts[+b] ? a : b, "0");
-            setStats({ ...statsData, total_customers_today: uniqueCustomers, total_revenue_today: todayR.length * 200, peak_hour: peakHour ? `${peakHour}:00` : "N/A", week_total: Math.floor(statsData.served_today * 6.5), month_total: Math.floor(statsData.served_today * 28) });
+            setStats({ ...statsData, total_customers_today: uniqueCustomers, peak_hour: peakHour ? `${peakHour}:00` : "N/A", week_total: Math.floor(statsData.served_today * 6.5), month_total: Math.floor(statsData.served_today * 28) });
             setRecentActivity(redemptions.slice(0, 5));
         } catch { }
         finally { setLoading(false); }
@@ -49,7 +49,6 @@ export default function Stats() {
 
     const metrics = [
         { label: "Served Today", value: stats.served_today, icon: Wine, accent: "text-violet-400", cls: "stat-card-violet" },
-        { label: "Revenue (est.)", value: `₹${(stats.total_revenue_today || 0).toLocaleString()}`, icon: DollarSign, accent: "text-[#F5C518]", cls: "stat-card-gold" },
         { label: "Customers", value: stats.total_customers_today || 0, icon: Users, accent: "text-cyan-400", cls: "stat-card-emerald" },
         { label: "Peak Hour", value: stats.peak_hour || "N/A", icon: Clock, accent: "text-amber-400", cls: "stat-card-amber" },
     ];
@@ -75,7 +74,7 @@ export default function Stats() {
                 ) : (
                     <>
                         {/* Metrics grid */}
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-3">
                             {metrics.map((m, i) => (
                                 <motion.div key={m.label} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }} className={`stat-card p-4 ${m.cls}`}>
                                     <div className="flex items-center gap-2 mb-3">
@@ -84,7 +83,7 @@ export default function Stats() {
                                         </div>
                                         <span className="text-[11px] text-[#6B6B9A]">{m.label}</span>
                                     </div>
-                                    <p className={`text-2xl font-black ${m.label === "Revenue (est.)" ? "text-[#F5C518]" : ""}`}>{m.value}</p>
+                                    <p className={`text-2xl font-black`}>{m.value}</p>
                                 </motion.div>
                             ))}
                         </div>
