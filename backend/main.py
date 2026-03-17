@@ -13,8 +13,17 @@ from config import settings
 from database import engine, Base
 from routers import venues, auth, purchases, redemptions, profile, admin
 
-# Create rate limiter
-limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+def get_real_ip(request: Request) -> str:
+    """Get real client IP, respecting X-Forwarded-For from reverse proxy."""
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        # Take the first (leftmost) IP — that's the original client
+        return forwarded_for.split(",")[0].strip()
+    return get_remote_address(request)
+
+
+# Create rate limiter using real client IP
+limiter = Limiter(key_func=get_real_ip, default_limits=["200/minute"])
 
 
 # Security Headers Middleware
