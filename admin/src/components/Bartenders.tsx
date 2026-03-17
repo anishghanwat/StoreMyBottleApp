@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { adminService } from "@/services/api"
+import { parseApiError } from "@/utils/parseApiError"
 import { toast } from "sonner"
 import { TableSkeletonLoader } from "@/components/ui/skeleton-loader"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -95,8 +96,7 @@ export function Bartenders() {
       const data = await adminService.getBartenders()
       setBartenders(data.bartenders || [])
     } catch (error: any) {
-      console.error("Failed to fetch bartenders", error)
-      toast.error("Failed to load bartenders")
+      toast.error(parseApiError(error, "Failed to load bartenders"))
     } finally {
       if (!silent) setLoading(false)
       else setRefreshing(false)
@@ -108,8 +108,7 @@ export function Bartenders() {
       const data = await adminService.getVenues()
       setVenues(data || [])
     } catch (error: any) {
-      console.error("Failed to fetch venues", error)
-      toast.error("Failed to load venues")
+      toast.error(parseApiError(error, "Failed to load venues"))
     }
   }
 
@@ -206,8 +205,7 @@ export function Bartenders() {
       resetAddForm()
       fetchBartenders(true)
     } catch (error: any) {
-      console.error("Failed to add bartender", error)
-      toast.error(error.response?.data?.detail || "Failed to add bartender")
+      toast.error(parseApiError(error, "Failed to add bartender"))
     } finally {
       setIsAdding(false)
     }
@@ -295,8 +293,7 @@ export function Bartenders() {
       setIsEditOpen(false)
       fetchBartenders(true)
     } catch (error: any) {
-      console.error("Failed to update bartender", error)
-      toast.error(error.response?.data?.detail || "Failed to update bartender")
+      toast.error(parseApiError(error, "Failed to update bartender"))
     } finally {
       setIsEditing(false)
     }
@@ -314,8 +311,7 @@ export function Bartenders() {
           toast.success("Bartender deleted successfully")
           fetchBartenders(true)
         } catch (error: any) {
-          console.error("Failed to delete bartender", error)
-          toast.error(error.response?.data?.detail || "Failed to delete bartender")
+          toast.error(parseApiError(error, "Failed to delete bartender"))
         }
       }
     })

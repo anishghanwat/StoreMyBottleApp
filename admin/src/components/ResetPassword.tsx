@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { authService } from "@/services/api"
+import { parseApiError } from "@/utils/parseApiError"
 import { toast } from "sonner"
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
@@ -73,9 +74,7 @@ export function ResetPassword({ token, onSuccess, onBack }: ResetPasswordProps) 
             toast.success("Password reset successfully!")
             setTimeout(() => onSuccess(), 2000)
         } catch (error: any) {
-            console.error(error)
-            const errorMessage = error.response?.data?.detail || "Failed to reset password. Please try again."
-            toast.error(errorMessage)
+            toast.error(parseApiError(error, "Failed to reset password. Please try again."))
         } finally {
             setLoading(false)
         }
@@ -164,8 +163,8 @@ export function ResetPassword({ token, onSuccess, onBack }: ResetPasswordProps) 
                                     <div className="flex items-center justify-between text-xs">
                                         <span className="text-muted-foreground">Password strength</span>
                                         <span className={`font-semibold ${passwordStrength.strength >= 75 ? 'text-green-600' :
-                                                passwordStrength.strength >= 50 ? 'text-blue-600' :
-                                                    'text-red-600'
+                                            passwordStrength.strength >= 50 ? 'text-blue-600' :
+                                                'text-red-600'
                                             }`}>
                                             {passwordStrength.label}
                                         </span>

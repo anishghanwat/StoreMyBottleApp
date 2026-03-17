@@ -35,6 +35,7 @@ import { TableSkeletonLoader } from "@/components/ui/skeleton-loader"
 import { EmptyState } from "@/components/ui/empty-state"
 import { SearchFilterBar } from "@/components/ui/search-filter-bar"
 import { useConfirmDialog } from "@/components/ui/confirm-dialog"
+import { parseApiError } from "@/utils/parseApiError"
 import { toast } from "sonner"
 
 export function Venues() {
@@ -67,7 +68,6 @@ export function Venues() {
       const data = await adminService.getVenues()
       setVenues(data)
     } catch (error) {
-      console.error("Failed to fetch venues", error)
       toast.error("Failed to load venues")
     } finally {
       if (!silent) setLoading(false)
@@ -183,33 +183,26 @@ export function Venues() {
       setIsDialogOpen(false)
       fetchVenues(true)
     } catch (error: any) {
-      console.error("Failed to save venue", error)
-      const errorMessage = error.response?.data?.detail || "Failed to save venue"
-      toast.error(errorMessage)
+      toast.error(parseApiError(error, "Failed to save venue"))
     }
   }
 
   const handleDelete = async (id: string) => {
-    console.log('Delete clicked for venue:', id)
     const result = confirm({
       title: "Delete Venue",
       description: "Are you sure you want to delete this venue? This action cannot be undone.",
       confirmText: "Delete",
       variant: "destructive",
       onConfirm: async () => {
-        console.log('Delete confirmed for venue:', id)
         try {
           await adminService.deleteVenue(id)
           toast.success("Venue deleted successfully")
           fetchVenues(true)
         } catch (error: any) {
-          console.error("Failed to delete venue", error)
-          const errorMessage = error.response?.data?.detail || "Failed to delete venue"
-          toast.error(errorMessage)
+          toast.error(parseApiError(error, "Failed to delete venue"))
         }
       }
     })
-    console.log('Confirm dialog opened, result:', result)
   }
 
   return (

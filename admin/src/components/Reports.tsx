@@ -1,5 +1,6 @@
 import * as React from "react"
 import { adminService } from "@/services/api"
+import { parseApiError } from "@/utils/parseApiError"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -33,7 +34,7 @@ export function Reports() {
             const data = await adminService.getVenues()
             setVenues(data)
         } catch (error) {
-            console.error("Failed to fetch venues:", error)
+            // non-critical
         }
     }
 
@@ -72,8 +73,7 @@ export function Reports() {
             setReportData(data)
             toast.success("Report generated successfully")
         } catch (error: any) {
-            console.error("Failed to generate report:", error)
-            toast.error(error.response?.data?.detail || "Failed to generate report")
+            toast.error(parseApiError(error, "Failed to generate report"))
         } finally {
             setLoading(false)
             setGenerating(false)

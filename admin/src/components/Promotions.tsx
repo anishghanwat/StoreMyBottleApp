@@ -1,5 +1,6 @@
 import * as React from "react"
 import { adminService } from "@/services/api"
+import { parseApiError } from "@/utils/parseApiError"
 import { Plus, Tag, Pencil, Trash2, Copy, MoreHorizontal, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -66,8 +67,7 @@ export function Promotions() {
       const data = await adminService.getPromotions(filters)
       setPromotions(data.promotions)
     } catch (error: any) {
-      console.error("Failed to fetch promotions:", error)
-      toast.error(error.response?.data?.detail || "Failed to fetch promotions")
+      toast.error(parseApiError(error, "Failed to fetch promotions"))
     } finally {
       if (!silent) setLoading(false)
       else setRefreshing(false)
@@ -79,7 +79,7 @@ export function Promotions() {
       const data = await adminService.getVenues()
       setVenues(data)
     } catch (error) {
-      console.error("Failed to fetch venues:", error)
+      // non-critical
     }
   }
 
@@ -148,8 +148,7 @@ export function Promotions() {
       setIsDialogOpen(false)
       fetchPromotions(true)
     } catch (error: any) {
-      console.error("Failed to save promotion:", error)
-      toast.error(error.response?.data?.detail || "Failed to save promotion")
+      toast.error(parseApiError(error, "Failed to save promotion"))
     }
   }
 
@@ -165,8 +164,7 @@ export function Promotions() {
           toast.success("Promotion deleted successfully")
           fetchPromotions(true)
         } catch (error: any) {
-          console.error("Failed to delete promotion:", error)
-          toast.error(error.response?.data?.detail || "Failed to delete promotion")
+          toast.error(parseApiError(error, "Failed to delete promotion"))
         }
       }
     })

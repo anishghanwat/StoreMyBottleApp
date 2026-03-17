@@ -1,5 +1,6 @@
 import * as React from "react"
 import { adminService } from "@/services/api"
+import { parseApiError } from "@/utils/parseApiError"
 import { Download, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,8 +45,7 @@ export function InventoryAuditLogs() {
       const data = await adminService.getAuditLogs(filters)
       setLogs(data.logs)
     } catch (error: any) {
-      console.error("Failed to fetch audit logs:", error)
-      toast.error(error.response?.data?.detail || "Failed to fetch audit logs")
+      toast.error(parseApiError(error, "Failed to fetch audit logs"))
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -57,7 +57,7 @@ export function InventoryAuditLogs() {
       const data = await adminService.getUsers()
       setUsers(data.filter((u: any) => u.role === "admin" || u.role === "bartender"))
     } catch (error) {
-      console.error("Failed to fetch users:", error)
+      // non-critical, users list is optional for filter
     }
   }
 

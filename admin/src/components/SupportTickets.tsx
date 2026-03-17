@@ -1,5 +1,6 @@
 import * as React from "react"
 import { adminService } from "@/services/api"
+import { parseApiError } from "@/utils/parseApiError"
 import { Plus, MessageSquare, Send, Trash2, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -56,8 +57,7 @@ export function SupportTickets() {
       const data = await adminService.getTickets(filters)
       setTickets(data.tickets)
     } catch (error: any) {
-      console.error("Failed to fetch tickets:", error)
-      toast.error(error.response?.data?.detail || "Failed to fetch tickets")
+      toast.error(parseApiError(error, "Failed to fetch tickets"))
     } finally {
       if (!silent) setLoading(false)
       else setRefreshing(false)
@@ -71,7 +71,7 @@ export function SupportTickets() {
       const usersArray = data.users || data
       setUsers((usersArray as any[]).filter((u: any) => u.role === "admin" || u.role === "bartender"))
     } catch (error) {
-      console.error("Failed to fetch users:", error)
+      // non-critical
     }
   }
 
@@ -92,8 +92,7 @@ export function SupportTickets() {
       setIsDialogOpen(false)
       fetchTickets()
     } catch (error: any) {
-      console.error("Failed to create ticket:", error)
-      toast.error(error.response?.data?.detail || "Failed to create ticket")
+      toast.error(parseApiError(error, "Failed to create ticket"))
     }
   }
 
@@ -103,8 +102,7 @@ export function SupportTickets() {
       setSelectedTicket(data)
       setIsDetailOpen(true)
     } catch (error: any) {
-      console.error("Failed to fetch ticket details:", error)
-      toast.error(error.response?.data?.detail || "Failed to fetch ticket details")
+      toast.error(parseApiError(error, "Failed to fetch ticket details"))
     }
   }
 
@@ -118,8 +116,7 @@ export function SupportTickets() {
         setSelectedTicket(data)
       }
     } catch (error: any) {
-      console.error("Failed to update status:", error)
-      toast.error(error.response?.data?.detail || "Failed to update status")
+      toast.error(parseApiError(error, "Failed to update status"))
     }
   }
 
@@ -129,8 +126,7 @@ export function SupportTickets() {
       toast.success("Ticket assigned successfully")
       fetchTickets(true)
     } catch (error: any) {
-      console.error("Failed to assign ticket:", error)
-      toast.error(error.response?.data?.detail || "Failed to assign ticket")
+      toast.error(parseApiError(error, "Failed to assign ticket"))
     }
   }
 
@@ -147,8 +143,7 @@ export function SupportTickets() {
       const data = await adminService.getTicket(selectedTicket.id)
       setSelectedTicket(data)
     } catch (error: any) {
-      console.error("Failed to add comment:", error)
-      toast.error(error.response?.data?.detail || "Failed to add comment")
+      toast.error(parseApiError(error, "Failed to add comment"))
     }
   }
 
@@ -167,8 +162,7 @@ export function SupportTickets() {
             setIsDetailOpen(false)
           }
         } catch (error: any) {
-          console.error("Failed to delete ticket:", error)
-          toast.error(error.response?.data?.detail || "Failed to delete ticket")
+          toast.error(parseApiError(error, "Failed to delete ticket"))
         }
       }
     })

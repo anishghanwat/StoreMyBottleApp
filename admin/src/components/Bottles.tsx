@@ -38,6 +38,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { adminService } from "@/services/api"
 import { ImageUpload } from "@/components/ui/image-upload"
+import { parseApiError } from "@/utils/parseApiError"
 import { toast } from "sonner"
 import { TableSkeletonLoader } from "@/components/ui/skeleton-loader"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -84,7 +85,6 @@ export function Bottles() {
       setBottles(bottlesData)
       setVenues(venuesData)
     } catch (error) {
-      console.error("Failed to load data", error)
       toast.error("Failed to load bottles")
     } finally {
       if (!silent) setLoading(false)
@@ -132,8 +132,7 @@ export function Bottles() {
           toast.success("Bottle deleted successfully")
           loadData(true)
         } catch (error: any) {
-          console.error("Failed to delete bottle", error)
-          toast.error(error.response?.data?.detail || "Failed to delete bottle")
+          toast.error(parseApiError(error, "Failed to delete bottle"))
         }
       }
     })
@@ -216,9 +215,7 @@ export function Bottles() {
       setIsDialogOpen(false)
       loadData()
     } catch (error: any) {
-      console.error("Failed to save bottle", error)
-      const errorMessage = error.response?.data?.detail || "Failed to save bottle"
-      toast.error(errorMessage)
+      toast.error(parseApiError(error, "Failed to save bottle"))
     }
   }
 

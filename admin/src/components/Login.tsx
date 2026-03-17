@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { authService } from "@/services/api"
+import { parseApiError } from "@/utils/parseApiError"
 import { toast } from "sonner"
 
 interface LoginProps {
@@ -40,19 +41,8 @@ export function Login({ onLogin }: LoginProps) {
             toast.success("Welcome back, Admin")
             onLogin(data.user)
         } catch (error: any) {
-            console.error(error)
-            let errorMessage = "Login failed"
-            if (error.response?.data?.detail) {
-                if (Array.isArray(error.response.data.detail)) {
-                    // FastAPI validation error
-                    errorMessage = error.response.data.detail.map((e: any) => e.msg).join(', ')
-                } else {
-                    errorMessage = error.response.data.detail
-                }
-            } else if (error.message) {
-                errorMessage = error.message
-            }
-            toast.error(errorMessage)
+            // error.message covers the "Access denied" throw above
+            toast.error(parseApiError(error, "Login failed"))
         } finally {
             setLoading(false)
         }

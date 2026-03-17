@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { authService } from "@/services/api"
+import { parseApiError } from "@/utils/parseApiError"
 import { toast } from "sonner"
 import { CheckCircle2, ArrowLeft } from "lucide-react"
 
@@ -32,9 +33,7 @@ export function ForgotPassword({ onBack }: ForgotPasswordProps) {
             setSuccess(true)
             toast.success("Reset link sent! Check your email.")
         } catch (error: any) {
-            console.error(error)
-            const errorMessage = error.response?.data?.detail || "Failed to send reset link. Please try again."
-            toast.error(errorMessage)
+            toast.error(parseApiError(error, "Failed to send reset link. Please try again."))
         } finally {
             setLoading(false)
         }

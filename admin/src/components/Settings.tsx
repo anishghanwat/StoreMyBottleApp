@@ -1,5 +1,6 @@
 import * as React from "react"
 import { adminService } from "@/services/api"
+import { parseApiError } from "@/utils/parseApiError"
 import { Save, RefreshCw, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,8 +32,7 @@ export function Settings() {
       const data = await adminService.getSettings()
       setSettings(data.settings)
     } catch (error: any) {
-      console.error("Failed to fetch settings:", error)
-      toast.error(error.response?.data?.detail || "Failed to fetch settings")
+      toast.error(parseApiError(error, "Failed to fetch settings"))
     } finally {
       setLoading(false)
     }
@@ -133,8 +133,7 @@ export function Settings() {
       setEditedSettings({})
       fetchSettings()
     } catch (error: any) {
-      console.error("Failed to save settings:", error)
-      toast.error(error.response?.data?.detail || "Failed to save settings")
+      toast.error(parseApiError(error, "Failed to save settings"))
     } finally {
       setSaving(false)
     }

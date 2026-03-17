@@ -1,5 +1,6 @@
 import * as React from "react"
 import { adminService } from "@/services/api"
+import { parseApiError } from "@/utils/parseApiError"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -39,7 +40,7 @@ export function VenueAnalytics() {
                 setSelectedVenueId(data[0].id)
             }
         } catch (error) {
-            console.error("Failed to fetch venues:", error)
+            // non-critical
         }
     }
 
@@ -55,8 +56,7 @@ export function VenueAnalytics() {
             const data = await adminService.getVenueComparison(filters)
             setComparisonData(data)
         } catch (error: any) {
-            console.error("Failed to fetch comparison data:", error)
-            toast.error(error.response?.data?.detail || "Failed to fetch comparison data")
+            toast.error(parseApiError(error, "Failed to fetch comparison data"))
         } finally {
             setLoading(false)
             setRefreshing(false)
@@ -75,8 +75,7 @@ export function VenueAnalytics() {
             const data = await adminService.getVenueDetailedAnalytics(venueId, filters)
             setDetailedData(data)
         } catch (error: any) {
-            console.error("Failed to fetch detailed data:", error)
-            toast.error(error.response?.data?.detail || "Failed to fetch detailed data")
+            toast.error(parseApiError(error, "Failed to fetch detailed data"))
         } finally {
             setLoading(false)
             setRefreshing(false)
