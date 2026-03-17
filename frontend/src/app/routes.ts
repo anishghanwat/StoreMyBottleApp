@@ -17,6 +17,7 @@ import Privacy from "./screens/Privacy";
 import SettingsPage from "./screens/SettingsPage";
 import PrivacySecurityPage from "./screens/PrivacySecurityPage";
 import HelpSupport from "./screens/HelpSupport";
+import RedemptionHistory from "./screens/RedemptionHistory";
 
 export const router = createBrowserRouter([
   { path: "/", Component: VenueSelection },
@@ -37,4 +38,5 @@ export const router = createBrowserRouter([
   { path: "/settings", Component: SettingsPage },
   { path: "/privacy-security", Component: PrivacySecurityPage },
   { path: "/help", Component: HelpSupport },
+  { path: "/redemption-history", Component: RedemptionHistory },
 ]);

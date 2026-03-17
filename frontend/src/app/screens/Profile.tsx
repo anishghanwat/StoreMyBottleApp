@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router";
-import { Home, Wine, User, LogOut, Settings, Shield, HelpCircle, Edit2, X, Check, TrendingUp } from "lucide-react";
+import { Home, Wine, User, LogOut, Settings, Shield, HelpCircle, Edit2, X, Check, TrendingUp, History } from "lucide-react";
 import { useState, useEffect } from "react";
 import { profileService } from "../../services/profile.service";
 import { authService } from "../../services/auth.service";
@@ -198,6 +198,7 @@ export default function Profile() {
                     {[
                         { icon: Settings, label: "Settings", color: "text-violet-400", bg: "bg-violet-500/10", to: "/settings" },
                         { icon: Shield, label: "Privacy & Security", color: "text-blue-400", bg: "bg-blue-500/10", to: "/privacy-security" },
+                        { icon: History, label: "Redemption History", color: "text-fuchsia-400", bg: "bg-fuchsia-500/10", to: "/redemption-history" },
                         { icon: HelpCircle, label: "Help & Support", color: "text-emerald-400", bg: "bg-emerald-500/10", to: "/help" },
                     ].map((item) => (
                         <button

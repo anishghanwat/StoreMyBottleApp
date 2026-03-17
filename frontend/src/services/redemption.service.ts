@@ -1,6 +1,7 @@
 import apiClient from './api';
 import {
     Redemption,
+    RedemptionHistoryItem,
     RedemptionCreateRequest,
     QRValidationRequest,
     QRValidationResponse,
@@ -30,8 +31,8 @@ export const redemptionService = {
         return response.data;
     },
 
-    async getRedemptionHistory(): Promise<Redemption[]> {
-        const response = await apiClient.get<{ redemptions: Redemption[]; total: number }>(
+    async getRedemptionHistory(): Promise<RedemptionHistoryItem[]> {
+        const response = await apiClient.get<{ redemptions: RedemptionHistoryItem[]; total: number }>(
             '/redemptions/history'
         );
         return response.data.redemptions;

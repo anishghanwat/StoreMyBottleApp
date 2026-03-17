@@ -75,6 +75,17 @@ export interface Redemption {
     redeemed_at: string | null;
 }
 
+export interface RedemptionHistoryItem {
+    id: string;
+    bottle_name: string;
+    bottle_brand: string;
+    venue_name: string;
+    peg_size_ml: number;
+    status: 'pending' | 'redeemed' | 'expired';
+    redeemed_at: string | null;
+    created_at: string;
+}
+
 export interface Profile {
     user: User;
     total_bottles: number;
