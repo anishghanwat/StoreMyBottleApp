@@ -5,14 +5,24 @@ from database import engine
 from sqlalchemy import text
 
 
+def add_column_if_missing(conn, table, column, definition):
+    result = conn.execute(text(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t AND COLUMN_NAME = :c"
+    ), {"t": table, "c": column})
+    if result.scalar() == 0:
+        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
+        print(f"  ✅ Added column {column}")
+    else:
+        print(f"  ⏭  Column {column} already exists, skipping")
+
+
 def migrate():
     with engine.connect() as conn:
-        conn.execute(text("""
-            ALTER TABLE purchases
-            ADD COLUMN IF NOT EXISTS expires_at DATETIME NULL,
-            ADD COLUMN IF NOT EXISTS warning_7d_sent BOOLEAN NOT NULL DEFAULT FALSE,
-            ADD COLUMN IF NOT EXISTS warning_1d_sent BOOLEAN NOT NULL DEFAULT FALSE
-        """))
+        add_column_if_missing(conn, "purchases", "expires_at", "DATETIME NULL")
+        add_column_if_missing(conn, "purchases", "warning_7d_sent", "BOOLEAN NOT NULL DEFAULT FALSE")
+        add_column_if_missing(conn, "purchases", "warning_1d_sent", "BOOLEAN NOT NULL DEFAULT FALSE")
+
         # Backfill expires_at for existing confirmed purchases
         conn.execute(text("""
             UPDATE purchases
