@@ -14,6 +14,9 @@ import RedemptionQR from "./screens/RedemptionQR";
 import Profile from "./screens/Profile";
 import Terms from "./screens/Terms";
 import Privacy from "./screens/Privacy";
+import SettingsPage from "./screens/SettingsPage";
+import PrivacySecurityPage from "./screens/PrivacySecurityPage";
+import HelpSupport from "./screens/HelpSupport";
 
 export const router = createBrowserRouter([
   { path: "/", Component: VenueSelection },
@@ -31,4 +34,7 @@ export const router = createBrowserRouter([
   { path: "/profile", Component: Profile },
   { path: "/terms", Component: Terms },
   { path: "/privacy", Component: Privacy },
+  { path: "/settings", Component: SettingsPage },
+  { path: "/privacy-security", Component: PrivacySecurityPage },
+  { path: "/help", Component: HelpSupport },
 ]);

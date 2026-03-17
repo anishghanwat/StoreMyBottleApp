@@ -195,12 +195,13 @@ export default function Profile() {
                     <p className="text-[11px] text-[#7171A0] font-semibold uppercase tracking-widest">Settings</p>
 
                     {[
-                        { icon: Settings, label: "Settings", color: "text-violet-400", bg: "bg-violet-500/10" },
-                        { icon: Shield, label: "Privacy & Security", color: "text-blue-400", bg: "bg-blue-500/10" },
-                        { icon: HelpCircle, label: "Help & Support", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+                        { icon: Settings, label: "Settings", color: "text-violet-400", bg: "bg-violet-500/10", to: "/settings" },
+                        { icon: Shield, label: "Privacy & Security", color: "text-blue-400", bg: "bg-blue-500/10", to: "/privacy-security" },
+                        { icon: HelpCircle, label: "Help & Support", color: "text-emerald-400", bg: "bg-emerald-500/10", to: "/help" },
                     ].map((item) => (
                         <button
                             key={item.label}
+                            onClick={() => navigate(item.to)}
                             className="w-full card-surface p-4 flex items-center gap-3 hover:border-white/10 transition-colors text-left"
                         >
                             <div className={`w-9 h-9 ${item.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
