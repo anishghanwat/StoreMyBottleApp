@@ -11,11 +11,10 @@ export const redemptionService = {
     // Create a new redemption
     async createRedemption(purchaseId: string, pegSize: number): Promise<Redemption> {
         const fingerprint = generateDeviceFingerprint();
-        console.log('🔐 Customer App - Generating QR with fingerprint:', fingerprint);
         const response = await apiClient.post<Redemption>('/redemptions/generate-qr', {
             purchase_id: purchaseId,
             peg_size_ml: pegSize,
-            device_fingerprint: fingerprint, // SECURITY: Device binding
+            device_fingerprint: fingerprint,
         } as RedemptionCreateRequest);
         return response.data;
     },

@@ -127,7 +127,6 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
             region: address.state || address.region || ''
         };
     } catch (error) {
-        console.error('Reverse geocoding error:', error);
         throw error;
     }
 }
@@ -160,7 +159,6 @@ export async function getLocationFromIP(): Promise<{
             longitude: data.longitude || 0
         };
     } catch (error) {
-        console.error('IP location error:', error);
         throw error;
     }
 }
@@ -190,21 +188,17 @@ export async function getLocationWithFallback(): Promise<{
                 method: 'gps'
             };
         } catch (geocodeError) {
-            console.warn('Geocoding failed, trying IP fallback');
+            // fall through to IP
         }
     } catch (gpsError) {
-        console.warn('GPS location failed, trying IP fallback');
+        // fall through to IP
     }
 
-    // Fallback to IP-based location
     try {
         const location = await getLocationFromIP();
-        return {
-            ...location,
-            method: 'ip'
-        };
+        return { ...location, method: 'ip' };
     } catch (ipError) {
-        console.warn('IP location failed, using default');
+        // fall through to default
     }
 
     // Final fallback

@@ -72,7 +72,7 @@ export default function BartenderHome() {
     try {
       const data = await promotionService.getActivePromotions(bartender.venue_id);
       setPromotions(data.promotions || []);
-    } catch (e: any) { if (e.response?.status !== 403) console.error(e); setPromotions([]); }
+    } catch (e: any) { if (e.response?.status !== 403) { /* ignore */ } setPromotions([]); }
   };
 
   const fetchRequests = async () => {

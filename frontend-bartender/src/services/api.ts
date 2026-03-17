@@ -151,10 +151,9 @@ export const authService = {
 
     validateQR: async (qrToken: string) => {
         const fingerprint = generateDeviceFingerprint();
-        console.log('🔐 Bartender App - Validating QR with fingerprint:', fingerprint);
         const response = await api.post('/redemptions/validate', {
             qr_token: qrToken,
-            device_fingerprint: fingerprint // SECURITY: Device binding validation
+            device_fingerprint: fingerprint
         });
         return response.data;
     },
@@ -184,8 +183,8 @@ export const authService = {
         if (refreshToken) {
             try {
                 await api.post('/auth/logout', { refresh_token: refreshToken });
-            } catch (error) {
-                console.error('Logout error:', error);
+            } catch {
+                // ignore logout errors
             }
         }
         sessionManager.clearSession();

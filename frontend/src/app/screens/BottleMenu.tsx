@@ -69,7 +69,6 @@ export default function BottleMenu() {
       setBottles(bottlesData);
     } catch (err) {
       setError("Failed to load bottles. Please try again.");
-      console.error(err);
     } finally {
       setLoading(false);
     }

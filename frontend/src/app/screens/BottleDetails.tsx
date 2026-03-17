@@ -34,12 +34,9 @@ export default function BottleDetails() {
 
             if (venueId) {
                 const bottlesData = await venueService.getBottlesByVenue(venueId);
-                console.log('🔍 Bottles data received:', bottlesData);
-                console.log('🔍 First bottle:', bottlesData[0]);
 
                 if (!bottle && bottleId) {
                     const foundBottle = bottlesData.find(b => b.id === bottleId);
-                    console.log('🔍 Found bottle:', foundBottle);
                     if (foundBottle) {
                         setBottle(foundBottle);
                         const similar = bottlesData
@@ -66,7 +63,6 @@ export default function BottleDetails() {
             }
         } catch (err) {
             setError("Failed to load bottle details. Please try again.");
-            console.error(err);
         } finally {
             setLoading(false);
         }

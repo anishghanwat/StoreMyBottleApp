@@ -117,7 +117,6 @@ export default function Payment() {
         toast.success("Purchase cancelled");
         navigate("/my-bottles");
       } catch (err: any) {
-        console.error("Failed to cancel purchase:", err);
         toast.error("Failed to cancel purchase");
         // Still navigate away even if API fails
         navigate("/my-bottles");

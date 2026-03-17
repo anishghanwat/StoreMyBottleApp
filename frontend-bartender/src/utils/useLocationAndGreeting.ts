@@ -49,21 +49,17 @@ export function useLocationAndGreeting(): UseLocationAndGreetingResult {
 
             setLocation(formatLocation(locationData.city, locationData.country));
 
-            // Store in localStorage for faster subsequent loads
             localStorage.setItem('user_location', JSON.stringify({
                 ...locationData,
                 timestamp: Date.now()
             }));
         } catch (err) {
-            console.error('Failed to fetch location:', err);
             setError('Could not determine location');
 
-            // Try to use cached location
             const cached = localStorage.getItem('user_location');
             if (cached) {
                 try {
                     const cachedData = JSON.parse(cached);
-                    // Use cache if less than 24 hours old
                     if (Date.now() - cachedData.timestamp < 24 * 60 * 60 * 1000) {
                         setLocation(formatLocation(cachedData.city, cachedData.country));
                         setLocationDetails({
@@ -74,8 +70,8 @@ export function useLocationAndGreeting(): UseLocationAndGreetingResult {
                             longitude: cachedData.longitude
                         });
                     }
-                } catch (parseError) {
-                    console.error('Failed to parse cached location');
+                } catch {
+                    // ignore parse error
                 }
             }
         } finally {

@@ -192,7 +192,6 @@ export default function Login() {
     } catch (err: any) {
       const errorMsg = parseErrorMessage(err);
       setError(errorMsg);
-      console.error("Auth error:", err);
     } finally {
       setLoading(false);
     }

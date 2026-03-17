@@ -95,7 +95,6 @@ export default function QRScanner({ onClose, kioskMode = false }: QRScannerProps
   };
 
   const handleError = (err: any) => {
-    console.error(err);
     setScanResult({ type: "error", message: "Camera error — check permissions" });
   };
 

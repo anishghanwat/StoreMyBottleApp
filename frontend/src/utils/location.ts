@@ -99,36 +99,23 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
         const data = await response.json();
         const address = data.address || {};
 
-        // Debug logging
-        console.log('🗺️ Reverse geocoding response:', {
-            display_name: data.display_name,
-            address: address
-        });
-
-        // Try multiple fields to get the city name
-        // Prioritize city/town over county/state_district for better accuracy
         let city = address.city ||
             address.town ||
             address.village ||
             address.municipality ||
             'Unknown';
 
-        // If we only got a county/district (like "Mulshi"), try to map to nearest major city
         if (city === 'Unknown' || !address.city) {
             const district = address.county || address.state_district;
             const state = address.state;
 
-            // Map common Pune districts to Pune city
             const puneDistricts = ['mulshi', 'pune', 'haveli', 'maval', 'bhor', 'baramati', 'daund'];
             if (district && state === 'Maharashtra' && puneDistricts.some(d => district.toLowerCase().includes(d))) {
                 city = 'Pune';
-                console.log('🏙️ Mapped district to Pune:', district);
             } else if (district) {
                 city = district;
             }
         }
-
-        console.log('🏙️ Extracted city:', city);
 
         return {
             city: city,
@@ -136,7 +123,6 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
             region: address.state || address.region || ''
         };
     } catch (error) {
-        console.error('Reverse geocoding error:', error);
         throw error;
     }
 }
@@ -169,7 +155,6 @@ export async function getLocationFromIP(): Promise<{
             longitude: data.longitude || 0
         };
     } catch (error) {
-        console.error('IP location error:', error);
         throw error;
     }
 }
@@ -199,21 +184,17 @@ export async function getLocationWithFallback(): Promise<{
                 method: 'gps'
             };
         } catch (geocodeError) {
-            console.warn('Geocoding failed, trying IP fallback');
+            // fall through to IP
         }
     } catch (gpsError) {
-        console.warn('GPS location failed, trying IP fallback');
+        // fall through to IP
     }
 
-    // Fallback to IP-based location
     try {
         const location = await getLocationFromIP();
-        return {
-            ...location,
-            method: 'ip'
-        };
+        return { ...location, method: 'ip' };
     } catch (ipError) {
-        console.warn('IP location failed, using default');
+        // fall through to default
     }
 
     // Final fallback

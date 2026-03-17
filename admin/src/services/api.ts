@@ -170,8 +170,8 @@ export const authService = {
         if (refreshToken) {
             try {
                 await api.post('/api/auth/logout', { refresh_token: refreshToken });
-            } catch (error) {
-                console.error('Logout error:', error);
+            } catch {
+                // ignore logout errors
             }
         }
         sessionManager.clearSession();
@@ -180,8 +180,8 @@ export const authService = {
     logoutAllDevices: async () => {
         try {
             await api.post('/api/auth/logout-all');
-        } catch (error) {
-            console.error('Logout all devices error:', error);
+        } catch {
+            // ignore errors
         }
         sessionManager.clearSession();
     },
