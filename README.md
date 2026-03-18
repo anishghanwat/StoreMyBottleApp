@@ -1,257 +1,106 @@
-# StoreMyBottle - Premium Bottle Storage Platform
+# StoreMyBottle
 
-A complete SaaS platform for managing bottle storage at nightlife venues. Customers can purchase and store bottles, bartenders can manage redemptions, and admins can oversee the entire operation.
+A SaaS platform for bottle storage at nightlife venues. Customers purchase and store bottles, bartenders manage redemptions via QR codes, and admins oversee the entire operation.
 
-## 🚀 Features
-
-### Customer Portal
-- Browse venues and available bottles
-- Purchase bottles with secure payment
-- Store bottles at venues
-- Redeem drinks via QR code
-- Track bottle inventory and history
-- Password reset functionality
-
-### Bartender Portal
-- Scan customer QR codes
-- Validate and process redemptions
-- Manage bottle requests
-- View venue statistics
-- Track redemption history
-- Real-time updates
-
-### Admin Portal
-- Complete venue management
-- Bottle inventory control
-- User management
-- Purchase and redemption tracking
-- Analytics and reporting
-- Promotion management
-- Support ticket system
-- Audit logs
-
-## 🛠️ Tech Stack
-
-### Backend
-- **Framework:** FastAPI (Python)
-- **Database:** MySQL
-- **Authentication:** JWT with refresh tokens
-- **Email:** Resend
-- **QR Codes:** qrcode library
-
-### Frontend
-- **Framework:** React + TypeScript
-- **Build Tool:** Vite
-- **Routing:** React Router
-- **Styling:** Tailwind CSS
-- **UI Components:** shadcn/ui (Admin), Custom (Customer/Bartender)
-- **Animations:** Framer Motion
-- **Notifications:** Sonner (Toast)
-
-## 📦 Project Structure
+## Project Structure
 
 ```
 StoreMyBottle/
-├── backend/              # FastAPI backend
-│   ├── routers/         # API endpoints
-│   ├── models.py        # Database models
-│   ├── auth.py          # Authentication logic
-│   ├── schemas.py       # Pydantic schemas
-│   └── main.py          # Application entry
-├── frontend/            # Customer React app
-├── frontend-bartender/  # Bartender React app
-├── admin/              # Admin React app
-└── docs/               # Documentation
+├── backend/              # FastAPI + MySQL
+│   ├── routers/          # API route handlers
+│   ├── models.py         # SQLAlchemy models
+│   ├── schemas.py        # Pydantic schemas
+│   ├── auth.py           # JWT authentication
+│   ├── main.py           # App entry point
+│   └── crontab           # Scheduled jobs (expiry warnings)
+├── frontend/             # Customer React app (Vite + TypeScript)
+├── frontend-bartender/   # Bartender React app (Vite + TypeScript)
+├── admin/                # Admin portal (Vite + TypeScript + shadcn/ui)
+├── aws/                  # AWS CodeBuild specs (future use)
+├── docs/                 # Reference documentation
+├── docker-compose.yml          # Local development
+└── docker-compose.prod.yml     # Production
 ```
 
-## 🚀 Quick Start
+## Tech Stack
 
-### Option 1: Docker (Recommended)
+- **Backend:** FastAPI, MySQL, JWT, Resend (email), Cloudinary (images), supercronic (cron)
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, Framer Motion, Sonner
+- **Admin:** React, TypeScript, Vite, shadcn/ui
+- **Infrastructure:** Docker, nginx, EC2
 
-**Prerequisites:** Docker Desktop installed and running
+## Local Development
+
+### Docker (recommended)
 
 ```bash
-# Start all services with one command
-docker-start.bat
-
-# Or manually
 docker-compose up -d
 ```
 
-Access the applications:
-- Customer App: http://localhost:5173
-- Bartender App: http://localhost:5174
-- Admin Portal: http://localhost:5175
-- Backend API: http://localhost:8000
+| App | URL |
+|-----|-----|
+| Customer | http://localhost:5173 |
+| Bartender | http://localhost:5174 |
+| Admin | http://localhost:3000 |
+| API | http://localhost:8000 |
+| API Docs | http://localhost:8000/docs |
 
-See `docs/DOCKER_GUIDE.md` for complete Docker documentation.
+### Manual Setup
 
-### Option 2: Manual Setup
-
-**Prerequisites:** Python 3.11+, Node.js 18+, MySQL 8.0+
-
-#### Backend Setup
+**Backend**
 ```bash
 cd backend
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your configuration
-python init_db.py
-python create_admin.py
+cp .env.example .env   # fill in values
 python main.py
 ```
 
-#### Frontend Setup
+**Frontend (repeat for each app)**
 ```bash
-# Customer Portal
-cd frontend
-npm install
-npm run dev
-
-# Bartender Portal
-cd frontend-bartender
-npm install
-npm run dev
-
-# Admin Portal
-cd admin
+cd frontend   # or frontend-bartender / admin
 npm install
 npm run dev
 ```
 
-## 🌐 Deployment
+## Production Deployment
 
-### Docker Deployment
-
-```bash
-# Production mode
-copy .env.docker .env.production
-# Edit .env.production with your values
-docker-start.bat prod
-```
-
-### Cloud Deployment (Free)
-
-See `docs/FREE_DEPLOYMENT_GUIDE.md` and `docs/DEPLOY_NOW.md` for:
-- **Database:** Railway (Free)
-- **Backend:** Render (Free)
-- **Frontends:** Vercel (Free)
-
-### Documentation
-- `docs/DOCKER_GUIDE.md` - Complete Docker guide
-- `docs/FREE_DEPLOYMENT_GUIDE.md` - Cloud deployment options
-- `docs/DEPLOY_NOW.md` - Quick deployment steps
-- `docs/DEPLOYMENT_CHECKLIST.md` - Pre-deployment checklist
-
-## 📧 Email Configuration
-
-Emails are sent using Resend. Configure in `.env`:
-```env
-RESEND_API_KEY=your_api_key
-FROM_EMAIL=noreply@yourdomain.com
-```
-
-## 🔒 Security Features
-
-- JWT authentication with refresh tokens
-- Password hashing with bcrypt
-- Role-based access control (RBAC)
-- Input validation with Pydantic
-- CORS protection
-- SQL injection prevention
-- XSS protection
-- Secure session management
-
-## 📊 Key Features
-
-### Authentication
-- Email/password login
-- Google OAuth (optional)
-- Phone OTP (optional)
-- Password reset via email
-- 7-day session tokens
-- Automatic token refresh
-
-### Payment Flow
-- Bottle selection
-- Secure checkout
-- Payment confirmation
-- QR code generation
-- Redemption tracking
-
-### QR Code System
-- Unique codes per redemption
-- Time-limited validity
-- One-time use
-- Secure validation
-
-## 🧪 Testing
+See `docs/DEPLOY.md` for the full EC2 + Docker deployment guide.
 
 ```bash
-# Run E2E tests
-python test_e2e.py
-
-# Run password reset tests
-python test_password_reset.py
-
-# Run token refresh tests
-python test_token_refresh.py
+# On EC2
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-## 📈 Performance
+## Environment Variables
 
-- Lazy image loading
-- Optimized API calls
-- Session caching
-- Efficient database queries
-- CDN delivery (Vercel)
+Copy `.env.docker` to `.env` and fill in:
 
-## 🎨 Design
+| Variable | Description |
+|----------|-------------|
+| `MYSQL_*` | Database credentials |
+| `JWT_SECRET_KEY` | Min 32 chars |
+| `RESEND_API_KEY` | Email delivery |
+| `CLOUDINARY_*` | Image uploads |
+| `CORS_ORIGINS` | Comma-separated allowed origins |
+| `VITE_API_URL` | Backend URL for frontends |
 
-- Modern, premium nightlife aesthetic
-- Responsive mobile-first design
-- Dark mode optimized
-- Smooth animations
-- Intuitive user flows
+## Key Features
 
-## 📝 Documentation
+- Email/password auth with JWT refresh tokens
+- Age verification (25+ enforced server-side)
+- QR code redemption system (device-bound, time-limited)
+- Bottle expiry email warnings (daily cron at 9am UTC)
+- Role-based access: customer / bartender / admin
+- Rate limiting with real IP detection (X-Forwarded-For)
+- Cloudinary avatar uploads
 
-- `docs/DOCKER_GUIDE.md` - Complete Docker deployment guide
-- `docs/FREE_DEPLOYMENT_GUIDE.md` - Cloud deployment options
-- `docs/DEPLOY_NOW.md` - Quick start deployment
-- `docs/DEPLOYMENT_CHECKLIST.md` - Pre-deployment checklist
-- `docs/EMAIL_SERVICE_COMPARISON.md` - Email service options
-- `docs/RESEND_EMAIL_SETUP_COMPLETE.md` - Email setup guide
-- `docs/PASSWORD_RESET_COMPLETE.md` - Password reset implementation
-- `docs/TOKEN_REFRESH_COMPLETE.md` - Token refresh implementation
+## Production URLs
 
-## 🤝 Contributing
+- Customer: https://storemybottle.in
+- Bartender: https://bartender.storemybottle.in
+- Admin: https://admin.storemybottle.in
+- API: https://api.storemybottle.in
 
-This is a private project. For questions or issues, contact the development team.
+## Documentation
 
-## 📄 License
-
-Proprietary - All rights reserved
-
-## 👥 Team
-
-Developed by Anish Ghanwat
-
-## 🎉 Achievements
-
-- ✅ Complete authentication system
-- ✅ Password reset with email
-- ✅ Token refresh mechanism
-- ✅ 3 fully functional portals
-- ✅ QR code system
-- ✅ Real-time updates
-- ✅ Comprehensive testing
-- ✅ Production-ready deployment
-
-## 📞 Support
-
-For support, email: anishghanwat9@gmail.com
-
----
-
-**Built with ❤️ for the nightlife industry**
+See `docs/` for deployment guides, architecture notes, and setup references.
