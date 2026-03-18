@@ -105,6 +105,7 @@ export default function QRScanner({ onClose, kioskMode = false }: QRScannerProps
     navigate("/drink-details", {
       state: {
         redemptionId: scanResult.redemptionId,
+        qrId: scanResult.redemptionId,
         bottle: scanResult.bottle,
         pegSize: scanResult.mlPoured,
         customer: scanResult.customer,

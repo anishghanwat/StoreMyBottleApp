@@ -276,12 +276,5 @@ export const promotionService = {
         const response = await api.get(`/venues/${venueId}/promotions?limit=5`);
         return response.data;
     },
-    validatePromotion: async (code: string, purchaseId: string) => {
-        const response = await api.post('/admin/promotions/validate', {
-            code,
-            purchase_id: purchaseId
-        });
-        return response.data;
-    }
 };
 

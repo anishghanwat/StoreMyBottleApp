@@ -77,6 +77,12 @@ export interface Redemption {
     status: 'pending' | 'redeemed' | 'expired';
     created_at: string;
     redeemed_at: string | null;
+    // Expanded fields returned by QR validation endpoint
+    bottle_name?: string;
+    bottle_brand?: string;
+    customer_name?: string;
+    remaining_ml?: number;
+    total_ml?: number;
 }
 
 export interface RedemptionHistoryItem {
@@ -123,6 +129,7 @@ export interface PurchaseConfirmRequest {
 export interface RedemptionCreateRequest {
     purchase_id: string;
     peg_size_ml: number;
+    device_fingerprint?: string;
 }
 
 export interface ProfileUpdateRequest {
@@ -132,6 +139,7 @@ export interface ProfileUpdateRequest {
 
 export interface QRValidationRequest {
     qr_token: string;
+    device_fingerprint?: string;
 }
 
 export interface QRValidationResponse {

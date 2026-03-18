@@ -91,7 +91,7 @@ export default function VenueDetails() {
             {/* CTA */}
             <div className="px-5 py-5 border-b border-white/[0.06]">
                 <Link
-                    to={`/venue/${venueId}/bottles`}
+                    to={`/venue/${venueId}`}
                     className="btn-primary flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-base text-white"
                 >
                     View Full Bottle Menu
@@ -129,7 +129,7 @@ export default function VenueDetails() {
                             <TrendingUp className="w-4 h-4 text-violet-400" />
                             <h2 className="font-bold text-base">Popular Bottles</h2>
                         </div>
-                        <Link to={`/venue/${venueId}/bottles`} className="text-xs text-violet-400 font-semibold">
+                        <Link to={`/venue/${venueId}`} className="text-xs text-violet-400 font-semibold">
                             View All →
                         </Link>
                     </div>

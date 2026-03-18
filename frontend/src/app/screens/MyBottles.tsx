@@ -239,7 +239,7 @@ export default function MyBottles() {
                 <h3 className="text-sm font-semibold text-violet-400 mb-1">Active QR Code</h3>
                 <p className="text-xs text-violet-300/80 mb-3">You have an active QR code ready to scan</p>
                 <button
-                  onClick={() => navigate(`/redeem-qr/${activeRedemption.bottle.bottleId}`)}
+                  onClick={() => navigate(`/redeem-qr/${activeRedemption.bottle.id}`)}
                   className="w-full bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/40 rounded-xl p-3 text-left transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
