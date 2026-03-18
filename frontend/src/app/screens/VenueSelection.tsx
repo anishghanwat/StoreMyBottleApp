@@ -7,6 +7,7 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useLocationAndGreeting } from "../../utils/useLocationAndGreeting";
 import { BottomNav } from "../components/ui/BottomNav";
 import { motion } from "motion/react";
+import { sessionManager } from "../../utils/session";
 
 
 export default function VenueSelection() {
@@ -16,6 +17,8 @@ export default function VenueSelection() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOpen, setFilterOpen] = useState<"all" | "open" | "recent" | "nearby">("all");
+
+  const storedUser = sessionManager.getUser();
 
   // Use location and greeting hook
   const { greeting, location, locationDetails, loading: locationLoading, refresh: refreshLocation } = useLocationAndGreeting();
@@ -117,8 +120,12 @@ export default function VenueSelection() {
                 </>
               )}
             </div>
-            <Link to="/profile" className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-              <User className="w-4 h-4 text-[#7171A0]" />
+            <Link to="/profile" className="w-8 h-8 rounded-full overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+              {storedUser?.profile_image_url ? (
+                <img src={storedUser.profile_image_url} alt={storedUser.name} className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-4 h-4 text-[#7171A0]" />
+              )}
             </Link>
           </div>
           <h1 className="text-2xl font-bold tracking-tight mt-3">
