@@ -42,3 +42,6 @@ Thumbs.db
 
 # Debug/output text files
 *.txt
+
+# SSL certificates
+*.pem
