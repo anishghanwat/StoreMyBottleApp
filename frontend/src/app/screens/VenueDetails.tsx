@@ -53,9 +53,10 @@ export default function VenueDetails() {
             {/* Hero Image */}
             <div className="relative h-64">
                 <ImageWithFallback
-                    src={venue.image_url || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800"}
+                    src={venue.image_url || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&q=75&auto=format"}
                     alt={venue.name}
                     className="w-full h-full object-cover"
+                    priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#09090F] via-[#09090F]/60 to-transparent" />
 
@@ -145,7 +146,7 @@ export default function VenueDetails() {
                             >
                                 <div className="h-28 bg-[#1A1A26] flex items-center justify-center p-3 relative overflow-hidden">
                                     <ImageWithFallback
-                                        src={bottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
+                                        src={bottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=200&q=75&auto=format"}
                                         alt={bottle.name}
                                         className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                                     />

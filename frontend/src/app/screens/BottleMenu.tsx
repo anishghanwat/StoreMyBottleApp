@@ -239,7 +239,7 @@ export default function BottleMenu() {
                   {/* Image */}
                   <div className="h-52 bg-gradient-to-b from-[#1A1A2E] to-[#0A0A14] flex items-center justify-center p-4">
                     <ImageWithFallback
-                      src={bottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
+                      src={bottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=200&q=75&auto=format"}
                       alt={bottle.name}
                       className="w-full h-full object-contain drop-shadow-lg"
                     />

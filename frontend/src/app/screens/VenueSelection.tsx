@@ -214,9 +214,10 @@ export default function VenueSelection() {
                   {/* Full image */}
                   <div className="relative h-44 overflow-hidden">
                     <ImageWithFallback
-                      src={venue.image_url || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600"}
+                      src={venue.image_url || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&q=75&auto=format"}
                       alt={venue.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      priority={filteredVenues.indexOf(venue) < 2}
                     />
                     {/* Gradient overlay — bottom heavy */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
