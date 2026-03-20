@@ -342,3 +342,17 @@ class PasswordResetToken(Base):
     
     # Relationships
     user = relationship("User", backref="password_reset_tokens")
+
+
+class PushSubscription(Base):
+    """Web push notification subscriptions"""
+    __tablename__ = "push_subscriptions"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    endpoint = Column(Text, nullable=False, unique=True)
+    p256dh = Column(Text, nullable=False)
+    auth = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", backref="push_subscriptions")

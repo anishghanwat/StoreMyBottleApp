@@ -6,6 +6,7 @@ import { Toaster } from "./components/ui/sonner";
 import AgeGate from "./screens/AgeGate";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineIndicator } from "./components/OfflineIndicator";
+import { InstallPrompt } from "./components/InstallPrompt";
 
 const AGE_GATE_KEY = "age_gate_passed";
 
@@ -38,6 +39,7 @@ export default function App() {
         <Suspense fallback={<PageLoader />}>
           <RouterProvider router={router} />
         </Suspense>
+        <InstallPrompt />
         <Toaster />
       </AuthProvider>
     </ErrorBoundary>

@@ -31,8 +31,9 @@ export default function RedemptionQR() {
   useEffect(() => {
     if (redemption && bottle) { setRecovering(false); return; }
 
+    // Try localStorage first, then fall back to URL param
     const savedRedemptionId = localStorage.getItem(ACTIVE_REDEMPTION_KEY);
-    const savedBottleId = localStorage.getItem(ACTIVE_BOTTLE_KEY);
+    const savedBottleId = localStorage.getItem(ACTIVE_BOTTLE_KEY) || bottleId;
 
     if (!savedRedemptionId || !savedBottleId) {
       navigate("/my-bottles", { replace: true });
@@ -53,7 +54,10 @@ export default function RedemptionQR() {
           return;
         }
 
-        const matchedBottle = bottles.find(b => b.id === savedBottleId);
+        // Match by savedBottleId or by purchase_id on the redemption
+        const matchedBottle = bottles.find(b => b.id === savedBottleId)
+          ?? bottles.find(b => b.purchaseId === fetchedRedemption.purchase_id);
+
         if (!matchedBottle) {
           navigate("/my-bottles", { replace: true });
           return;

@@ -11,7 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from config import settings
 from database import engine, Base
-from routers import venues, auth, purchases, redemptions, profile, admin
+from routers import venues, auth, purchases, redemptions, profile, admin, push
 
 def get_real_ip(request: Request) -> str:
     """Get real client IP, respecting X-Forwarded-For from reverse proxy."""
@@ -251,6 +251,7 @@ app.include_router(purchases.router)
 app.include_router(redemptions.router)
 app.include_router(profile.router)
 app.include_router(admin.router)
+app.include_router(push.router)
 
 
 if __name__ == "__main__":

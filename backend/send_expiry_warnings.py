@@ -14,8 +14,24 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from datetime import datetime, timedelta, timezone
 from database import SessionLocal
-from models import Purchase, PaymentStatus
+from models import Purchase, PaymentStatus, PushSubscription
 from email_service import send_expiry_warning_email
+from config import settings
+
+
+def send_push_notification(endpoint: str, p256dh: str, auth: str, title: str, body: str, url: str = "/"):
+    """Send a single web push notification via pywebpush"""
+    try:
+        from pywebpush import webpush, WebPushException
+        import json
+        webpush(
+            subscription_info={"endpoint": endpoint, "keys": {"p256dh": p256dh, "auth": auth}},
+            data=json.dumps({"title": title, "body": body, "url": url}),
+            vapid_private_key=settings.VAPID_PRIVATE_KEY,
+            vapid_claims={"sub": settings.VAPID_EMAIL},
+        )
+    except Exception as e:
+        raise e
 
 
 def run():
@@ -49,29 +65,54 @@ def run():
         for days_left, purchases in [(7, seven_day), (1, one_day)]:
             for p in purchases:
                 user = p.user
-                if not user or not user.email:
+                if not user:
                     continue
-                ok = send_expiry_warning_email(
-                    email=user.email,
-                    user_name=user.name,
-                    bottles=[{
-                        "brand": p.bottle.brand,
-                        "name": p.bottle.name,
-                        "venue_name": p.venue.name,
-                        "remaining_ml": p.remaining_ml,
-                        "expires_at": p.expires_at.strftime("%d %b %Y"),
-                        "days_left": days_left,
-                    }],
-                    days_left=days_left,
-                )
-                if ok:
-                    if days_left == 7:
-                        p.warning_7d_sent = True
-                    else:
-                        p.warning_1d_sent = True
-                    db.commit()
-                    sent += 1
-                    print(f"  ✅ Sent {days_left}-day warning to {user.email}")
+
+                bottle_info = {
+                    "brand": p.bottle.brand,
+                    "name": p.bottle.name,
+                    "venue_name": p.venue.name,
+                    "remaining_ml": p.remaining_ml,
+                    "expires_at": p.expires_at.strftime("%d %b %Y"),
+                    "days_left": days_left,
+                }
+
+                # Send email
+                if user.email:
+                    ok = send_expiry_warning_email(
+                        email=user.email,
+                        user_name=user.name,
+                        bottles=[bottle_info],
+                        days_left=days_left,
+                    )
+                    if ok:
+                        print(f"  ✅ Email sent to {user.email}")
+
+                # Send web push to all subscriptions
+                push_subs = db.query(PushSubscription).filter(
+                    PushSubscription.user_id == user.id
+                ).all()
+
+                for sub in push_subs:
+                    try:
+                        send_push_notification(
+                            endpoint=sub.endpoint,
+                            p256dh=sub.p256dh,
+                            auth=sub.auth,
+                            title=f"🍷 Bottle expiring in {days_left} day{'s' if days_left > 1 else ''}",
+                            body=f"{bottle_info['brand']} {bottle_info['name']} at {bottle_info['venue_name']} — {bottle_info['remaining_ml']}ml remaining",
+                            url="/my-bottles",
+                        )
+                        print(f"  ✅ Push sent to {user.email or user.id}")
+                    except Exception as e:
+                        print(f"  ⚠️  Push failed: {e}")
+
+                if days_left == 7:
+                    p.warning_7d_sent = True
+                else:
+                    p.warning_1d_sent = True
+                db.commit()
+                sent += 1
 
         print(f"\n✅ Expiry warnings done — {sent} email(s) sent")
 

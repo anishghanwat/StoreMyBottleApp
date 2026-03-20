@@ -1,9 +1,41 @@
 import { ArrowLeft, Bell, Moon, Globe, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import { subscribeToPush, unsubscribeFromPush, isPushSubscribed } from "../../services/push.service";
 
 export default function SettingsPage() {
     const navigate = useNavigate();
+    const [pushEnabled, setPushEnabled] = useState(false);
+    const [pushLoading, setPushLoading] = useState(false);
+    const pushSupported = 'Notification' in window && 'serviceWorker' in navigator;
+
+    useEffect(() => {
+        isPushSubscribed().then(setPushEnabled);
+    }, []);
+
+    const handlePushToggle = async () => {
+        setPushLoading(true);
+        try {
+            if (pushEnabled) {
+                await unsubscribeFromPush();
+                setPushEnabled(false);
+                toast.success("Push notifications disabled");
+            } else {
+                const ok = await subscribeToPush();
+                if (ok) {
+                    setPushEnabled(true);
+                    toast.success("Push notifications enabled");
+                } else {
+                    toast.error("Couldn't enable notifications — check browser permissions");
+                }
+            }
+        } catch {
+            toast.error("Something went wrong");
+        } finally {
+            setPushLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#09090F] text-white">
@@ -30,7 +62,18 @@ export default function SettingsPage() {
                                 <p className="text-xs text-[#4A4A6A]">Order updates and alerts</p>
                             </div>
                         </div>
-                        <span className="text-xs text-[#4A4A6A]">Coming soon</span>
+                        {pushSupported ? (
+                            <button
+                                onClick={handlePushToggle}
+                                disabled={pushLoading}
+                                className={`w-11 h-6 rounded-full relative transition-colors duration-200 ${pushEnabled ? 'bg-violet-600' : 'bg-white/10'} ${pushLoading ? 'opacity-50' : ''}`}
+                                aria-label="Toggle push notifications"
+                            >
+                                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${pushEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                            </button>
+                        ) : (
+                            <span className="text-xs text-[#4A4A6A]">Not supported</span>
+                        )}
                     </div>
 
                     <div className="flex items-center justify-between py-3">
@@ -43,7 +86,7 @@ export default function SettingsPage() {
                                 <p className="text-xs text-[#4A4A6A]">7-day and 1-day warnings</p>
                             </div>
                         </div>
-                        <span className="text-xs text-[#4A4A6A]">Coming soon</span>
+                        <span className="text-xs text-[#4A4A6A]">{pushEnabled ? 'On' : 'Enable push first'}</span>
                     </div>
                 </div>
 

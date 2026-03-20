@@ -36,8 +36,15 @@ class Settings(BaseSettings):
     FROM_EMAIL: str = "onboarding@resend.dev"
     RESEND_TEST_EMAIL: Optional[str] = None  # For testing email delivery
     
-    # Frontend
-    FRONTEND_URL: str = "http://localhost:5173"
+    # Cloudinary
+    CLOUDINARY_CLOUD_NAME: Optional[str] = None
+    CLOUDINARY_API_KEY: Optional[str] = None
+    CLOUDINARY_API_SECRET: Optional[str] = None
+
+    # Web Push (VAPID)
+    VAPID_PUBLIC_KEY: Optional[str] = None
+    VAPID_PRIVATE_KEY: Optional[str] = None
+    VAPID_EMAIL: str = "mailto:admin@storemybottle.in"
     
     # Environment
     ENVIRONMENT: str = "development"
