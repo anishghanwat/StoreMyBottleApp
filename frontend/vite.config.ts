@@ -12,7 +12,7 @@ export default defineConfig({
     basicSsl(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'pwa-192.svg'],
+      includeAssets: ['favicon.svg', 'pwa-192.png', 'pwa-512.png'],
       manifest: {
         name: 'StoreMyBottle',
         short_name: 'StoreMyBottle',
@@ -25,19 +25,19 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/pwa-192.svg',
+            src: '/pwa-192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/png',
           },
           {
-            src: '/pwa-192.svg',
+            src: '/pwa-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
           },
           {
-            src: '/pwa-192.svg',
-            sizes: '192x192',
-            type: 'image/svg+xml',
+            src: '/pwa-512.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'maskable',
           },
         ],
