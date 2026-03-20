@@ -15,24 +15,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Dashboard } from "@/components/Dashboard"
-import { Venues } from "@/components/Venues"
-import { Bottles } from "@/components/Bottles"
-import { Users } from "@/components/Users"
-import { Purchases } from "@/components/Purchases"
-import { Redemptions } from "@/components/Redemptions"
-import { Bartenders } from "@/components/Bartenders"
-import { Reports } from "@/components/Reports"
-import { VenueAnalytics } from "@/components/VenueAnalytics"
-import { Settings } from "@/components/Settings"
-import { Promotions } from "@/components/Promotions"
-import { SupportTickets } from "@/components/SupportTickets"
-import { InventoryAuditLogs } from "@/components/InventoryAuditLogs"
-import { Login } from "@/components/Login"
-import { ForgotPassword } from "@/components/ForgotPassword"
-import { ResetPassword } from "@/components/ResetPassword"
 import { authService } from "@/services/api"
 import { Toaster } from "@/components/ui/sonner"
+
+const Dashboard = React.lazy(() => import("@/components/Dashboard").then(m => ({ default: m.Dashboard })))
+const Venues = React.lazy(() => import("@/components/Venues").then(m => ({ default: m.Venues })))
+const Bottles = React.lazy(() => import("@/components/Bottles").then(m => ({ default: m.Bottles })))
+const Users = React.lazy(() => import("@/components/Users").then(m => ({ default: m.Users })))
+const Purchases = React.lazy(() => import("@/components/Purchases").then(m => ({ default: m.Purchases })))
+const Redemptions = React.lazy(() => import("@/components/Redemptions").then(m => ({ default: m.Redemptions })))
+const Bartenders = React.lazy(() => import("@/components/Bartenders").then(m => ({ default: m.Bartenders })))
+const Reports = React.lazy(() => import("@/components/Reports").then(m => ({ default: m.Reports })))
+const VenueAnalytics = React.lazy(() => import("@/components/VenueAnalytics").then(m => ({ default: m.VenueAnalytics })))
+const Settings = React.lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })))
+const Promotions = React.lazy(() => import("@/components/Promotions").then(m => ({ default: m.Promotions })))
+const SupportTickets = React.lazy(() => import("@/components/SupportTickets").then(m => ({ default: m.SupportTickets })))
+const InventoryAuditLogs = React.lazy(() => import("@/components/InventoryAuditLogs").then(m => ({ default: m.InventoryAuditLogs })))
+const Login = React.lazy(() => import("@/components/Login").then(m => ({ default: m.Login })))
+const ForgotPassword = React.lazy(() => import("@/components/ForgotPassword").then(m => ({ default: m.ForgotPassword })))
+const ResetPassword = React.lazy(() => import("@/components/ResetPassword").then(m => ({ default: m.ResetPassword })))
 
 export default function App() {
   const [currentPage, setCurrentPage] = React.useState("dashboard")
@@ -178,7 +179,7 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <>
+      <React.Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
         {authView === 'login' && <Login onLogin={handleLogin} />}
         {authView === 'forgot-password' && <ForgotPassword onBack={handleBackToLogin} />}
         {authView === 'reset-password' && resetToken && (
@@ -189,7 +190,7 @@ export default function App() {
           />
         )}
         <Toaster />
-      </>
+      </React.Suspense>
     )
   }
 
@@ -229,7 +230,9 @@ export default function App() {
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0 bg-muted/10 min-h-[calc(100vh-4rem)]">
-          {renderPage()}
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>}>
+            {renderPage()}
+          </React.Suspense>
         </div>
       </SidebarInset>
       <Toaster />

@@ -82,4 +82,24 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('react-qr-scanner') || id.includes('jsqr') || id.includes('zxing')) {
+            return 'qr-scanner'
+          }
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'react-vendor'
+          }
+          if (id.includes('node_modules/@radix-ui/')) {
+            return 'radix-ui'
+          }
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+            return 'charts'
+          }
+        },
+      },
+    },
+  },
 })
