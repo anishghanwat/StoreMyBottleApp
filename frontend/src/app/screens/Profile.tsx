@@ -86,11 +86,42 @@ export default function Profile() {
         name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
     if (loading) return (
-        <div className="min-h-screen bg-[#09090F] text-white flex items-center justify-center">
-            <div className="text-center">
-                <div className="w-14 h-14 border-[3px] border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-[#7171A0] text-sm animate-pulse">Loading profile...</p>
+        <div className="min-h-screen bg-[#09090F] text-white pb-24">
+            <div className="px-5 pt-12 pb-5">
+                <div className="h-3 w-20 bg-white/5 rounded-full animate-pulse mb-2" />
+                <div className="h-7 w-28 bg-white/5 rounded-full animate-pulse" />
             </div>
+            <div className="px-5 space-y-4">
+                {/* User card skeleton */}
+                <div className="bg-[#0E0E18] border border-white/[0.06] rounded-2xl p-5 animate-pulse">
+                    <div className="flex items-start gap-4 mb-4">
+                        <div className="w-16 h-16 rounded-full bg-white/5 flex-shrink-0" />
+                        <div className="flex-1 space-y-2 pt-1">
+                            <div className="h-5 w-32 bg-white/5 rounded-full" />
+                            <div className="h-3 w-40 bg-white/5 rounded-full" />
+                            <div className="h-3 w-24 bg-white/5 rounded-full" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 pt-4 border-t border-white/[0.07]">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="text-center space-y-1">
+                                <div className="h-6 w-10 bg-white/5 rounded-full mx-auto" />
+                                <div className="h-2.5 w-12 bg-white/5 rounded-full mx-auto" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                {/* Menu items skeleton */}
+                <div className="space-y-2">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="bg-[#0E0E18] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-3 animate-pulse">
+                            <div className="w-9 h-9 bg-white/5 rounded-xl flex-shrink-0" />
+                            <div className="h-4 w-36 bg-white/5 rounded-full" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <BottomNav active="profile" />
         </div>
     );
 

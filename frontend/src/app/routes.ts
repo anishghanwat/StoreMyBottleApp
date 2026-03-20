@@ -1,23 +1,25 @@
 import { createBrowserRouter } from "react-router";
-import VenueSelection from "./screens/VenueSelection";
-import VenueDetails from "./screens/VenueDetails";
-import BottleMenu from "./screens/BottleMenu";
-import BottleDetails from "./screens/BottleDetails";
-import Login from "./screens/Login";
-import ForgotPassword from "./screens/ForgotPassword";
-import ResetPassword from "./screens/ResetPassword";
-import Payment from "./screens/Payment";
-import PaymentSuccess from "./screens/PaymentSuccess";
-import MyBottles from "./screens/MyBottles";
-import RedeemPeg from "./screens/RedeemPeg";
-import RedemptionQR from "./screens/RedemptionQR";
-import Profile from "./screens/Profile";
-import Terms from "./screens/Terms";
-import Privacy from "./screens/Privacy";
-import SettingsPage from "./screens/SettingsPage";
-import PrivacySecurityPage from "./screens/PrivacySecurityPage";
-import HelpSupport from "./screens/HelpSupport";
-import RedemptionHistory from "./screens/RedemptionHistory";
+import { lazy } from "react";
+
+const VenueSelection = lazy(() => import("./screens/VenueSelection"));
+const VenueDetails = lazy(() => import("./screens/VenueDetails"));
+const BottleMenu = lazy(() => import("./screens/BottleMenu"));
+const BottleDetails = lazy(() => import("./screens/BottleDetails"));
+const Login = lazy(() => import("./screens/Login"));
+const ForgotPassword = lazy(() => import("./screens/ForgotPassword"));
+const ResetPassword = lazy(() => import("./screens/ResetPassword"));
+const Payment = lazy(() => import("./screens/Payment"));
+const PaymentSuccess = lazy(() => import("./screens/PaymentSuccess"));
+const MyBottles = lazy(() => import("./screens/MyBottles"));
+const RedeemPeg = lazy(() => import("./screens/RedeemPeg"));
+const RedemptionQR = lazy(() => import("./screens/RedemptionQR"));
+const Profile = lazy(() => import("./screens/Profile"));
+const Terms = lazy(() => import("./screens/Terms"));
+const Privacy = lazy(() => import("./screens/Privacy"));
+const SettingsPage = lazy(() => import("./screens/SettingsPage"));
+const PrivacySecurityPage = lazy(() => import("./screens/PrivacySecurityPage"));
+const HelpSupport = lazy(() => import("./screens/HelpSupport"));
+const RedemptionHistory = lazy(() => import("./screens/RedemptionHistory"));
 
 export const router = createBrowserRouter([
   { path: "/", Component: VenueSelection },

@@ -196,9 +196,31 @@ export default function MyBottles() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#09090F] flex flex-col items-center justify-center gap-4">
-      <div className="w-14 h-14 border-[3px] border-violet-600 border-t-transparent rounded-full animate-spin shadow-lg shadow-violet-500/20" />
-      <p className="text-[#7171A0] text-sm animate-pulse">Loading your collection...</p>
+    <div className="min-h-screen bg-[#09090F] text-white">
+      <div className="px-5 pt-12 pb-5">
+        <div className="h-3 w-24 bg-white/5 rounded-full animate-pulse mb-2" />
+        <div className="h-7 w-40 bg-white/5 rounded-full animate-pulse" />
+      </div>
+      <div className="px-5 mb-5">
+        <div className="h-12 bg-white/5 rounded-2xl animate-pulse" />
+      </div>
+      <div className="px-4 space-y-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-[#0E0E18] border border-white/[0.06] rounded-2xl p-4 animate-pulse">
+            <div className="flex gap-3 mb-4">
+              <div className="w-16 h-16 bg-white/5 rounded-2xl flex-shrink-0" />
+              <div className="flex-1 space-y-2 pt-1">
+                <div className="h-2.5 w-16 bg-white/5 rounded-full" />
+                <div className="h-4 w-32 bg-white/5 rounded-full" />
+                <div className="h-2.5 w-24 bg-white/5 rounded-full" />
+              </div>
+            </div>
+            <div className="h-2 bg-white/5 rounded-full mb-3" />
+            <div className="h-11 bg-white/5 rounded-xl" />
+          </div>
+        ))}
+      </div>
+      <BottomNav active="bottles" />
     </div>
   );
 
