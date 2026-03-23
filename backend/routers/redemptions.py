@@ -324,13 +324,13 @@ def get_venue_full_history(
     for redemption in redemptions:
         purchase = redemption.purchase
         bottle = purchase.bottle
-        v = purchase.venue
+        r_venue = purchase.venue
         user = purchase.user
         history_items.append(RedemptionHistoryItem(
             id=redemption.id,
             bottle_name=bottle.name,
             bottle_brand=bottle.brand,
-            venue_name=v.name,
+            venue_name=r_venue.name,
             peg_size_ml=redemption.peg_size_ml,
             status=redemption.status,
             redeemed_at=redemption.redeemed_at,
@@ -349,34 +349,30 @@ def get_venue_recent_redemptions(
     db: Session = Depends(get_db)
 ):
     """Get recent redemptions at a venue (bartender endpoint)"""
-    # Authorization already done by verify_venue_access
-    
     redemptions = db.query(Redemption).filter(
         Redemption.venue_id == venue.id,
         Redemption.status == RedemptionStatus.REDEEMED
     ).order_by(Redemption.redeemed_at.desc()).limit(limit).all()
-    
-    # Transform to history items
+
     history_items = []
     for redemption in redemptions:
         purchase = redemption.purchase
         bottle = purchase.bottle
-        venue = purchase.venue
+        r_venue = purchase.venue
         user = purchase.user
-        
-        history_item = RedemptionHistoryItem(
+
+        history_items.append(RedemptionHistoryItem(
             id=redemption.id,
             bottle_name=bottle.name,
             bottle_brand=bottle.brand,
-            venue_name=venue.name,
+            venue_name=r_venue.name,
             peg_size_ml=redemption.peg_size_ml,
             status=redemption.status,
             redeemed_at=redemption.redeemed_at,
             created_at=redemption.created_at,
-            user_name=user.name
-        )
-        history_items.append(history_item)
-    
+            user_name=user.name,
+        ))
+
     return RedemptionHistoryList(
         redemptions=history_items,
         total=len(history_items)

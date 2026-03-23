@@ -226,6 +226,7 @@ async def startup_event():
         try:
             migrations = [
                 "ALTER TABLE purchases ADD COLUMN warning_3d_sent BOOLEAN NOT NULL DEFAULT FALSE",
+                "ALTER TABLE bottles ADD COLUMN stock_count INT NULL",
                 # push_subscriptions may have been created with wrong column types — recreate if missing
                 """CREATE TABLE IF NOT EXISTS push_subscriptions (
                     id VARCHAR(36) NOT NULL PRIMARY KEY,
