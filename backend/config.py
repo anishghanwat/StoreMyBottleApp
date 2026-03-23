@@ -59,33 +59,43 @@ class Settings(BaseSettings):
         Production: Only specific domains from CORS_ORIGINS env var
         Development: Localhost ports + any custom origins
         """
-        origins = []
+        origins = set()
         
         # Add custom origins from environment variable
         if self.CORS_ORIGINS:
-            custom_origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
-            origins.extend(custom_origins)
+            for origin in self.CORS_ORIGINS.split(","):
+                origins.add(origin.strip())
+        
+        # Always include the main frontend URL
+        if self.FRONTEND_URL:
+            origins.add(self.FRONTEND_URL)
+        
+        # Production: always include all storemybottle.in subdomains
+        if self.ENVIRONMENT == "production":
+            production_origins = [
+                "https://storemybottle.in",
+                "https://www.storemybottle.in",
+                "https://admin.storemybottle.in",
+                "https://bartender.storemybottle.in",
+            ]
+            origins.update(production_origins)
         
         # Development: Add localhost origins
         if self.ENVIRONMENT == "development":
             dev_origins = [
-                "http://localhost:5173",  # Customer frontend
-                "http://localhost:5174",  # Bartender frontend
-                "http://localhost:5175",  # Admin frontend
-                "http://localhost:3000",  # Alternative port
-                "http://localhost:8080",  # Test server
+                "http://localhost:5173",   # Customer frontend
+                "http://localhost:5174",   # Bartender frontend
+                "http://localhost:5175",   # Admin frontend
+                "http://localhost:3000",   # Alternative port
+                "http://localhost:8080",   # Test server
                 "https://localhost:5173",
                 "https://localhost:5174",
                 "https://localhost:5175",
                 "https://localhost:3000",
             ]
-            origins.extend(dev_origins)
+            origins.update(dev_origins)
         
-        # Always include the main frontend URL
-        if self.FRONTEND_URL and self.FRONTEND_URL not in origins:
-            origins.append(self.FRONTEND_URL)
-        
-        return origins
+        return list(origins)
     
     class Config:
         env_file = ".env"
