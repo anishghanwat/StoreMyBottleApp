@@ -423,12 +423,14 @@ class RedemptionHistoryItem(BaseModel):
     status: RedemptionStatus
     redeemed_at: Optional[datetime] = None
     created_at: datetime
-    user_name: Optional[str] = None  # Customer name for bartender view
-    
+    user_name: Optional[str] = None       # Customer name for bartender view
+    bartender_name: Optional[str] = None  # Staff who scanned the QR
+    remaining_ml_after: Optional[int] = None  # Bottle level after this pour
+
     @field_serializer('redeemed_at', 'created_at')
     def serialize_dt(self, dt: Optional[datetime], _info):
         return ensure_timezone_aware(dt)
-    
+
     class Config:
         from_attributes = True
 

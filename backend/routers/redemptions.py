@@ -270,15 +270,21 @@ def get_redemption_history(
     redemptions = db.query(Redemption).filter(
         Redemption.user_id == current_user.id
     ).order_by(Redemption.created_at.desc()).all()
-    
-    # Transform to history items
+
+    # Pre-fetch bartender names in one query
+    staff_ids = [r.redeemed_by_staff_id for r in redemptions if r.redeemed_by_staff_id]
+    staff_map: dict = {}
+    if staff_ids:
+        staff_users = db.query(User).filter(User.id.in_(staff_ids)).all()
+        staff_map = {u.id: u.name for u in staff_users}
+
     history_items = []
     for redemption in redemptions:
         purchase = redemption.purchase
         bottle = purchase.bottle
         venue = purchase.venue
-        
-        history_item = RedemptionHistoryItem(
+
+        history_items.append(RedemptionHistoryItem(
             id=redemption.id,
             bottle_name=bottle.name,
             bottle_brand=bottle.brand,
@@ -286,10 +292,11 @@ def get_redemption_history(
             peg_size_ml=redemption.peg_size_ml,
             status=redemption.status,
             redeemed_at=redemption.redeemed_at,
-            created_at=redemption.created_at
-        )
-        history_items.append(history_item)
-    
+            created_at=redemption.created_at,
+            bartender_name=staff_map.get(redemption.redeemed_by_staff_id) if redemption.redeemed_by_staff_id else None,
+            remaining_ml_after=purchase.remaining_ml,
+        ))
+
     return RedemptionHistoryList(
         redemptions=history_items,
         total=len(history_items)

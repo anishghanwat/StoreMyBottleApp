@@ -96,6 +96,8 @@ export interface RedemptionHistoryItem {
     status: 'pending' | 'redeemed' | 'expired';
     redeemed_at: string | null;
     created_at: string;
+    bartender_name?: string | null;
+    remaining_ml_after?: number | null;
 }
 
 export interface Profile {
