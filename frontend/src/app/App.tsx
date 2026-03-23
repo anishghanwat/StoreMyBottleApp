@@ -19,12 +19,14 @@ function PageLoader() {
 }
 
 export default function App() {
+  // Check both storages: localStorage = remembered forever, sessionStorage = same browser session across tabs
   const [agePassed, setAgePassed] = useState(
-    () => localStorage.getItem(AGE_GATE_KEY) === "true"
+    () => localStorage.getItem(AGE_GATE_KEY) === "true" || sessionStorage.getItem(AGE_GATE_KEY) === "true"
   );
 
   const handleAgeConfirm = () => {
     localStorage.setItem(AGE_GATE_KEY, "true");
+    sessionStorage.setItem(AGE_GATE_KEY, "true");
     setAgePassed(true);
   };
 
