@@ -366,12 +366,10 @@ def create_password_reset_token(db: Session, user_id: str) -> str:
     """Create a password reset token for a user"""
     from models import PasswordResetToken
     import secrets
+    from datetime import timezone as tz
     
-    # Generate secure random token
     token = secrets.token_urlsafe(32)
-    
-    # Set expiration (1 hour)
-    expires = datetime.utcnow() + timedelta(hours=1)
+    expires = datetime.now(tz.utc) + timedelta(hours=1)
     
     # Invalidate any existing unused tokens for this user
     db.query(PasswordResetToken).filter(
@@ -379,7 +377,6 @@ def create_password_reset_token(db: Session, user_id: str) -> str:
         PasswordResetToken.is_used == False
     ).update({"is_used": True})
     
-    # Create new token
     reset_token = PasswordResetToken(
         user_id=user_id,
         token=token,
@@ -396,16 +393,25 @@ def create_password_reset_token(db: Session, user_id: str) -> str:
 def verify_password_reset_token(db: Session, token: str) -> Optional[str]:
     """Verify password reset token and return user_id if valid"""
     from models import PasswordResetToken
+    from datetime import timezone as tz
     
     reset_token = db.query(PasswordResetToken).filter(
         PasswordResetToken.token == token,
         PasswordResetToken.is_used == False,
-        PasswordResetToken.expires_at > datetime.utcnow()
     ).first()
     
-    if reset_token:
-        return reset_token.user_id
-    return None
+    if not reset_token:
+        return None
+
+    # Normalise expires_at to UTC-aware before comparing
+    expires_at = reset_token.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=tz.utc)
+
+    if expires_at < datetime.now(tz.utc):
+        return None  # expired
+
+    return reset_token.user_id
 
 
 def use_password_reset_token(db: Session, token: str, new_password: str) -> bool:

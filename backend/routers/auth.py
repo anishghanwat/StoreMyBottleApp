@@ -526,7 +526,7 @@ def forgot_password(request_data: ForgotPasswordRequest, request: Request, db: S
 
 
 @router.post("/reset-password")
-@limiter.limit("5/hour")  # 5 password reset attempts per hour per IP
+@limiter.limit("10/hour")  # 10 password reset attempts per hour per IP
 def reset_password(request_data: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
     """Reset password using token from email"""
     # Validate password strength
