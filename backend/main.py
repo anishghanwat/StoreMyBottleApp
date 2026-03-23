@@ -231,8 +231,12 @@ async def startup_event():
                 try:
                     db.execute(text(sql))
                     db.commit()
-                except Exception:
+                    print(f"  ✅ Migration applied: {sql[:60]}")
+                except Exception as col_err:
                     db.rollback()  # Column already exists — safe to ignore
+                    print(f"  ℹ️  Skipped (already exists): {sql[:60]}")
+        except Exception as mig_err:
+            print(f"⚠️  Migration block failed (non-fatal): {mig_err}")
         finally:
             db.close()
         print("✅ Column migrations done")
