@@ -24,8 +24,10 @@ ARG SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.
 RUN curl -fsSL "$SUPERCRONIC_URL" -o /usr/local/bin/supercronic \
     && chmod +x /usr/local/bin/supercronic
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# Create non-root user and log dir
+RUN useradd -m -u 1000 appuser \
+    && mkdir -p /var/log/app \
+    && chown -R appuser:appuser /app /var/log/app
 USER appuser
 
 # Expose port
@@ -35,5 +37,8 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Startup script: run uvicorn + supercronic together
-CMD uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4 & supercronic /app/crontab
+# Copy startup script
+COPY --chown=appuser:appuser start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]
