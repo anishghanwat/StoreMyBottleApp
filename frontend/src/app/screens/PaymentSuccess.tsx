@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { CheckCircle2, Loader2 } from "lucide-react";
-import { motion } from "motion/react";
+import { CheckCircle2, Loader2, Star } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { Bottle, Venue, Purchase } from "../../types/api.types";
+import { venueService } from "../../services/venue.service";
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const location = useLocation();
   const { bottle, venue, purchase } = (location.state || {}) as { bottle?: Bottle; venue?: Venue; purchase?: Purchase };
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [showRating, setShowRating] = useState(false);
+  const [hoverStar, setHoverStar] = useState(0);
+  const [selectedStar, setSelectedStar] = useState(0);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
   useEffect(() => {
     if (!bottle || !venue) {
@@ -18,7 +23,19 @@ export default function PaymentSuccess() {
     }
     // Mark user as a returning purchaser so BottleDetails hides "How it works"
     localStorage.setItem('smb_purchased', '1');
+    // Show rating prompt after a short delay
+    const t = setTimeout(() => setShowRating(true), 1200);
+    return () => clearTimeout(t);
   }, [bottle, venue, navigate]);
+
+  const handleRatingSubmit = async (star: number) => {
+    setSelectedStar(star);
+    try {
+      await venueService.rateVenue(venue!.id, star);
+    } catch { /* silent — rating is non-critical */ }
+    setRatingSubmitted(true);
+    setTimeout(() => setShowRating(false), 1200);
+  };
 
   if (isRedirecting || !bottle || !venue) return (
     <div className="min-h-screen bg-[#09090F] flex items-center justify-center">
@@ -108,6 +125,71 @@ export default function PaymentSuccess() {
       <p className="text-[#4A4A6A] text-xs text-center pb-8 px-6">
         🥂 Enjoy responsibly · Please don't drink and drive
       </p>
+
+      {/* Venue rating prompt */}
+      <AnimatePresence>
+        {showRating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm px-4 pb-8"
+            onClick={() => setShowRating(false)}
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-[#111118] border border-white/[0.08] rounded-3xl p-6 text-center"
+            >
+              {ratingSubmitted ? (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="py-2"
+                >
+                  <p className="text-2xl mb-1">🙏</p>
+                  <p className="font-bold text-white">Thanks for rating!</p>
+                  <p className="text-[#7171A0] text-sm mt-1">Your feedback helps others</p>
+                </motion.div>
+              ) : (
+                <>
+                  <p className="text-[11px] text-violet-400 font-semibold uppercase tracking-wider mb-1">Quick question</p>
+                  <h3 className="font-bold text-white text-lg mb-1">How's {venue.name}?</h3>
+                  <p className="text-[#7171A0] text-sm mb-5">Rate your experience at this venue</p>
+                  <div className="flex justify-center gap-3 mb-4">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onMouseEnter={() => setHoverStar(star)}
+                        onMouseLeave={() => setHoverStar(0)}
+                        onClick={() => handleRatingSubmit(star)}
+                        className="transition-transform active:scale-90"
+                      >
+                        <Star
+                          className={`w-9 h-9 transition-colors duration-150 ${star <= (hoverStar || selectedStar)
+                              ? "fill-amber-400 text-amber-400"
+                              : "text-white/20"
+                            }`}
+                          strokeWidth={1.5}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setShowRating(false)}
+                    className="text-[#4A4A6A] text-xs hover:text-[#7171A0] transition-colors"
+                  >
+                    Skip for now
+                  </button>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

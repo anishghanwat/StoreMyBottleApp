@@ -62,6 +62,7 @@ export function Bottles() {
     name: "",
     price: "",
     ml: "",
+    stock_count: "",
     image_url: "",
     is_available: true
   })
@@ -100,6 +101,7 @@ export function Bottles() {
       name: "",
       price: "",
       ml: "",
+      stock_count: "",
       image_url: "",
       is_available: true
     })
@@ -114,6 +116,7 @@ export function Bottles() {
       name: bottle.name,
       price: bottle.price.toString(),
       ml: bottle.volume_ml.toString(),
+      stock_count: bottle.stock_count != null ? bottle.stock_count.toString() : "",
       image_url: bottle.image_url || "",
       is_available: bottle.is_available
     })
@@ -186,6 +189,14 @@ export function Bottles() {
       toast.error("Volume must be less than 10,000 ml")
       return
     }
+    let stockCount: number | null = null
+    if (formData.stock_count && formData.stock_count.trim().length > 0) {
+      stockCount = parseInt(formData.stock_count)
+      if (isNaN(stockCount) || stockCount < 0) {
+        toast.error("Stock count must be a non-negative number")
+        return
+      }
+    }
     if (formData.image_url && formData.image_url.trim().length > 0) {
       if (formData.image_url.trim().length > 1000) {
         toast.error("Image URL must be less than 1000 characters")
@@ -200,6 +211,7 @@ export function Bottles() {
         name: formData.name.trim(),
         price: price,
         volume_ml: volume,
+        stock_count: stockCount,
         image_url: formData.image_url && formData.image_url.trim().length > 0 ? formData.image_url.trim() : null,
         is_available: formData.is_available
       }
@@ -287,6 +299,7 @@ export function Bottles() {
                     <TableHead>Venue</TableHead>
                     <TableHead>Volume</TableHead>
                     <TableHead>Price</TableHead>
+                    <TableHead>Stock</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -302,6 +315,9 @@ export function Bottles() {
                       <TableCell>{bottle.venue_name}</TableCell>
                       <TableCell>{bottle.volume_ml}ml</TableCell>
                       <TableCell>₹{bottle.price}</TableCell>
+                      <TableCell>
+                        {bottle.stock_count != null ? bottle.stock_count : <span className="text-muted-foreground text-xs">—</span>}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={bottle.is_available ? "default" : "secondary"}>
                           {bottle.is_available ? "Available" : "Unavailable"}
@@ -404,6 +420,18 @@ export function Bottles() {
                 type="number"
                 value={formData.ml}
                 onChange={(e) => setFormData({ ...formData, ml: e.target.value })}
+                onFocus={(e) => e.target.select()}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="stock_count" className="text-right">Stock</Label>
+              <Input
+                id="stock_count"
+                type="number"
+                placeholder="Leave blank if unlimited"
+                value={formData.stock_count}
+                onChange={(e) => setFormData({ ...formData, stock_count: e.target.value })}
                 onFocus={(e) => e.target.select()}
                 className="col-span-3"
               />
