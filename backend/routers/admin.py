@@ -96,10 +96,8 @@ def get_venues(db: Session = Depends(get_db)):
     return db.query(Venue).all()
 
 @router.post("/venues", response_model=VenueResponse)
-def create_venue(venue: VenueCreate, db: Session = Depends(get_db)):
+def create_venue(venue: VenueCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_admin)):
     """Create a new venue"""
-    # Check duplicate? (optional)
-    
     db_venue = Venue(
         name=venue.name,
         location=venue.location,
@@ -111,6 +109,10 @@ def create_venue(venue: VenueCreate, db: Session = Depends(get_db)):
     db.add(db_venue)
     db.commit()
     db.refresh(db_venue)
+    try:
+        create_audit_log(db, current_user.id, current_user.name, "create", "venue", db_venue.id, f"Created venue: {db_venue.name}")
+    except Exception:
+        pass
     return db_venue
 
 @router.put("/venues/{venue_id}", response_model=VenueResponse)
@@ -129,6 +131,10 @@ def update_venue(
     
     db.commit()
     db.refresh(venue)
+    try:
+        create_audit_log(db, current_user.id, current_user.name, "update", "venue", venue_id, f"Updated venue: {venue.name}")
+    except Exception:
+        pass
     return venue
 
 @router.delete("/venues/{venue_id}")
@@ -141,8 +147,13 @@ def delete_venue(
     if not venue:
         raise HTTPException(status_code=404, detail="Venue not found")
     
+    venue_name = venue.name
     db.delete(venue)
     db.commit()
+    try:
+        create_audit_log(db, current_user.id, current_user.name, "delete", "venue", venue_id, f"Deleted venue: {venue_name}")
+    except Exception:
+        pass
     return {"message": "Venue deleted"}
 
 @router.get("/bottles", response_model=List[BottleAdminResponse])
@@ -201,7 +212,7 @@ def get_bottle(bottle_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/bottles", response_model=BottleResponse)
-def create_bottle(bottle: BottleCreate, db: Session = Depends(get_db)):
+def create_bottle(bottle: BottleCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_admin)):
     """Create a new bottle"""
     # Verify venue exists
     venue = db.query(Venue).filter(Venue.id == bottle.venue_id).first()
@@ -220,6 +231,10 @@ def create_bottle(bottle: BottleCreate, db: Session = Depends(get_db)):
     db.add(db_bottle)
     db.commit()
     db.refresh(db_bottle)
+    try:
+        create_audit_log(db, current_user.id, current_user.name, "create", "bottle", db_bottle.id, f"Created bottle: {db_bottle.brand} {db_bottle.name} at {venue.name}")
+    except Exception:
+        pass
     return db_bottle
 
 
@@ -227,7 +242,8 @@ def create_bottle(bottle: BottleCreate, db: Session = Depends(get_db)):
 def update_bottle(
     bottle_id: str,
     bottle_update: BottleUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
 ):
     """Update bottle details"""
     bottle = db.query(Bottle).filter(Bottle.id == bottle_id).first()
@@ -253,6 +269,11 @@ def update_bottle(
     db.commit()
     db.refresh(bottle)
     
+    try:
+        create_audit_log(db, current_user.id, current_user.name, "update", "bottle", bottle_id, f"Updated bottle: {bottle.brand} {bottle.name}")
+    except Exception:
+        pass
+
     return BottleAdminResponse(
         id=bottle.id,
         venue_id=bottle.venue_id,
@@ -268,7 +289,7 @@ def update_bottle(
 
 
 @router.delete("/bottles/{bottle_id}")
-def delete_bottle(bottle_id: str, db: Session = Depends(get_db)):
+def delete_bottle(bottle_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_admin)):
     """Delete a bottle"""
     bottle = db.query(Bottle).filter(Bottle.id == bottle_id).first()
     if not bottle:
@@ -282,8 +303,13 @@ def delete_bottle(bottle_id: str, db: Session = Depends(get_db)):
             detail=f"Cannot delete bottle with {purchase_count} existing purchases. Consider marking as unavailable instead."
         )
     
+    bottle_name = f"{bottle.brand} {bottle.name}"
     db.delete(bottle)
     db.commit()
+    try:
+        create_audit_log(db, current_user.id, current_user.name, "delete", "bottle", bottle_id, f"Deleted bottle: {bottle_name}")
+    except Exception:
+        pass
     return {"message": "Bottle deleted successfully"}
 
 
@@ -549,7 +575,8 @@ def get_bartender(bartender_id: str, db: Session = Depends(get_db)):
 @router.post("/bartenders", response_model=BartenderResponse)
 def create_bartender(
     bartender: BartenderCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
 ):
     """Create a new bartender"""
     from auth import get_password_hash, validate_password_strength
@@ -591,6 +618,10 @@ def create_bartender(
     db.add(db_bartender)
     db.commit()
     db.refresh(db_bartender)
+    try:
+        create_audit_log(db, current_user.id, current_user.name, "create", "bartender", db_bartender.id, f"Created bartender: {db_bartender.name} at {venue.name}")
+    except Exception:
+        pass
     
     return BartenderResponse(
         id=db_bartender.id,
@@ -607,7 +638,8 @@ def create_bartender(
 def update_bartender(
     bartender_id: str,
     bartender_update: BartenderUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
 ):
     """Update bartender details"""
     bartender = db.query(User).filter(
@@ -656,6 +688,11 @@ def update_bartender(
         if venue:
             venue_name = venue.name
     
+    try:
+        create_audit_log(db, current_user.id, current_user.name, "update", "bartender", bartender_id, f"Updated bartender: {bartender.name}")
+    except Exception:
+        pass
+
     return BartenderResponse(
         id=bartender.id,
         name=bartender.name,
@@ -668,7 +705,7 @@ def update_bartender(
 
 
 @router.delete("/bartenders/{bartender_id}")
-def delete_bartender(bartender_id: str, db: Session = Depends(get_db)):
+def delete_bartender(bartender_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_admin)):
     """Delete a bartender"""
     bartender = db.query(User).filter(
         User.id == bartender_id,
@@ -689,8 +726,13 @@ def delete_bartender(bartender_id: str, db: Session = Depends(get_db)):
             detail=f"Cannot delete bartender with {redemption_count} redemption records. Consider deactivating instead."
         )
     
+    bartender_name = bartender.name
     db.delete(bartender)
     db.commit()
+    try:
+        create_audit_log(db, current_user.id, current_user.name, "delete", "bartender", bartender_id, f"Deleted bartender: {bartender_name}")
+    except Exception:
+        pass
     return {"message": "Bartender deleted successfully"}
 
 
