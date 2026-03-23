@@ -108,6 +108,16 @@ apiClient.interceptors.response.use(
         }
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+            // Don't try to refresh on auth endpoints — just let the error propagate
+            const isAuthEndpoint = originalRequest.url?.includes('/auth/login') ||
+                originalRequest.url?.includes('/auth/signup') ||
+                originalRequest.url?.includes('/auth/forgot-password') ||
+                originalRequest.url?.includes('/auth/reset-password');
+
+            if (isAuthEndpoint) {
+                return Promise.reject(error);
+            }
+
             if (isRefreshing) {
                 // Wait for token refresh to complete
                 return new Promise((resolve) => {
