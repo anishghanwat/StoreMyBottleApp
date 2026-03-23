@@ -226,6 +226,16 @@ async def startup_event():
         try:
             migrations = [
                 "ALTER TABLE purchases ADD COLUMN warning_3d_sent BOOLEAN NOT NULL DEFAULT FALSE",
+                # push_subscriptions may have been created with wrong column types — recreate if missing
+                """CREATE TABLE IF NOT EXISTS push_subscriptions (
+                    id VARCHAR(36) NOT NULL PRIMARY KEY,
+                    user_id VARCHAR(36) NOT NULL,
+                    endpoint VARCHAR(500) NOT NULL UNIQUE,
+                    p256dh VARCHAR(500) NOT NULL,
+                    auth VARCHAR(100) NOT NULL,
+                    created_at DATETIME DEFAULT NOW(),
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                )""",
             ]
             for sql in migrations:
                 try:

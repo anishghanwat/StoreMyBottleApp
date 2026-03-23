@@ -352,9 +352,9 @@ class PushSubscription(Base):
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    endpoint = Column(Text, nullable=False, unique=True)
-    p256dh = Column(Text, nullable=False)
-    auth = Column(Text, nullable=False)
+    endpoint = Column(String(500), nullable=False, unique=True)
+    p256dh = Column(String(500), nullable=False)
+    auth = Column(String(100), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", backref="push_subscriptions")
