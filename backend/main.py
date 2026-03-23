@@ -219,6 +219,23 @@ async def startup_event():
         print("📊 Creating database tables if needed...")
         Base.metadata.create_all(bind=engine)
         print("✅ Database tables ready")
+
+        # Add new columns that may not exist on older deployments
+        print("🔧 Running column migrations...")
+        db = SessionLocal()
+        try:
+            migrations = [
+                "ALTER TABLE purchases ADD COLUMN warning_3d_sent BOOLEAN NOT NULL DEFAULT FALSE",
+            ]
+            for sql in migrations:
+                try:
+                    db.execute(text(sql))
+                    db.commit()
+                except Exception:
+                    db.rollback()  # Column already exists — safe to ignore
+        finally:
+            db.close()
+        print("✅ Column migrations done")
         
     except Exception as e:
         print(f"⚠️  Database initialization warning: {e}")

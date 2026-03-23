@@ -50,6 +50,17 @@ def run():
             Purchase.expires_at <= now + timedelta(days=8),
         ).all()
 
+        # 3-day window: expires between now+2d and now+4d
+        three_day = db.query(Purchase).filter(
+            Purchase.payment_status == PaymentStatus.CONFIRMED,
+            Purchase.remaining_ml > 0,
+            Purchase.purchased_at.isnot(None),
+            Purchase.expires_at.isnot(None),
+            Purchase.warning_3d_sent == False,
+            Purchase.expires_at >= now + timedelta(days=2),
+            Purchase.expires_at <= now + timedelta(days=4),
+        ).all()
+
         # 1-day window: expires between now and now+2d
         one_day = db.query(Purchase).filter(
             Purchase.payment_status == PaymentStatus.CONFIRMED,
@@ -62,7 +73,7 @@ def run():
         ).all()
 
         sent = 0
-        for days_left, purchases in [(7, seven_day), (1, one_day)]:
+        for days_left, purchases in [(7, seven_day), (3, three_day), (1, one_day)]:
             for p in purchases:
                 user = p.user
                 if not user:
@@ -109,6 +120,8 @@ def run():
 
                 if days_left == 7:
                     p.warning_7d_sent = True
+                elif days_left == 3:
+                    p.warning_3d_sent = True
                 else:
                     p.warning_1d_sent = True
                 db.commit()
