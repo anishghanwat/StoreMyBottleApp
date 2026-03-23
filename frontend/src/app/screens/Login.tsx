@@ -103,10 +103,18 @@ export default function Login() {
       isValid = false;
     }
 
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.valid) {
-      errors.password = passwordValidation.message;
-      isValid = false;
+    // Only enforce password strength rules on signup — login just needs non-empty
+    if (isSignup) {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        errors.password = passwordValidation.message;
+        isValid = false;
+      }
+    } else {
+      if (!password) {
+        errors.password = "Password is required";
+        isValid = false;
+      }
     }
 
     setFieldErrors(errors);

@@ -133,7 +133,7 @@ def send_welcome_email(email: str, user_name: str) -> bool:
 
 
 def send_password_reset_email(email: str, token: str, user_name: str) -> bool:
-    reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+    reset_url = f"{settings.FRONTEND_URL or 'https://storemybottle.in'}/reset-password?token={token}"
     body = (
         _p(f"Hi {user_name},")
         + _p("We received a request to reset your password. Click the button below — the link expires in <strong>1 hour</strong>.")

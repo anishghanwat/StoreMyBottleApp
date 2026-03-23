@@ -500,7 +500,7 @@ def get_user_sessions(current_user: User = Depends(get_current_user), db: Sessio
 # ============ Password Reset Endpoints ============
 
 @router.post("/forgot-password")
-@limiter.limit("3/day")  # 3 password reset requests per day per IP
+@limiter.limit("5/hour")  # 5 password reset requests per hour per IP
 def forgot_password(request_data: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
     """Request password reset - sends email with reset link"""
     # Find user by email
@@ -516,7 +516,7 @@ def forgot_password(request_data: ForgotPasswordRequest, request: Request, db: S
     # Create reset token
     token = create_password_reset_token(db, user.id)
     
-    # Send email
+    # Send email — use explicit domain fallback so link is never broken
     send_password_reset_email(user.email, token, user.name)
     
     return {
