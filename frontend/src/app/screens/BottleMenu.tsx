@@ -31,6 +31,9 @@ export default function BottleMenu() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
+  // Quick-buy confirmation sheet
+  const [confirmBottle, setConfirmBottle] = useState<Bottle | null>(null);
+
   // Scroll-collapse via direct DOM manipulation (no React re-renders = smooth)
   const collapsibleRef = useRef<HTMLDivElement>(null);
   const isCollapsed = useRef(false);
@@ -237,7 +240,7 @@ export default function BottleMenu() {
                   className="block bg-[#0E0E18] border border-white/[0.07] rounded-2xl overflow-hidden hover:border-violet-500/30 transition-all duration-200 active:scale-[0.98]"
                 >
                   {/* Image */}
-                  <div className="h-52 bg-gradient-to-b from-[#1A1A2E] to-[#0A0A14] flex items-center justify-center p-4">
+                  <div className="h-36 bg-gradient-to-b from-[#1A1A2E] to-[#0A0A14] flex items-center justify-center p-4">
                     <ImageWithFallback
                       src={bottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=200&q=75&auto=format"}
                       alt={bottle.name}
@@ -259,12 +262,7 @@ export default function BottleMenu() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          const isAuthenticated = localStorage.getItem('access_token');
-                          if (isAuthenticated) {
-                            navigate('/payment', { state: { bottle, venue } });
-                          } else {
-                            navigate('/login', { state: { bottle, venue } });
-                          }
+                          setConfirmBottle(bottle);
                         }}
                         className="w-8 h-8 rounded-full bg-violet-600/80 hover:bg-violet-600 flex items-center justify-center transition-colors"
                       >
@@ -280,13 +278,54 @@ export default function BottleMenu() {
         )}
       </div>
 
+      {/* Responsible drinking footer — above nav */}
+      <p className="text-center text-[#4A4A6A] text-xs pb-6 pt-2 px-4">
+        🍷 Drink responsibly · For adults 25+ only · Don't drink and drive
+      </p>
+
       {/* Bottom Navigation */}
       <BottomNav active="home" />
 
-      {/* Responsible drinking footer */}
-      <p className="text-center text-[#4A4A6A] text-xs pb-20 pt-2 px-4">
-        🍷 Drink responsibly · For adults 25+ only · Don't drink and drive
-      </p>
+      {/* Quick-buy confirmation bottom sheet */}
+      {confirmBottle && (
+        <div className="fixed inset-0 z-50 flex items-end" onClick={() => setConfirmBottle(null)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative w-full bg-[#111118] border-t border-white/[0.08] rounded-t-3xl px-5 pt-5 pb-10 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mb-2" />
+            <div>
+              <p className="text-[11px] text-violet-400 font-semibold uppercase tracking-widest">{confirmBottle.brand}</p>
+              <h3 className="text-lg font-bold">{confirmBottle.name}</h3>
+              <p className="text-[#7171A0] text-sm mt-0.5">{confirmBottle.volume_ml ? `${confirmBottle.volume_ml}ml · ` : ''}₹{Math.round(confirmBottle.price).toLocaleString('en-IN')}</p>
+            </div>
+            <p className="text-xs text-[#7171A0] leading-relaxed">
+              This will take you to the payment screen. Make sure you're at the venue before proceeding.
+            </p>
+            <button
+              onClick={() => {
+                const isAuthenticated = localStorage.getItem('access_token');
+                setConfirmBottle(null);
+                if (isAuthenticated) {
+                  navigate('/payment', { state: { bottle: confirmBottle, venue } });
+                } else {
+                  navigate('/login', { state: { bottle: confirmBottle, venue } });
+                }
+              }}
+              className="w-full py-4 rounded-2xl font-bold text-base bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white shadow-lg shadow-fuchsia-500/30"
+            >
+              Confirm Purchase
+            </button>
+            <button
+              onClick={() => setConfirmBottle(null)}
+              className="w-full py-3.5 rounded-2xl font-bold text-sm bg-white/[0.05] text-[#7171A0]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

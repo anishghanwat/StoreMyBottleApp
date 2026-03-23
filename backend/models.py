@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Numeric, Boolean, DateTime, Date, ForeignKey, Enum as SQLEnum, Text
+from sqlalchemy import Column, String, Integer, Numeric, Boolean, DateTime, Date, ForeignKey, Enum as SQLEnum, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -134,6 +134,7 @@ class Bottle(Base):
     volume_ml = Column(Integer, nullable=False)
     image_url = Column(String(1000), nullable=True)
     is_available = Column(Boolean, default=True, nullable=False)
+    stock_count = Column(Integer, nullable=True)  # null = untracked; 0 = out of stock
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
@@ -356,3 +357,22 @@ class PushSubscription(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", backref="push_subscriptions")
+
+
+class VenueRating(Base):
+    """User ratings for venues (1–5 stars)"""
+    __tablename__ = "venue_ratings"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    venue_id = Column(String(36), ForeignKey("venues.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    rating = Column(Integer, nullable=False)  # 1–5
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("venue_id", "user_id", name="uq_venue_user_rating"),
+    )
+
+    venue = relationship("Venue", backref="ratings")
+    user = relationship("User", backref="venue_ratings")

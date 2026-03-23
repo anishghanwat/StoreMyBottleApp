@@ -67,8 +67,22 @@ export default function RedeemPeg() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#09090F] flex items-center justify-center">
-      <div className="w-12 h-12 border-[3px] border-violet-500 border-t-transparent rounded-full animate-spin" />
+    <div className="flex flex-col h-screen bg-[#09090F] text-white overflow-hidden">
+      {/* Hero skeleton */}
+      <div className="h-52 bg-white/[0.03] animate-pulse" />
+      <div className="px-5 pt-4 space-y-3">
+        <div className="h-4 w-20 bg-white/[0.06] rounded-full animate-pulse" />
+        <div className="h-6 w-48 bg-white/[0.06] rounded-full animate-pulse" />
+        <div className="h-3 w-32 bg-white/[0.04] rounded-full animate-pulse" />
+      </div>
+      {/* Progress card skeleton */}
+      <div className="mx-5 mt-4 h-16 bg-[#0E0E18] border border-white/[0.06] rounded-2xl animate-pulse" />
+      {/* Peg options skeleton */}
+      <div className="px-5 mt-4 space-y-3">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-20 bg-[#0E0E18] border border-white/[0.06] rounded-2xl animate-pulse" />
+        ))}
+      </div>
     </div>
   );
 
@@ -147,7 +161,9 @@ export default function RedeemPeg() {
                 {afterRedeem !== null ? (
                   <>
                     <span className="text-[#7171A0] line-through mr-1.5">{bottle.remainingMl} ml</span>
-                    <span className="text-violet-400">{afterRedeem} ml left</span>
+                    <span className="text-violet-400">
+                      {afterRedeem} ml left ({Math.round((afterRedeem / bottle.totalMl) * 100)}%)
+                    </span>
                   </>
                 ) : (
                   <span className="text-white">{bottle.remainingMl} ml</span>

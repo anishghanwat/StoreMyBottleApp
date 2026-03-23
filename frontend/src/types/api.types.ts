@@ -7,6 +7,8 @@ export interface Venue {
     is_open: boolean;
     image_url: string | null;
     created_at: string;
+    rating?: number | null;
+    rating_count?: number | null;
 }
 
 export interface Bottle {

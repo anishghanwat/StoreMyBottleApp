@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate, useLocation } from "react-router";
-import { ArrowLeft, ShoppingCart, Info, Droplet } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Info, Droplet, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { venueService } from "../../services/venue.service";
 import { Bottle, Venue } from "../../types/api.types";
@@ -16,6 +16,7 @@ export default function BottleDetails() {
     const [similarBottles, setSimilarBottles] = useState<Bottle[]>([]);
     const [loading, setLoading] = useState(!bottle || !venue);
     const [error, setError] = useState<string | null>(null);
+    const [showHowItWorks, setShowHowItWorks] = useState(() => !localStorage.getItem('smb_purchased'));
 
     useEffect(() => {
         if (venueId && bottleId) {
@@ -220,28 +221,38 @@ export default function BottleDetails() {
                     </div>
                 </motion.div>
 
-                {/* How it Works */}
+                {/* How it works */}
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.45 }}
-                    className="mx-5 mb-5 p-4 bg-gradient-to-br from-violet-900/15 to-fuchsia-900/10 rounded-2xl border border-violet-500/20"
+                    className="mx-5 mb-5 rounded-2xl border border-violet-500/20 overflow-hidden"
                 >
-                    <h3 className="text-base font-semibold mb-3">How it works</h3>
-                    <ol className="space-y-3 text-sm">
-                        {[
-                            "Purchase the bottle and we'll store it safely for you",
-                            "Visit the venue anytime and order a peg",
-                            "Show your QR code to redeem your drink",
-                        ].map((step, i) => (
-                            <li key={i} className="flex gap-3 items-start">
-                                <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-full flex items-center justify-center text-xs font-bold">
-                                    {i + 1}
-                                </span>
-                                <span className="text-[#7171A0] leading-relaxed">{step}</span>
-                            </li>
-                        ))}
-                    </ol>
+                    <button
+                        onClick={() => setShowHowItWorks(v => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3.5 bg-gradient-to-br from-violet-900/15 to-fuchsia-900/10"
+                    >
+                        <span className="text-sm font-semibold">How it works</span>
+                        <ChevronDown className={`w-4 h-4 text-violet-400 transition-transform duration-300 ${showHowItWorks ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showHowItWorks && (
+                        <div className="px-4 pb-4 pt-2 bg-gradient-to-br from-violet-900/10 to-fuchsia-900/5">
+                            <ol className="space-y-3 text-sm">
+                                {[
+                                    "Purchase the bottle and we'll store it safely for you",
+                                    "Visit the venue anytime and order a peg",
+                                    "Show your QR code to redeem your drink",
+                                ].map((step, i) => (
+                                    <li key={i} className="flex gap-3 items-start">
+                                        <span className="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-full flex items-center justify-center text-xs font-bold">
+                                            {i + 1}
+                                        </span>
+                                        <span className="text-[#7171A0] leading-relaxed">{step}</span>
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+                    )}
                 </motion.div>
 
                 {/* Similar Bottles */}
@@ -266,7 +277,7 @@ export default function BottleDetails() {
                                     state={{ bottle: similarBottle, venue }}
                                     className="card-surface overflow-hidden hover:border-violet-500/30 transition-all duration-300 active:scale-95"
                                 >
-                                    <div className="relative h-28 bg-gradient-to-br from-violet-900/10 to-[#1A1A26] flex items-center justify-center p-3">
+                                    <div className="relative h-40 bg-gradient-to-br from-violet-900/10 to-[#1A1A26] flex items-center justify-center p-3">
                                         <ImageWithFallback
                                             src={similarBottle.image_url || "https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400"}
                                             alt={similarBottle.name}

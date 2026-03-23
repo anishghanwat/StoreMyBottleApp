@@ -4,12 +4,36 @@ from sqlalchemy import func
 from typing import List, Optional
 
 from database import get_db
-from models import Venue, Bottle, Purchase, PaymentStatus
+from models import Venue, Bottle, Purchase, PaymentStatus, VenueRating
+from auth import get_current_user
 from schemas import (
-    VenueResponse, VenueList, BottleResponse, BottleList, VenueStatsResponse
+    VenueResponse, VenueList, BottleResponse, BottleList, VenueStatsResponse,
+    VenueRateRequest
 )
 
 router = APIRouter(prefix="/api/venues", tags=["venues"])
+
+
+def _attach_ratings(venues: list, db: Session) -> list:
+    """Attach avg rating and count to a list of Venue ORM objects, return as dicts."""
+    if not venues:
+        return []
+    venue_ids = [v.id for v in venues]
+    rows = db.query(
+        VenueRating.venue_id,
+        func.avg(VenueRating.rating).label("avg_rating"),
+        func.count(VenueRating.id).label("cnt"),
+    ).filter(VenueRating.venue_id.in_(venue_ids)).group_by(VenueRating.venue_id).all()
+    rating_map = {r.venue_id: (round(float(r.avg_rating), 1), r.cnt) for r in rows}
+
+    result = []
+    for v in venues:
+        avg, cnt = rating_map.get(v.id, (None, 0))
+        d = {c.name: getattr(v, c.name) for c in v.__table__.columns}
+        d["rating"] = avg
+        d["rating_count"] = cnt
+        result.append(d)
+    return result
 
 
 @router.get("", response_model=VenueList)
@@ -27,13 +51,13 @@ def get_venues(
         query = query.filter(Venue.name.ilike(f"%{search}%"))
     
     if city:
-        # Filter by city (location field format: "Area, City")
         query = query.filter(Venue.location.ilike(f"%{city}%"))
         
     total = query.count()
     venues = query.offset(skip).limit(limit).all()
+    enriched = _attach_ratings(venues, db)
     
-    return VenueList(venues=venues, total=total)
+    return VenueList(venues=enriched, total=total)
 
 
 @router.get("/{venue_id}", response_model=VenueResponse)
@@ -45,7 +69,8 @@ def get_venue(venue_id: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Venue not found"
         )
-    return venue
+    enriched = _attach_ratings([venue], db)
+    return enriched[0]
 
 
 @router.get("/{venue_id}/bottles", response_model=BottleList)
@@ -78,6 +103,60 @@ def get_venue_bottles(
     bottles = query.offset(skip).limit(limit).all()
     
     return BottleList(bottles=bottles, total=total)
+
+
+@router.post("/{venue_id}/rate", status_code=status.HTTP_200_OK)
+def rate_venue_authenticated(
+    venue_id: str,
+    request_data: VenueRateRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Submit or update a star rating (1–5) for a venue. Requires a confirmed purchase at the venue."""
+    venue = db.query(Venue).filter(Venue.id == venue_id).first()
+    if not venue:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Venue not found")
+
+    # Verify user has a confirmed purchase at this venue
+    has_purchase = db.query(Purchase).filter(
+        Purchase.user_id == current_user.id,
+        Purchase.venue_id == venue_id,
+        Purchase.payment_status == PaymentStatus.CONFIRMED,
+    ).first()
+    if not has_purchase:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You must have a confirmed purchase at this venue to rate it",
+        )
+
+    # Upsert rating
+    existing = db.query(VenueRating).filter(
+        VenueRating.venue_id == venue_id,
+        VenueRating.user_id == current_user.id,
+    ).first()
+
+    if existing:
+        existing.rating = request_data.rating
+    else:
+        db.add(VenueRating(
+            venue_id=venue_id,
+            user_id=current_user.id,
+            rating=request_data.rating,
+        ))
+    db.commit()
+
+    # Return updated average
+    row = db.query(
+        func.avg(VenueRating.rating).label("avg"),
+        func.count(VenueRating.id).label("cnt"),
+    ).filter(VenueRating.venue_id == venue_id).first()
+
+    return {
+        "success": True,
+        "your_rating": request_data.rating,
+        "average_rating": round(float(row.avg), 1) if row.avg else request_data.rating,
+        "rating_count": row.cnt,
+    }
 
 
 @router.get("/{venue_id}/stats", response_model=VenueStatsResponse)

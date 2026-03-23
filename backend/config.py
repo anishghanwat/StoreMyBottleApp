@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     # Frontend URL (for CORS)
     FRONTEND_URL: Optional[str] = None
 
+    # Sentry
+    SENTRY_DSN: Optional[str] = None
+
     # CORS Configuration
     CORS_ORIGINS: Optional[str] = None  # Comma-separated list of allowed origins
     

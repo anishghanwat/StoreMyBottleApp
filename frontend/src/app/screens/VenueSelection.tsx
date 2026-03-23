@@ -15,8 +15,15 @@ export default function VenueSelection() {
   const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterOpen, setFilterOpen] = useState<"all" | "open" | "recent" | "nearby">("all");
+  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem('vs_search') || "");
+  const [filterOpen, setFilterOpen] = useState<"all" | "open" | "recent" | "nearby">(
+    () => (sessionStorage.getItem('vs_filter') as "all" | "open" | "recent" | "nearby") || "all"
+  );
+  const [showLocationDenied, setShowLocationDenied] = useState(false);
+
+  // Persist filter state across back-navigation
+  useEffect(() => { sessionStorage.setItem('vs_search', searchTerm); }, [searchTerm]);
+  useEffect(() => { sessionStorage.setItem('vs_filter', filterOpen); }, [filterOpen]);
 
   const storedUser = sessionManager.getUser();
 
@@ -171,9 +178,16 @@ export default function VenueSelection() {
           ].map(f => (
             <button
               key={f.key}
-              onClick={() => !f.disabled && setFilterOpen(f.key as any)}
-              disabled={f.disabled}
-              className={`chip whitespace-nowrap ${filterOpen === f.key ? "chip-active" : "chip-inactive"} ${f.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={() => {
+                if (f.disabled) {
+                  setShowLocationDenied(true);
+                  setTimeout(() => setShowLocationDenied(false), 3500);
+                } else {
+                  setShowLocationDenied(false);
+                  setFilterOpen(f.key as any);
+                }
+              }}
+              className={`chip whitespace-nowrap ${filterOpen === f.key ? "chip-active" : "chip-inactive"} ${f.disabled ? "opacity-50" : ""}`}
             >
               {f.key === "open" && <span className="open-dot" />}
               {f.key === "recent" && <Flame className="w-3 h-3" />}
@@ -182,6 +196,12 @@ export default function VenueSelection() {
             </button>
           ))}
         </div>
+        {showLocationDenied && (
+          <p className="mt-2 text-xs text-amber-400/80 flex items-center gap-1.5">
+            <MapPin className="w-3 h-3 flex-shrink-0" />
+            Location access is unavailable. Enable it in your browser settings to use this filter.
+          </p>
+        )}
       </div>
 
       {/* Section Title */}
@@ -222,11 +242,7 @@ export default function VenueSelection() {
                     {/* Gradient overlay — bottom heavy */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-                    {/* Top-right: star rating badge */}
-                    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1.5 rounded-xl text-xs font-bold border border-white/10">
-                      <span className="text-amber-400">★</span>
-                      <span className="text-white">{venue.is_open ? "4.8" : "—"}</span>
-                    </div>
+
 
                     {/* Bottom overlay: name + location left, tags right */}
                     <div className="absolute bottom-0 inset-x-0 px-4 pb-3 pt-6 flex items-end justify-between">
@@ -260,14 +276,13 @@ export default function VenueSelection() {
         )}
       </div>
 
+      {/* Responsible drinking footer — inside scroll, above nav */}
+      <p className="text-center text-[#4A4A6A] text-xs pb-6 pt-2 px-4">
+        🍷 Drink responsibly · For adults 25+ only · Don't drink and drive
+      </p>
 
       {/* Bottom Navigation */}
       <BottomNav active="home" />
-
-      {/* Responsible drinking footer */}
-      <p className="text-center text-[#4A4A6A] text-xs pb-20 pt-2 px-4">
-        🍷 Drink responsibly · For adults 25+ only · Don't drink and drive
-      </p>
     </div>
   );
 }

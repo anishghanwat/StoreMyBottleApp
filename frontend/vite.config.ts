@@ -40,4 +40,16 @@ export default defineConfig({
   server: { host: true },
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('@sentry/')) return 'sentry'
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) return 'react-vendor'
+          if (id.includes('node_modules/@radix-ui/')) return 'radix-ui'
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) return 'charts'
+        },
+      },
+    },
+  },
 })

@@ -30,6 +30,8 @@ class VenueBase(BaseModel):
 class VenueResponse(VenueBase):
     id: str
     created_at: datetime
+    rating: Optional[float] = None
+    rating_count: Optional[int] = None
     
     @field_serializer('created_at')
     def serialize_created_at(self, dt: datetime, _info):
@@ -86,6 +88,10 @@ class VenueStatsResponse(BaseModel):
     active_bottles: int
 
 
+class VenueRateRequest(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+
+
 # ============ Bottle Schemas ============
 
 class BottleBase(BaseModel):
@@ -122,6 +128,7 @@ class BottleResponse(BottleBase):
     id: str
     venue_id: str
     is_available: bool
+    stock_count: Optional[int] = None
     
     class Config:
         from_attributes = True
@@ -158,6 +165,7 @@ class BottleUpdate(BaseModel):
     volume_ml: Optional[int] = None
     image_url: Optional[str] = None
     is_available: Optional[bool] = None
+    stock_count: Optional[int] = None
     
     class Config:
         populate_by_name = True

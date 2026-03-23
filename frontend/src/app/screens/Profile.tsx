@@ -264,12 +264,14 @@ export default function Profile() {
                 <div className="card-surface p-4 space-y-1">
                     <p className="text-[11px] text-[#7171A0] font-semibold uppercase tracking-widest mb-3">Activity</p>
                     <div className="flex justify-between text-sm py-2 border-b border-white/[0.05]">
-                        <span className="text-[#7171A0]">Avg. bottle price</span>
-                        <span className="font-semibold">₹{Math.round(profile.total_spent / Math.max(profile.total_bottles, 1)).toLocaleString()}</span>
+                        <span className="text-[#7171A0]">Total pegs redeemed</span>
+                        <span className="font-semibold">{profile.total_redemptions}</span>
                     </div>
                     <div className="flex justify-between text-sm py-2">
-                        <span className="text-[#7171A0]">Member since</span>
-                        <span className="font-semibold">{new Date(profile.user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+                        <span className="text-[#7171A0]">Total ml consumed</span>
+                        <span className="font-semibold text-violet-400">
+                            {profile.total_redemptions > 0 ? `~${profile.total_redemptions * 45} ml` : '—'}
+                        </span>
                     </div>
                 </div>
 

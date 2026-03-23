@@ -16,6 +16,8 @@ export default function PaymentSuccess() {
       const t = setTimeout(() => navigate("/"), 100);
       return () => clearTimeout(t);
     }
+    // Mark user as a returning purchaser so BottleDetails hides "How it works"
+    localStorage.setItem('smb_purchased', '1');
   }, [bottle, venue, navigate]);
 
   if (isRedirecting || !bottle || !venue) return (

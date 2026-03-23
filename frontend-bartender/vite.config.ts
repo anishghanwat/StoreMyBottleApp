@@ -89,6 +89,7 @@ export default defineConfig({
           if (id.includes('react-qr-scanner') || id.includes('jsqr') || id.includes('zxing')) {
             return 'qr-scanner'
           }
+          if (id.includes('@sentry/')) return 'sentry'
           if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
             return 'react-vendor'
           }

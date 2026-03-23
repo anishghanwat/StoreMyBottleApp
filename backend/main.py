@@ -8,10 +8,23 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
 from config import settings
 from database import engine, Base
 from routers import venues, auth, purchases, redemptions, profile, admin, push
+
+# Initialise Sentry before anything else (no-op if DSN not set)
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        integrations=[FastApiIntegration(), SqlalchemyIntegration()],
+        environment=settings.ENVIRONMENT,
+        traces_sample_rate=0.2,
+        send_default_pii=False,
+    )
 
 def get_real_ip(request: Request) -> str:
     """Get real client IP, respecting X-Forwarded-For from reverse proxy."""

@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router";
-import { ArrowLeft, MapPin, Clock, Star, TrendingUp, ChevronRight } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, TrendingUp, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { venueService } from "../../services/venue.service";
 import { Venue, Bottle } from "../../types/api.types";
@@ -101,23 +101,16 @@ export default function VenueDetails() {
             </div>
 
             {/* Info row */}
-            <div className="px-5 py-5 grid grid-cols-2 gap-3 border-b border-white/[0.06]">
+            <div className="px-5 py-5 border-b border-white/[0.06]">
                 <div className="card-surface p-4 flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center flex-shrink-0">
                         <Clock className="w-4 h-4 text-violet-400" />
                     </div>
                     <div>
-                        <p className="text-[10px] text-[#4A4A6A]">Hours</p>
-                        <p className="text-xs font-semibold">6 PM – 2 AM</p>
-                    </div>
-                </div>
-                <div className="card-surface p-4 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-[#4A4A6A]">Rating</p>
-                        <p className="text-xs font-semibold">4.8 · 120 reviews</p>
+                        <p className="text-[10px] text-[#4A4A6A]">Status</p>
+                        <p className={`text-xs font-semibold ${venue.is_open ? 'text-emerald-400' : 'text-[#7171A0]'}`}>
+                            {venue.is_open ? 'Open Now' : 'Closed'}
+                        </p>
                     </div>
                 </div>
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Loader2, CreditCard, Smartphone, Banknote, ArrowLeft, Clock, ShoppingBag } from "lucide-react";
+import { Loader2, CreditCard, Smartphone, Banknote, ArrowLeft, Clock, ShoppingBag, Lock } from "lucide-react";
 import { purchaseService } from "../../services/purchase.service";
 import { authService } from "../../services/auth.service";
 import { Bottle, Venue, Purchase } from "../../types/api.types";
@@ -30,6 +30,7 @@ export default function Payment() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [showCancelSheet, setShowCancelSheet] = useState(false);
 
   useEffect(() => {
     if (!authService.isAuthenticated()) { navigate("/login"); return; }
@@ -111,17 +112,18 @@ export default function Payment() {
       navigate("/my-bottles");
       return;
     }
+    setShowCancelSheet(true);
+  };
 
-    if (window.confirm("Are you sure you want to cancel this purchase?")) {
-      try {
-        await purchaseService.cancelPurchase(purchase.id);
-        toast.success("Purchase cancelled");
-        navigate("/my-bottles");
-      } catch (err: any) {
-        toast.error("Failed to cancel purchase");
-        // Still navigate away even if API fails
-        navigate("/my-bottles");
-      }
+  const confirmCancel = async () => {
+    setShowCancelSheet(false);
+    try {
+      await purchaseService.cancelPurchase(purchase!.id);
+      toast.success("Purchase cancelled");
+      navigate("/my-bottles");
+    } catch (err: any) {
+      toast.error("Failed to cancel purchase");
+      navigate("/my-bottles");
     }
   };
 
@@ -279,14 +281,17 @@ export default function Payment() {
             transition={{ delay: 0.15 }}
             className="space-y-2"
           >
-            <p className="text-[11px] text-[#7171A0] font-semibold uppercase tracking-widest">Accepted Methods</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-[#7171A0] font-semibold uppercase tracking-widest">Accepted Methods</p>
+              <Lock className="w-3 h-3 text-[#4A4A6A]" />
+            </div>
             {PAYMENT_METHODS.map((m, i) => (
               <motion.div
                 key={m.label}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.18 + i * 0.07 }}
-                className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#111118] border border-white/[0.07]"
+                className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#111118] border border-white/[0.07] cursor-default select-none"
               >
                 <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
                   <m.icon className="w-4 h-4 text-violet-400" />
@@ -324,6 +329,35 @@ export default function Payment() {
           Cancel Purchase
         </motion.button>
       </div>
+
+      {/* Cancel confirmation bottom sheet */}
+      {showCancelSheet && (
+        <div className="fixed inset-0 z-50 flex items-end" onClick={() => setShowCancelSheet(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative w-full bg-[#111118] border-t border-white/[0.08] rounded-t-3xl px-5 pt-5 pb-10 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mb-2" />
+            <h3 className="text-lg font-bold text-white">Cancel Purchase?</h3>
+            <p className="text-sm text-[#7171A0] leading-relaxed">
+              This will cancel the pending purchase and release the reservation. You can always buy again anytime.
+            </p>
+            <button
+              onClick={confirmCancel}
+              className="w-full py-4 rounded-2xl font-bold text-base bg-red-500/10 border border-red-500/30 text-red-400"
+            >
+              Yes, Cancel Purchase
+            </button>
+            <button
+              onClick={() => setShowCancelSheet(false)}
+              className="w-full py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white shadow-lg shadow-fuchsia-500/30"
+            >
+              Keep it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

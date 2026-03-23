@@ -24,4 +24,10 @@ export const venueService = {
         );
         return response.data.bottles;
     },
+
+    // Rate a venue (1–5 stars) — requires auth + confirmed purchase
+    async rateVenue(venueId: string, rating: number): Promise<{ average_rating: number; rating_count: number }> {
+        const response = await apiClient.post(`/venues/${venueId}/rate`, { rating });
+        return response.data;
+    },
 };

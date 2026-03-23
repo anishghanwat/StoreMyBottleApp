@@ -126,6 +126,7 @@ export default function MyBottles() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [expiryDismissed, setExpiryDismissed] = useState(false);
 
   useEffect(() => {
     if (!authService.isAuthenticated()) { navigate("/login", { replace: true }); return; }
@@ -133,8 +134,24 @@ export default function MyBottles() {
   }, [navigate]);
 
   useEffect(() => {
-    const interval = setInterval(() => setCurrentTime(Date.now()), 1000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const start = () => {
+      if (!interval) {
+        interval = setInterval(() => setCurrentTime(Date.now()), 1000);
+      }
+    };
+    const stop = () => {
+      if (interval) { clearInterval(interval); interval = null; }
+    };
+
+    start();
+    const onVisibility = () => document.hidden ? stop() : start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   useEffect(() => {
@@ -167,6 +184,11 @@ export default function MyBottles() {
       setBottles(cur);
       setHistory(hist);
       setPendingPurchases(pending);
+
+      // Mark returning user so BottleDetails hides "How it works"
+      if (cur.length > 0 && !localStorage.getItem('smb_purchased')) {
+        localStorage.setItem('smb_purchased', '1');
+      }
 
       const savedRedemptionId = localStorage.getItem(ACTIVE_REDEMPTION_KEY);
       const savedBottleId = localStorage.getItem(ACTIVE_BOTTLE_KEY);
@@ -236,6 +258,12 @@ export default function MyBottles() {
   const displayed = activeTab === 'current' ? bottles : history;
   const activeBottles = bottles.filter(b => !b.expiresAt || Date.now() <= new Date(b.expiresAt).getTime());
   const expiredBottles = bottles.filter(b => b.expiresAt && Date.now() > new Date(b.expiresAt).getTime());
+
+  // Bottles expiring in ≤3 days that are still active
+  const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+  const expiringSoon = activeBottles.filter(b =>
+    b.expiresAt && new Date(b.expiresAt).getTime() - Date.now() <= THREE_DAYS
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-[#09090F] text-white">
@@ -331,6 +359,29 @@ export default function MyBottles() {
                 </div>
               </div>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Expiry Warning Banner */}
+      {!expiryDismissed && expiringSoon.length > 0 && (
+        <div className="px-5 mb-4">
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-orange-400">
+                {expiringSoon.length === 1
+                  ? `⚠️ "${expiringSoon[0].bottleName}" expires soon — redeem it!`
+                  : `⚠️ ${expiringSoon.length} bottles expiring soon — redeem them!`}
+              </p>
+              <p className="text-xs text-orange-300/70 mt-0.5">
+                {expiringSoon.map(b => {
+                  const daysLeft = Math.ceil((new Date(b.expiresAt).getTime() - Date.now()) / 86400000);
+                  return `${b.bottleName}: ${daysLeft}d left`;
+                }).join(' · ')}
+              </p>
+            </div>
+            <button onClick={() => setExpiryDismissed(true)} className="text-orange-400/60 hover:text-orange-400 text-lg leading-none flex-shrink-0 mt-0.5">×</button>
           </motion.div>
         </div>
       )}
