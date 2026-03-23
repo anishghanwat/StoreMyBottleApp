@@ -192,6 +192,7 @@ def validate_redemption_qr(
     redemption.status = RedemptionStatus.REDEEMED
     redemption.redeemed_at = datetime.now(timezone.utc)
     redemption.redeemed_by_staff_id = current_user.id
+    redemption.remaining_ml_after = purchase.remaining_ml  # snapshot at time of pour
     
     try:
         db.commit()
@@ -294,7 +295,7 @@ def get_redemption_history(
             redeemed_at=redemption.redeemed_at,
             created_at=redemption.created_at,
             bartender_name=staff_map.get(redemption.redeemed_by_staff_id) if redemption.redeemed_by_staff_id else None,
-            remaining_ml_after=purchase.remaining_ml,
+            remaining_ml_after=redemption.remaining_ml_after,
         ))
 
     return RedemptionHistoryList(

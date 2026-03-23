@@ -239,3 +239,24 @@ def send_expiry_warning_email(
         + _p("Unredeemed bottles are forfeited after expiry.", muted=True)
     )
     return _send(email, subject, _wrap("Bottle Expiry Reminder", body))
+
+
+def send_stock_depleted_email(
+    bottle_name: str,
+    bottle_brand: str,
+    venue_name: str,
+) -> bool:
+    """Notify admin when a bottle's stock_count hits 0."""
+    admin_email = settings.RESEND_TEST_EMAIL or settings.VAPID_EMAIL.replace("mailto:", "")
+    body = (
+        _p(f"<strong style='color:#ef4444;'>Stock depleted</strong> — a bottle has sold out and has been automatically marked unavailable.")
+        + _divider()
+        + _label("Bottle")
+        + _value(f"{bottle_brand} — {bottle_name}")
+        + _label("Venue")
+        + _value(venue_name)
+        + _divider()
+        + _p("Log in to the admin panel to restock or update availability.", muted=True)
+        + _btn("Open Admin Panel", f"{settings.FRONTEND_URL or 'https://admin.storemybottle.in'}/bottles")
+    )
+    return _send(admin_email, f"⚠️ Stock Depleted: {bottle_brand} {bottle_name} at {venue_name}", _wrap("Stock Depleted", body))

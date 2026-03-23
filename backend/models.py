@@ -188,6 +188,7 @@ class Redemption(Base):
     redeemed_at = Column(DateTime(timezone=True), nullable=True)
     redeemed_by_staff_id = Column(String(36), nullable=True)  # For future staff tracking
     device_fingerprint = Column(String(255), nullable=True)  # Device binding for security
+    remaining_ml_after = Column(Integer, nullable=True)  # Snapshot of remaining_ml after this pour
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     

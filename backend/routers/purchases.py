@@ -104,6 +104,29 @@ def confirm_purchase(
     
     db.refresh(purchase)
     
+    # Decrement stock_count and notify admin if depleted (non-blocking)
+    try:
+        bottle = purchase.bottle
+        if bottle.stock_count is not None:
+            bottle.stock_count = max(0, bottle.stock_count - 1)
+            if bottle.stock_count == 0:
+                bottle.is_available = False
+                db.commit()
+                try:
+                    from email_service import send_stock_depleted_email
+                    venue = purchase.venue
+                    send_stock_depleted_email(
+                        bottle_name=bottle.name,
+                        bottle_brand=bottle.brand,
+                        venue_name=venue.name,
+                    )
+                except Exception as e:
+                    print(f"Stock depleted email failed: {e}")
+            else:
+                db.commit()
+    except Exception as e:
+        print(f"Stock count update failed: {e}")
+
     # Send purchase confirmation email (non-blocking)
     try:
         from email_service import send_purchase_confirmation_email
@@ -387,6 +410,30 @@ def process_purchase(
         )
     
     db.refresh(purchase)
+
+    # Decrement stock_count and notify admin if depleted (non-blocking)
+    if request.action == "confirm":
+        try:
+            bottle = purchase.bottle
+            if bottle.stock_count is not None:
+                bottle.stock_count = max(0, bottle.stock_count - 1)
+                if bottle.stock_count == 0:
+                    bottle.is_available = False
+                    db.commit()
+                    try:
+                        from email_service import send_stock_depleted_email
+                        venue = purchase.venue
+                        send_stock_depleted_email(
+                            bottle_name=bottle.name,
+                            bottle_brand=bottle.brand,
+                            venue_name=venue.name,
+                        )
+                    except Exception as e:
+                        print(f"Stock depleted email failed: {e}")
+                else:
+                    db.commit()
+        except Exception as e:
+            print(f"Stock count update failed: {e}")
 
     # Send purchase confirmation email when bartender confirms (non-blocking)
     if request.action == "confirm":
