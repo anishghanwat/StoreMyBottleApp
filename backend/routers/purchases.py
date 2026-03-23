@@ -106,25 +106,26 @@ def confirm_purchase(
     
     # Decrement stock_count and notify admin if depleted (non-blocking)
     try:
-        bottle = purchase.bottle
-        if bottle.stock_count is not None:
+        bottle = db.query(Bottle).filter(Bottle.id == purchase.bottle_id).first()
+        if bottle and bottle.stock_count is not None:
             bottle.stock_count = max(0, bottle.stock_count - 1)
             if bottle.stock_count == 0:
                 bottle.is_available = False
                 db.commit()
                 try:
                     from email_service import send_stock_depleted_email
-                    venue = purchase.venue
+                    venue = db.query(Venue).filter(Venue.id == purchase.venue_id).first()
                     send_stock_depleted_email(
                         bottle_name=bottle.name,
                         bottle_brand=bottle.brand,
-                        venue_name=venue.name,
+                        venue_name=venue.name if venue else "Unknown",
                     )
                 except Exception as e:
                     print(f"Stock depleted email failed: {e}")
             else:
                 db.commit()
     except Exception as e:
+        db.rollback()
         print(f"Stock count update failed: {e}")
 
     # Send purchase confirmation email (non-blocking)
@@ -133,23 +134,24 @@ def confirm_purchase(
         from datetime import timedelta
         user = db.query(User).filter(User.id == purchase.user_id).first()
         if user and user.email:
-            bottle = purchase.bottle
-            venue = purchase.venue
+            bottle = db.query(Bottle).filter(Bottle.id == purchase.bottle_id).first()
+            venue = db.query(Venue).filter(Venue.id == purchase.venue_id).first()
             purchase_date = purchase.purchased_at or purchase.created_at
             if purchase_date.tzinfo is None:
                 purchase_date = purchase_date.replace(tzinfo=timezone.utc)
             expires_at = (purchase_date + timedelta(days=30)).strftime("%d %b %Y")
-            send_purchase_confirmation_email(
-                email=user.email,
-                user_name=user.name,
-                bottle_name=bottle.name,
-                bottle_brand=bottle.brand,
-                venue_name=venue.name,
-                amount=str(purchase.purchase_price),
-                volume_ml=purchase.total_ml,
-                expires_at=expires_at,
-                purchase_id=purchase.id,
-            )
+            if bottle and venue:
+                send_purchase_confirmation_email(
+                    email=user.email,
+                    user_name=user.name,
+                    bottle_name=bottle.name,
+                    bottle_brand=bottle.brand,
+                    venue_name=venue.name,
+                    amount=str(purchase.purchase_price),
+                    volume_ml=purchase.total_ml,
+                    expires_at=expires_at,
+                    purchase_id=purchase.id,
+                )
     except Exception as e:
         print(f"Purchase confirmation email failed: {e}")
 
@@ -414,25 +416,26 @@ def process_purchase(
     # Decrement stock_count and notify admin if depleted (non-blocking)
     if request.action == "confirm":
         try:
-            bottle = purchase.bottle
-            if bottle.stock_count is not None:
+            bottle = db.query(Bottle).filter(Bottle.id == purchase.bottle_id).first()
+            if bottle and bottle.stock_count is not None:
                 bottle.stock_count = max(0, bottle.stock_count - 1)
                 if bottle.stock_count == 0:
                     bottle.is_available = False
                     db.commit()
                     try:
                         from email_service import send_stock_depleted_email
-                        venue = purchase.venue
+                        venue = db.query(Venue).filter(Venue.id == purchase.venue_id).first()
                         send_stock_depleted_email(
                             bottle_name=bottle.name,
                             bottle_brand=bottle.brand,
-                            venue_name=venue.name,
+                            venue_name=venue.name if venue else "Unknown",
                         )
                     except Exception as e:
                         print(f"Stock depleted email failed: {e}")
                 else:
                     db.commit()
         except Exception as e:
+            db.rollback()
             print(f"Stock count update failed: {e}")
 
     # Send purchase confirmation email when bartender confirms (non-blocking)
@@ -441,23 +444,24 @@ def process_purchase(
             from email_service import send_purchase_confirmation_email
             user = db.query(User).filter(User.id == purchase.user_id).first()
             if user and user.email:
-                bottle = purchase.bottle
-                venue = purchase.venue
+                bottle = db.query(Bottle).filter(Bottle.id == purchase.bottle_id).first()
+                venue = db.query(Venue).filter(Venue.id == purchase.venue_id).first()
                 purchase_date = purchase.purchased_at or purchase.created_at
                 if purchase_date.tzinfo is None:
                     purchase_date = purchase_date.replace(tzinfo=timezone.utc)
                 expires_at = (purchase_date + timedelta(days=30)).strftime("%d %b %Y")
-                send_purchase_confirmation_email(
-                    email=user.email,
-                    user_name=user.name,
-                    bottle_name=bottle.name,
-                    bottle_brand=bottle.brand,
-                    venue_name=venue.name,
-                    amount=str(purchase.purchase_price),
-                    volume_ml=purchase.total_ml,
-                    expires_at=expires_at,
-                    purchase_id=purchase.id,
-                )
+                if bottle and venue:
+                    send_purchase_confirmation_email(
+                        email=user.email,
+                        user_name=user.name,
+                        bottle_name=bottle.name,
+                        bottle_brand=bottle.brand,
+                        venue_name=venue.name,
+                        amount=str(purchase.purchase_price),
+                        volume_ml=purchase.total_ml,
+                        expires_at=expires_at,
+                        purchase_id=purchase.id,
+                    )
         except Exception as e:
             print(f"Purchase confirmation email failed: {e}")
 
