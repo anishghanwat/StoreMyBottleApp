@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
     
+    # Frontend URL (for CORS)
+    FRONTEND_URL: Optional[str] = None
+
     # CORS Configuration
     CORS_ORIGINS: Optional[str] = None  # Comma-separated list of allowed origins
     
