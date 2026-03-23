@@ -174,10 +174,10 @@ def get_venue_stats(venue_id: str, db: Session = Depends(get_db)):
     # Let's count "served" as redemptions today.
     # Note: Redemption model needs to be imported if we use it.
     from models import Redemption, RedemptionStatus
-    from datetime import datetime, time
-    
-    today_start = datetime.combine(datetime.utcnow().date(), time.min)
-    
+    from datetime import datetime, time, timezone
+
+    today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min, tzinfo=timezone.utc)
+
     served_today = db.query(Redemption).filter(
         Redemption.venue_id == venue_id,
         Redemption.status == RedemptionStatus.REDEEMED,
