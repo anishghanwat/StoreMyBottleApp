@@ -35,13 +35,22 @@ export default function RedemptionHistory() {
     const navigate = useNavigate();
     const [items, setItems] = useState<RedemptionHistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const load = () => {
+        setLoading(true);
+        setError(null);
         redemptionService.getRedemptionHistory()
             .then(setItems)
-            .catch((err) => toast.error(parseApiError(err, "Failed to load redemption history")))
+            .catch((err) => {
+                const msg = parseApiError(err, "Failed to load redemption history");
+                setError(msg);
+                toast.error(msg);
+            })
             .finally(() => setLoading(false));
-    }, []);
+    };
+
+    useEffect(() => { load(); }, []);
 
     return (
         <div className="min-h-screen bg-[#09090F] text-white">
@@ -65,13 +74,27 @@ export default function RedemptionHistory() {
                             <div key={i} className="h-28 bg-white/5 rounded-2xl animate-pulse" />
                         ))}
                     </div>
+                ) : error ? (
+                    <div className="flex flex-col items-center justify-center py-24 text-center">
+                        <p className="text-red-400 text-sm mb-4">{error}</p>
+                        <button onClick={load} className="btn-primary px-6 py-3 rounded-2xl text-sm font-bold text-white">Retry</button>
+                    </div>
                 ) : items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 text-center">
-                        <div className="w-20 h-20 rounded-full bg-[#111118] border border-white/[0.07] flex items-center justify-center mb-5">
-                            <Wine className="w-10 h-10 text-[#2A2A3A]" />
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#1A1A26] to-[#0E0E18] border border-white/[0.08] shadow-xl flex items-center justify-center mb-6 relative">
+                            <div className="absolute inset-0 rounded-full bg-fuchsia-500/10 blur-xl"></div>
+                            <Wine className="w-10 h-10 text-fuchsia-400 relative z-10" strokeWidth={1.5} />
                         </div>
-                        <h3 className="text-lg font-bold mb-2">No redemptions yet</h3>
-                        <p className="text-[#7171A0] text-sm max-w-xs">Your peg redemptions will appear here once you start redeeming.</p>
+                        <h3 className="text-xl font-bold mb-2 text-white">No redemptions yet</h3>
+                        <p className="text-[#7171A0] text-sm mb-8 max-w-[260px] leading-relaxed">
+                            Your peg redemptions will appear here once you start pouring from your bottles.
+                        </p>
+                        <button
+                            onClick={() => navigate("/my-bottles")}
+                            className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 w-full max-w-[200px] py-3.5 rounded-2xl font-bold text-sm text-white transition-colors"
+                        >
+                            View Active Bottles
+                        </button>
                     </div>
                 ) : (
                     <div className="space-y-3 mt-4">

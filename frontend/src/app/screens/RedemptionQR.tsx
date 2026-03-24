@@ -134,7 +134,7 @@ export default function RedemptionQR() {
   const pct = (countdown / 900) * 100;
   const isLow = countdown < 120;
   const circumference = 2 * Math.PI * 54;
-  const afterPour = bottle.remainingMl - redemption.peg_size_ml;
+  const afterPour = Math.max(0, bottle.remainingMl - redemption.peg_size_ml);
 
   /* ── Success State ── */
   if (isRedeemed) {

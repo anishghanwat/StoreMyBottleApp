@@ -56,7 +56,11 @@ function BottleCard({ bottle, index, activeTab }: {
           {isExpired ? (
             <span className="chip chip-inactive text-[10px] h-fit">Expired</span>
           ) : isEmpty ? (
-            <span className="chip chip-inactive text-[10px] h-fit">Empty</span>
+            <span className="text-[10px] bg-white/10 text-[#7171A0] px-2 py-0.5 rounded-full font-semibold h-fit border border-white/10">Empty</span>
+          ) : daysLeft <= 3 && activeTab === 'current' ? (
+            <span className="text-[10px] bg-orange-500/15 text-orange-400 px-2 py-0.5 rounded-full font-semibold h-fit border border-orange-500/20 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {daysLeft === 0 ? 'Today' : `${daysLeft}d left`}
+            </span>
           ) : (
             <span className="chip chip-green text-[10px] h-fit">Active</span>
           )}
@@ -105,9 +109,9 @@ function BottleCard({ bottle, index, activeTab }: {
           </div>
         )}
         {isEmpty && !isExpired && (
-          <div className="flex items-center justify-center gap-2 text-[#4A4A6A] text-xs py-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            Fully redeemed
+          <div className="flex items-center justify-center gap-2 text-[#7171A0] font-medium text-xs py-2 bg-white/[0.03] rounded-xl mt-2 border border-white/[0.05]">
+            <Sparkles className="w-3.5 h-3.5 text-violet-400/50" />
+            Bottle finished
           </div>
         )}
       </div>
@@ -176,6 +180,7 @@ export default function MyBottles() {
   const loadData = async () => {
     try {
       setLoading(true);
+      setExpiryDismissed(false);
       const [cur, hist, pending] = await Promise.all([
         purchaseService.getUserBottles(),
         purchaseService.getPurchaseHistory(),
@@ -448,18 +453,24 @@ export default function MyBottles() {
           )}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
-          <div className="w-20 h-20 rounded-full bg-[#111118] border border-white/[0.07] flex items-center justify-center mb-5">
-            <Wine className="w-10 h-10 text-[#2A2A3A]" />
+        <div className="flex flex-col items-center justify-center px-6 py-24 text-center">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#1A1A26] to-[#0E0E18] border border-white/[0.08] shadow-xl flex items-center justify-center mb-6 relative">
+            <div className="absolute inset-0 rounded-full bg-violet-500/10 blur-xl"></div>
+            <Wine className="w-10 h-10 text-violet-400 relative z-10" strokeWidth={1.5} />
+            <Sparkles className="w-5 h-5 text-fuchsia-400 absolute top-4 right-4 z-10" />
           </div>
-          <h3 className="text-lg font-bold mb-2">
-            {activeTab === 'current' ? 'No active bottles' : 'No purchase history'}
+          <h3 className="text-xl font-bold mb-2 text-white">
+            {activeTab === 'current' ? "Your collection is empty" : "No purchase history"}
           </h3>
-          <p className="text-[#7171A0] text-sm mb-8 max-w-xs">
-            {activeTab === 'current' ? 'Buy your first bottle at a venue and store it here' : 'Your purchase history will appear here'}
+          <p className="text-[#7171A0] text-sm mb-8 max-w-[260px] leading-relaxed">
+            {activeTab === 'current'
+              ? "Buy your first bottle at any of our partner venues and store it securely here."
+              : "Your past purchases and finished bottles will appear here."}
           </p>
           {activeTab === 'current' && (
-            <Link to="/" className="btn-primary px-8 py-3.5 rounded-2xl font-bold text-sm text-white">Browse Venues</Link>
+            <Link to="/" className="btn-primary w-full max-w-[200px] py-3.5 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2">
+              Explore Venues
+            </Link>
           )}
         </div>
       )}

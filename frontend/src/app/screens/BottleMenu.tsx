@@ -85,13 +85,22 @@ export default function BottleMenu() {
         bottle.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         bottle.brand.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Category filter
-      const category = CATEGORIES.find(c => c.id === selectedCategory);
-      const matchesCategory = selectedCategory === "all" ||
-        category?.keywords.some(keyword =>
-          bottle.name.toLowerCase().includes(keyword) ||
-          bottle.brand.toLowerCase().includes(keyword)
+      // Category filter — prefer actual category field, fall back to keyword matching on name/brand
+      const matchesCategory = selectedCategory === "all" || (() => {
+        const category = CATEGORIES.find(c => c.id === selectedCategory);
+        if (!category) return true;
+        // First: check the real category field (case-insensitive)
+        if (bottle.category) {
+          return category.keywords.some(kw =>
+            bottle.category!.toLowerCase().includes(kw)
+          );
+        }
+        // Fallback: keyword match on name/brand for bottles without category set
+        return category.keywords.some(kw =>
+          bottle.name.toLowerCase().includes(kw) ||
+          bottle.brand.toLowerCase().includes(kw)
         );
+      })();
 
       return matchesSearch && matchesCategory;
     });
