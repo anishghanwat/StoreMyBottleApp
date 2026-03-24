@@ -16,6 +16,7 @@ export default function RedemptionHistory() {
     const [redemptions, setRedemptions] = useState<Redemption[]>([]);
     const [filtered, setFiltered] = useState<Redemption[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "redeemed" | "pending" | "expired">("all");
     const [dateFilter, setDateFilter] = useState<"all" | "today" | "week" | "month">("all");
@@ -41,8 +42,16 @@ export default function RedemptionHistory() {
     }, [searchQuery, statusFilter, dateFilter, redemptions]);
 
     const fetchRedemptions = async (venueId: string) => {
-        try { setLoading(true); const data = await redemptionService.getHistory(venueId, 100); setRedemptions(data.redemptions || []); }
-        catch { } finally { setLoading(false); }
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await redemptionService.getHistory(venueId, 100);
+            setRedemptions(data.redemptions || []);
+        } catch {
+            setError("Failed to load redemption history");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleExport = () => {
@@ -139,6 +148,16 @@ export default function RedemptionHistory() {
                 {loading ? (
                     <div className="space-y-3">
                         {[1, 2, 3, 4].map(i => <div key={i} className="bar-skeleton h-20 rounded-2xl" />)}
+                    </div>
+                ) : error ? (
+                    <div className="text-center py-16">
+                        <p className="text-red-400 text-sm mb-4">{error}</p>
+                        <button
+                            onClick={() => bartender?.venue_id && fetchRedemptions(bartender.venue_id)}
+                            className="px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold"
+                        >
+                            Retry
+                        </button>
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="text-center py-16">
