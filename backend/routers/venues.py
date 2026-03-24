@@ -209,7 +209,8 @@ def get_venue_promotions(
         )
     
     # Get active promotions for this venue or global promotions
-    now = datetime.utcnow()
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
     promotions = db.query(Promotion).filter(
         Promotion.status == PromotionStatus.ACTIVE,
         Promotion.valid_from <= now,
