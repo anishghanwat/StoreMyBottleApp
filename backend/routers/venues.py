@@ -96,8 +96,7 @@ def get_venue_bottles(
     )
     
     if category:
-        # If we had categories, filter here. For now, name search?
-        pass
+        query = query.filter(Bottle.category.ilike(f"%{category}%"))
         
     total = query.count()
     bottles = query.offset(skip).limit(limit).all()
