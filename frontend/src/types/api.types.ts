@@ -105,6 +105,7 @@ export interface Profile {
     total_bottles: number;
     total_spent: number;
     total_redemptions: number;
+    total_ml_consumed: number;
 }
 
 // Request types

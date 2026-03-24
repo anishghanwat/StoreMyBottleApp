@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     RESEND_API_KEY: Optional[str] = None
     FROM_EMAIL: str = "onboarding@resend.dev"
     RESEND_TEST_EMAIL: Optional[str] = None  # For testing email delivery
+    ADMIN_EMAIL: Optional[str] = None  # Admin notification email (stock depleted, etc.)
     
     # Cloudinary
     CLOUDINARY_CLOUD_NAME: Optional[str] = None

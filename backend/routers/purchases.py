@@ -218,12 +218,17 @@ def get_my_bottles(
         bottle = purchase.bottle
         venue = purchase.venue
         
-        # Calculate expiry (30 days from purchase)
-        purchase_date = purchase.purchased_at or purchase.created_at
-        # Ensure timezone aware
-        if purchase_date.tzinfo is None:
-            purchase_date = purchase_date.replace(tzinfo=timezone.utc)
-        expires_at = purchase_date + timedelta(days=30)
+        # Use stored expires_at, fall back to calculating from purchased_at
+        if purchase.expires_at:
+            exp = purchase.expires_at
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            expires_at = exp
+        else:
+            purchase_date = purchase.purchased_at or purchase.created_at
+            if purchase_date.tzinfo is None:
+                purchase_date = purchase_date.replace(tzinfo=timezone.utc)
+            expires_at = purchase_date + timedelta(days=30)
 
         user_bottle = UserBottleResponse(
             id=purchase.id,
@@ -284,11 +289,17 @@ def get_purchase_history(
         bottle = purchase.bottle
         venue = purchase.venue
         
-        # Calculate expiry
-        purchase_date = purchase.purchased_at or purchase.created_at
-        if purchase_date.tzinfo is None:
-            purchase_date = purchase_date.replace(tzinfo=timezone.utc)
-        expires_at = purchase_date + timedelta(days=30)
+        # Use stored expires_at, fall back to calculating from purchased_at
+        if purchase.expires_at:
+            exp = purchase.expires_at
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            expires_at = exp
+        else:
+            purchase_date = purchase.purchased_at or purchase.created_at
+            if purchase_date.tzinfo is None:
+                purchase_date = purchase_date.replace(tzinfo=timezone.utc)
+            expires_at = purchase_date + timedelta(days=30)
         
         user_bottle = UserBottleResponse(
             id=purchase.id,

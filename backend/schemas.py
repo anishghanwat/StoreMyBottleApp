@@ -479,6 +479,7 @@ class ProfileResponse(BaseModel):
     total_bottles: int
     total_spent: Decimal
     total_redemptions: int
+    total_ml_consumed: int = 0
 
 
 class ProfileUpdateRequest(BaseModel):

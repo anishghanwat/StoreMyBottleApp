@@ -247,7 +247,11 @@ def send_stock_depleted_email(
     venue_name: str,
 ) -> bool:
     """Notify admin when a bottle's stock_count hits 0."""
-    admin_email = settings.RESEND_TEST_EMAIL or settings.VAPID_EMAIL.replace("mailto:", "")
+    admin_email = (
+        settings.ADMIN_EMAIL
+        or settings.RESEND_TEST_EMAIL
+        or settings.VAPID_EMAIL.replace("mailto:", "")
+    )
     body = (
         _p(f"<strong style='color:#ef4444;'>Stock depleted</strong> — a bottle has sold out and has been automatically marked unavailable.")
         + _divider()

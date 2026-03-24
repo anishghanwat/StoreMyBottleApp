@@ -270,7 +270,7 @@ export default function Profile() {
                     <div className="flex justify-between text-sm py-2">
                         <span className="text-[#7171A0]">Total ml consumed</span>
                         <span className="font-semibold text-violet-400">
-                            {profile.total_redemptions > 0 ? `~${profile.total_redemptions * 45} ml` : '—'}
+                            {profile.total_ml_consumed > 0 ? `${profile.total_ml_consumed} ml` : '—'}
                         </span>
                     </div>
                 </div>

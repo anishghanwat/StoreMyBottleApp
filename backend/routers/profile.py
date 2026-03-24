@@ -47,12 +47,19 @@ def get_profile(
         Redemption.user_id == current_user.id,
         Redemption.status == RedemptionStatus.REDEEMED
     ).count()
+
+    # Sum actual ml consumed from real peg sizes
+    total_ml_consumed = db.query(func.sum(Redemption.peg_size_ml)).filter(
+        Redemption.user_id == current_user.id,
+        Redemption.status == RedemptionStatus.REDEEMED
+    ).scalar() or 0
     
     return ProfileResponse(
         user=UserResponse.model_validate(current_user),
         total_bottles=total_bottles,
         total_spent=total_spent,
-        total_redemptions=total_redemptions
+        total_redemptions=total_redemptions,
+        total_ml_consumed=total_ml_consumed
     )
 
 
