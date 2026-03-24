@@ -38,7 +38,10 @@ export default function Stats() {
             const uniqueCustomers = new Set(todayR.map((r: any) => r.user_name)).size;
             const hourCounts: Record<number, number> = {};
             todayR.forEach((r: any) => { const h = new Date(r.redeemed_at || r.created_at).getHours(); hourCounts[h] = (hourCounts[h] || 0) + 1; });
-            const peakHour = Object.keys(hourCounts).reduce((a, b) => hourCounts[+a] > hourCounts[+b] ? a : b, "0");
+            const keys = Object.keys(hourCounts);
+            const peakHour = keys.length > 0
+                ? keys.reduce((a, b) => hourCounts[+a] > hourCounts[+b] ? a : b)
+                : null;
             setStats({ ...statsData, total_customers_today: uniqueCustomers, peak_hour: peakHour ? `${peakHour}:00` : "N/A" });
             setRecentActivity(redemptions.slice(0, 5));
         } catch { }
