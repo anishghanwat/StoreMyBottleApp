@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router";
-import { ArrowLeft, Mail, Lock, User, Loader2, Wine, AlertCircle, Check, X, Clock } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, Loader2, Wine, AlertCircle, Check, X, Clock, Eye, EyeOff } from "lucide-react";
 import { authService } from "../../services/auth.service";
 import { motion } from "motion/react";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ export default function Login() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [dob, setDob] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
 
@@ -421,7 +422,7 @@ export default function Login() {
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A4A6A]" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -432,9 +433,17 @@ export default function Login() {
                 placeholder="Password"
                 required
                 minLength={8}
-                className={`input-nightlife w-full py-4 pl-11 pr-4 ${fieldErrors.password ? "border-red-500/50 focus:border-red-500" : ""
+                className={`input-nightlife w-full py-4 pl-11 pr-11 ${fieldErrors.password ? "border-red-500/50 focus:border-red-500" : ""
                   }`}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4A4A6A] hover:text-[#7171A0] transition-colors"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
             {fieldErrors.password && (
               <motion.p
