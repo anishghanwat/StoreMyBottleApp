@@ -184,6 +184,7 @@ def get_bottles(
             volume_ml=bottle.volume_ml,
             image_url=bottle.image_url,
             is_available=bottle.is_available,
+            stock_count=bottle.stock_count,
             created_at=bottle.created_at
         ))
     
@@ -207,6 +208,7 @@ def get_bottle(bottle_id: str, db: Session = Depends(get_db)):
         volume_ml=bottle.volume_ml,
         image_url=bottle.image_url,
         is_available=bottle.is_available,
+        stock_count=bottle.stock_count,
         created_at=bottle.created_at
     )
 
@@ -284,6 +286,7 @@ def update_bottle(
         volume_ml=bottle.volume_ml,
         image_url=bottle.image_url,
         is_available=bottle.is_available,
+        stock_count=bottle.stock_count,
         created_at=bottle.created_at
     )
 

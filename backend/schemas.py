@@ -150,6 +150,7 @@ class BottleAdminResponse(BaseModel):
     volume_ml: int
     image_url: Optional[str] = None
     is_available: bool
+    stock_count: Optional[int] = None
     created_at: datetime
     
     class Config:
