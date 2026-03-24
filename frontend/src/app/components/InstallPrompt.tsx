@@ -47,7 +47,7 @@ export function InstallPrompt() {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 100, opacity: 0 }}
                     transition={{ type: 'spring', damping: 20, stiffness: 200 }}
-                    className="fixed bottom-20 left-4 right-4 z-50 bg-[#13131F] border border-violet-500/30 rounded-2xl p-4 shadow-2xl shadow-violet-500/10"
+                    className="fixed bottom-24 left-4 right-4 z-50 bg-[#13131F] border border-violet-500/30 rounded-2xl p-4 shadow-2xl shadow-violet-500/10 max-w-sm mx-auto"
                 >
                     <button
                         onClick={handleDismiss}

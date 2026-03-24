@@ -158,60 +158,62 @@ export default function PaymentSuccess() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm px-4 pb-8"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
             onClick={() => { setShowRating(false); maybeShowPushPrompt(); }}
           >
-            <motion.div
-              initial={{ y: 80, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
-              transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm bg-[#111118] border border-white/[0.08] rounded-3xl p-6 text-center"
-            >
-              {ratingSubmitted ? (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="py-2"
-                >
-                  <p className="text-2xl mb-1">🙏</p>
-                  <p className="font-bold text-white">Thanks for rating!</p>
-                  <p className="text-[#7171A0] text-sm mt-1">Your feedback helps others</p>
-                </motion.div>
-              ) : (
-                <>
-                  <p className="text-[11px] text-violet-400 font-semibold uppercase tracking-wider mb-1">Quick question</p>
-                  <h3 className="font-bold text-white text-lg mb-1">How's {venue.name}?</h3>
-                  <p className="text-[#7171A0] text-sm mb-5">Rate your experience at this venue</p>
-                  <div className="flex justify-center gap-3 mb-4">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onMouseEnter={() => setHoverStar(star)}
-                        onMouseLeave={() => setHoverStar(0)}
-                        onClick={() => handleRatingSubmit(star)}
-                        className="transition-transform active:scale-90"
-                      >
-                        <Star
-                          className={`w-9 h-9 transition-colors duration-150 ${star <= (hoverStar || selectedStar)
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-white/20"
-                            }`}
-                          strokeWidth={1.5}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => { setShowRating(false); maybeShowPushPrompt(); }}
-                    className="text-[#4A4A6A] text-xs hover:text-[#7171A0] transition-colors"
+            <div className="w-full max-w-[390px] px-4 pb-safe">
+              <motion.div
+                initial={{ y: 80, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 80, opacity: 0 }}
+                transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full bg-[#111118] border border-white/[0.08] rounded-3xl p-6 pb-8 text-center mb-4"
+              >
+                {ratingSubmitted ? (
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="py-2"
                   >
-                    Skip for now
-                  </button>
-                </>
-              )}
-            </motion.div>
+                    <p className="text-2xl mb-1">🙏</p>
+                    <p className="font-bold text-white">Thanks for rating!</p>
+                    <p className="text-[#7171A0] text-sm mt-1">Your feedback helps others</p>
+                  </motion.div>
+                ) : (
+                  <>
+                    <p className="text-[11px] text-violet-400 font-semibold uppercase tracking-wider mb-1">Quick question</p>
+                    <h3 className="font-bold text-white text-lg mb-1">How's {venue.name}?</h3>
+                    <p className="text-[#7171A0] text-sm mb-5">Rate your experience at this venue</p>
+                    <div className="flex justify-center gap-3 mb-4">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onMouseEnter={() => setHoverStar(star)}
+                          onMouseLeave={() => setHoverStar(0)}
+                          onClick={() => handleRatingSubmit(star)}
+                          className="transition-transform active:scale-90"
+                        >
+                          <Star
+                            className={`w-9 h-9 transition-colors duration-150 ${star <= (hoverStar || selectedStar)
+                              ? "fill-amber-400 text-amber-400"
+                              : "text-white/20"
+                              }`}
+                            strokeWidth={1.5}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => { setShowRating(false); maybeShowPushPrompt(); }}
+                      className="text-[#4A4A6A] text-xs hover:text-[#7171A0] transition-colors"
+                    >
+                      Skip for now
+                    </button>
+                  </>
+                )}
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -223,36 +225,38 @@ export default function PaymentSuccess() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm px-4 pb-8"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
             onClick={handleDismissPush}
           >
-            <motion.div
-              initial={{ y: 80, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
-              transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm bg-[#111118] border border-white/[0.08] rounded-3xl p-6 text-center"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center mx-auto mb-4">
-                <Bell className="w-6 h-6 text-violet-400" strokeWidth={1.5} />
-              </div>
-              <h3 className="font-bold text-white text-lg mb-1">Get expiry reminders</h3>
-              <p className="text-[#7171A0] text-sm mb-6">We'll notify you 7 days and 1 day before your bottle expires so you never lose a drop.</p>
-              <button
-                onClick={handleEnablePush}
-                disabled={pushSubscribing}
-                className="btn-primary w-full py-3.5 rounded-2xl font-bold text-base text-white mb-3 disabled:opacity-60"
+            <div className="w-full max-w-[390px] px-4 pb-safe">
+              <motion.div
+                initial={{ y: 80, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 80, opacity: 0 }}
+                transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full bg-[#111118] border border-white/[0.08] rounded-3xl p-6 pb-8 text-center mb-4"
               >
-                {pushSubscribing ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Enable Notifications"}
-              </button>
-              <button
-                onClick={handleDismissPush}
-                className="text-[#4A4A6A] text-xs hover:text-[#7171A0] transition-colors"
-              >
-                Maybe later
-              </button>
-            </motion.div>
+                <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center mx-auto mb-4">
+                  <Bell className="w-6 h-6 text-violet-400" strokeWidth={1.5} />
+                </div>
+                <h3 className="font-bold text-white text-lg mb-1">Get expiry reminders</h3>
+                <p className="text-[#7171A0] text-sm mb-6">We'll notify you 7 days and 1 day before your bottle expires so you never lose a drop.</p>
+                <button
+                  onClick={handleEnablePush}
+                  disabled={pushSubscribing}
+                  className="btn-primary w-full py-3.5 rounded-2xl font-bold text-base text-white mb-3 disabled:opacity-60"
+                >
+                  {pushSubscribing ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Enable Notifications"}
+                </button>
+                <button
+                  onClick={handleDismissPush}
+                  className="text-[#4A4A6A] text-xs hover:text-[#7171A0] transition-colors"
+                >
+                  Maybe later
+                </button>
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -332,29 +332,32 @@ export default function Payment() {
 
       {/* Cancel confirmation bottom sheet */}
       {showCancelSheet && (
-        <div className="fixed inset-0 z-50 flex items-end" onClick={() => setShowCancelSheet(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowCancelSheet(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div
-            className="relative w-full bg-[#111118] border-t border-white/[0.08] rounded-t-3xl px-5 pt-5 pb-10 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mb-2" />
-            <h3 className="text-lg font-bold text-white">Cancel Purchase?</h3>
-            <p className="text-sm text-[#7171A0] leading-relaxed">
-              This will cancel the pending purchase and release the reservation. You can always buy again anytime.
-            </p>
-            <button
-              onClick={confirmCancel}
-              className="w-full py-4 rounded-2xl font-bold text-base bg-red-500/10 border border-red-500/30 text-red-400"
+          <div className="w-full max-w-[390px]">
+            <div
+              className="relative w-full bg-[#111118] border-t border-white/[0.08] rounded-t-3xl px-5 pt-5 space-y-3"
+              style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom, 2.5rem))' }}
+              onClick={(e) => e.stopPropagation()}
             >
-              Yes, Cancel Purchase
-            </button>
-            <button
-              onClick={() => setShowCancelSheet(false)}
-              className="w-full py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white shadow-lg shadow-fuchsia-500/30"
-            >
-              Keep it
-            </button>
+              <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mb-2" />
+              <h3 className="text-lg font-bold text-white">Cancel Purchase?</h3>
+              <p className="text-sm text-[#7171A0] leading-relaxed">
+                This will cancel the pending purchase and release the reservation. You can always buy again anytime.
+              </p>
+              <button
+                onClick={confirmCancel}
+                className="w-full py-4 rounded-2xl font-bold text-base bg-red-500/10 border border-red-500/30 text-red-400"
+              >
+                Yes, Cancel Purchase
+              </button>
+              <button
+                onClick={() => setShowCancelSheet(false)}
+                className="w-full py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white shadow-lg shadow-fuchsia-500/30"
+              >
+                Keep it
+              </button>
+            </div>
           </div>
         </div>
       )}

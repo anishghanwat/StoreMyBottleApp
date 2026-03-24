@@ -283,7 +283,16 @@ body {
   display: inline-block;
 }
 
-/* ── Scrollbar ── */
+/* ── Safe area padding utilities ── */
+.pb-safe {
+  padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
+}
+
+.pb-safe-nav {
+  padding-bottom: max(5rem, calc(4rem + env(safe-area-inset-bottom, 0px)));
+}
+
+
 ::-webkit-scrollbar {
   width: 0;
 }
