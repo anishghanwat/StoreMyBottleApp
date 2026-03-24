@@ -1,6 +1,6 @@
-import { ArrowLeft, Lock, Smartphone, LogOut, ExternalLink } from "lucide-react";
+import { ArrowLeft, Smartphone, LogOut, ExternalLink } from "lucide-react";
 import { useNavigate, Link } from "react-router";
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect } from "react";
 import apiClient from "../../services/api";
 import { authService } from "../../services/auth.service";
 import { toast } from "sonner";
@@ -21,12 +21,6 @@ export default function PrivacySecurityPage() {
     const [loadingSessions, setLoadingSessions] = useState(true);
     const [loggingOutAll, setLoggingOutAll] = useState(false);
 
-    // Change password state
-    const [currentPassword, setCurrentPassword] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [changingPassword, setChangingPassword] = useState(false);
-
     useEffect(() => {
         loadSessions();
     }, []);
@@ -39,28 +33,6 @@ export default function PrivacySecurityPage() {
             // sessions endpoint may not exist yet — fail silently
         } finally {
             setLoadingSessions(false);
-        }
-    };
-
-    const handleChangePassword = async (e: FormEvent) => {
-        e.preventDefault();
-        if (newPassword !== confirmPassword) {
-            toast.error("Passwords don't match");
-            return;
-        }
-        if (newPassword.length < 8) {
-            toast.error("Password must be at least 8 characters");
-            return;
-        }
-        try {
-            setChangingPassword(true);
-            await apiClient.post("/auth/change-password", { current_password: currentPassword, new_password: newPassword });
-            toast.success("Password changed successfully");
-            setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
-        } catch (err: any) {
-            toast.error(parseApiError(err, "Failed to change password"));
-        } finally {
-            setChangingPassword(false);
         }
     };
 
@@ -88,49 +60,6 @@ export default function PrivacySecurityPage() {
             </div>
 
             <div className="px-5 pb-16 space-y-4">
-
-                {/* Change Password */}
-                <div className="card-surface p-4">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 bg-violet-500/10 rounded-xl flex items-center justify-center">
-                            <Lock className="w-4 h-4 text-violet-400" />
-                        </div>
-                        <p className="text-sm font-semibold">Change Password</p>
-                    </div>
-                    <form onSubmit={handleChangePassword} className="space-y-3">
-                        <input
-                            type="password"
-                            placeholder="Current password"
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            required
-                            className="w-full bg-[#1A1A26] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-violet-500 transition-colors placeholder:text-[#4A4A6A]"
-                        />
-                        <input
-                            type="password"
-                            placeholder="New password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            required
-                            className="w-full bg-[#1A1A26] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-violet-500 transition-colors placeholder:text-[#4A4A6A]"
-                        />
-                        <input
-                            type="password"
-                            placeholder="Confirm new password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                            className="w-full bg-[#1A1A26] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-violet-500 transition-colors placeholder:text-[#4A4A6A]"
-                        />
-                        <button
-                            type="submit"
-                            disabled={changingPassword}
-                            className="w-full bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white rounded-xl py-2.5 text-sm font-bold disabled:opacity-60"
-                        >
-                            {changingPassword ? "Updating..." : "Update Password"}
-                        </button>
-                    </form>
-                </div>
 
                 {/* Active Sessions */}
                 <div className="card-surface p-4">
