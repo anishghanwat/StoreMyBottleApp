@@ -225,7 +225,7 @@ def get_venue_promotions(
             "code": promo.code,
             "description": promo.description,
             "discount_type": promo.type.value,
-            "discount_value": promo.discount_value,
+            "discount_value": promo.value,
             "valid_from": promo.valid_from.isoformat(),
             "valid_until": promo.valid_until.isoformat(),
             "venue_id": promo.venue_id
