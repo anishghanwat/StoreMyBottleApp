@@ -47,9 +47,18 @@ export default function Profile() {
     };
 
     const handleUpdateProfile = async () => {
+        const trimmed = editName.trim();
+        if (trimmed.length < 2) {
+            toast.error("Name must be at least 2 characters");
+            return;
+        }
+        if (trimmed.length > 50) {
+            toast.error("Name must be 50 characters or less");
+            return;
+        }
         try {
             setSaving(true);
-            const updatedUser = await profileService.updateProfile({ name: editName, email: editEmail });
+            const updatedUser = await profileService.updateProfile({ name: trimmed });
             if (profile) setProfile({ ...profile, user: updatedUser });
             setIsEditing(false);
             toast.success("Profile updated successfully!");
@@ -190,30 +199,34 @@ export default function Profile() {
                         <div className="flex-1 min-w-0">
                             {isEditing ? (
                                 <div className="space-y-2.5">
-                                    <input
-                                        type="text"
-                                        value={editName}
-                                        onChange={(e) => setEditName(e.target.value)}
-                                        className="w-full bg-[#1A1A26] border border-white/[0.08] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500 transition-colors"
-                                        placeholder="Your Name"
-                                    />
-                                    <input
-                                        type="email"
-                                        value={editEmail}
-                                        onChange={(e) => setEditEmail(e.target.value)}
-                                        className="w-full bg-[#1A1A26] border border-white/[0.08] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500 transition-colors"
-                                        placeholder="Email Address"
-                                    />
+                                    <div>
+                                        <input
+                                            type="text"
+                                            value={editName}
+                                            onChange={(e) => setEditName(e.target.value)}
+                                            className="w-full bg-[#1A1A26] border border-white/[0.08] rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500 transition-colors"
+                                            placeholder="Your Name"
+                                            maxLength={50}
+                                        />
+                                        {editName.trim().length > 0 && editName.trim().length < 2 && (
+                                            <p className="text-red-400 text-xs mt-1 px-1">Name must be at least 2 characters</p>
+                                        )}
+                                    </div>
+                                    {/* Email is read-only */}
+                                    <div className="w-full bg-[#111118] border border-white/[0.05] rounded-xl px-3 py-2 text-[#4A4A6A] text-sm flex items-center gap-2 cursor-not-allowed">
+                                        <span className="flex-1 truncate">{profile.user.email || profile.user.phone}</span>
+                                        <span className="text-[10px] bg-white/[0.06] px-1.5 py-0.5 rounded-full text-[#4A4A6A] flex-shrink-0">locked</span>
+                                    </div>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={handleUpdateProfile}
-                                            disabled={saving}
-                                            className="flex-1 bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white rounded-xl py-2 text-sm font-bold flex items-center justify-center gap-1"
+                                            disabled={saving || editName.trim().length < 2}
+                                            className="flex-1 bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white rounded-xl py-2 text-sm font-bold flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                                         >
                                             {saving ? "Saving..." : <><Check className="w-3.5 h-3.5" /> Save</>}
                                         </button>
                                         <button
-                                            onClick={() => setIsEditing(false)}
+                                            onClick={() => { setIsEditing(false); setEditName(profile.user.name); }}
                                             disabled={saving}
                                             className="flex-1 bg-white/[0.06] text-[#7171A0] rounded-xl py-2 text-sm font-bold flex items-center justify-center gap-1"
                                         >
