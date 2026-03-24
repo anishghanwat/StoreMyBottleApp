@@ -8,6 +8,7 @@ interface Bottle {
     id: string; brand: string; name: string;
     price: number; volume_ml: number;
     image_url: string | null; is_available: boolean;
+    stock_count: number | null;
 }
 
 export default function Inventory() {
@@ -142,6 +143,16 @@ export default function Inventory() {
                                     <div className="flex items-center gap-3 mt-2">
                                         <span className="text-sm font-black text-[#F5C518]">₹{bottle.price.toLocaleString()}</span>
                                         <span className="text-xs text-[#6B6B9A]">{bottle.volume_ml}ml</span>
+                                        {bottle.stock_count != null && (
+                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${bottle.stock_count === 0
+                                                    ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                                    : bottle.stock_count <= 3
+                                                        ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                                        : "bg-white/[0.04] border-white/[0.06] text-[#6B6B9A]"
+                                                }`}>
+                                                {bottle.stock_count} in stock
+                                            </span>
+                                        )}
                                         <span className={bottle.is_available ? "chip-confirmed" : "chip-rejected"}>
                                             {bottle.is_available ? "Available" : "Unavailable"}
                                         </span>

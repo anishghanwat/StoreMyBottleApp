@@ -139,7 +139,7 @@ def confirm_purchase(
             purchase_date = purchase.purchased_at or purchase.created_at
             if purchase_date.tzinfo is None:
                 purchase_date = purchase_date.replace(tzinfo=timezone.utc)
-            expires_at = (purchase_date + timedelta(days=30)).strftime("%d %b %Y")
+            expires_at = (purchase.expires_at or (purchase_date + timedelta(days=30))).strftime("%d %b %Y")
             if bottle and venue:
                 send_purchase_confirmation_email(
                     email=user.email,
@@ -460,7 +460,7 @@ def process_purchase(
                 purchase_date = purchase.purchased_at or purchase.created_at
                 if purchase_date.tzinfo is None:
                     purchase_date = purchase_date.replace(tzinfo=timezone.utc)
-                expires_at = (purchase_date + timedelta(days=30)).strftime("%d %b %Y")
+                expires_at = (purchase.expires_at or (purchase_date + timedelta(days=30))).strftime("%d %b %Y")
                 if bottle and venue:
                     send_purchase_confirmation_email(
                         email=user.email,
