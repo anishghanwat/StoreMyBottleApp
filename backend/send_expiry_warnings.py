@@ -1,12 +1,9 @@
 """
 Expiry warning cron job.
-Sends email reminders to users whose bottles expire in ~7 days or ~1 day.
+Sends email and push reminders to users whose bottles expire in ~7 days, ~3 days, or ~1 day.
 
 Run daily at 9am via cron inside the backend container:
   docker exec storemybottle_backend_prod python send_expiry_warnings.py
-
-Or set up on EC2:
-  0 9 * * * docker exec storemybottle_backend_prod python send_expiry_warnings.py >> /var/log/expiry_warnings.log 2>&1
 """
 import sys
 import os

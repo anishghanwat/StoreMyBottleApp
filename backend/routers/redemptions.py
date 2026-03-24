@@ -50,13 +50,17 @@ def generate_redemption_qr(
         )
     
     
-    # Check if bottle is expired (30 days)
-    purchase_date = purchase.purchased_at or purchase.created_at
-    if purchase_date.tzinfo is None:
-        purchase_date = purchase_date.replace(tzinfo=timezone.utc)
-        
-    bottle_expiry = purchase_date + timedelta(days=30)
-    
+    # Check if bottle is expired — prefer stored expires_at, fall back to purchased_at + 30d
+    if purchase.expires_at:
+        bottle_expiry = purchase.expires_at
+        if bottle_expiry.tzinfo is None:
+            bottle_expiry = bottle_expiry.replace(tzinfo=timezone.utc)
+    else:
+        purchase_date = purchase.purchased_at or purchase.created_at
+        if purchase_date.tzinfo is None:
+            purchase_date = purchase_date.replace(tzinfo=timezone.utc)
+        bottle_expiry = purchase_date + timedelta(days=30)
+
     if datetime.now(timezone.utc) > bottle_expiry:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -321,6 +325,12 @@ def get_venue_full_history(
             pass
     redemptions = query.order_by(Redemption.created_at.desc()).limit(limit).all()
 
+    staff_ids = [r.redeemed_by_staff_id for r in redemptions if r.redeemed_by_staff_id]
+    staff_map: dict = {}
+    if staff_ids:
+        staff_users = db.query(User).filter(User.id.in_(staff_ids)).all()
+        staff_map = {u.id: u.name for u in staff_users}
+
     history_items = []
     for redemption in redemptions:
         purchase = redemption.purchase
@@ -336,7 +346,9 @@ def get_venue_full_history(
             status=redemption.status,
             redeemed_at=redemption.redeemed_at,
             created_at=redemption.created_at,
-            user_name=user.name
+            user_name=user.name,
+            bartender_name=staff_map.get(redemption.redeemed_by_staff_id) if redemption.redeemed_by_staff_id else None,
+            remaining_ml_after=redemption.remaining_ml_after,
         ))
 
     return RedemptionHistoryList(redemptions=history_items, total=len(history_items))
