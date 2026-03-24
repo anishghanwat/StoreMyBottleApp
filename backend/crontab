@@ -1,2 +1,2 @@
 # Send expiry warning emails daily at 9:00 AM UTC
-0 9 * * * cd /app && python send_expiry_warnings.py >> /var/log/app/expiry_warnings.log 2>&1
+0 9 * * * cd /app && python send_expiry_warnings.py
