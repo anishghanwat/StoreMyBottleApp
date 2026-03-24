@@ -92,16 +92,27 @@ export default function BartenderHome() {
   };
 
   const handleConfirm = async (id: string) => {
-    setRequests(c => c.map(r => r.id === id ? { ...r, status: "confirmed" } : r));
     if (navigator.vibrate) navigator.vibrate(50);
-    try { await purchaseService.process(id, "confirm"); setTimeout(fetchRequests, 2000); }
-    catch { fetchRequests(); }
+    try {
+      await purchaseService.process(id, "confirm");
+      setRequests(c => c.map(r => r.id === id ? { ...r, status: "confirmed" } : r));
+      setTimeout(fetchRequests, 2000);
+    } catch {
+      toast.error("Failed to confirm request");
+      fetchRequests();
+    }
   };
 
   const handleReject = async (id: string) => {
     if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-    try { await purchaseService.process(id, "reject"); fetchRequests(); }
-    catch { fetchRequests(); }
+    try {
+      await purchaseService.process(id, "reject");
+      setRequests(c => c.map(r => r.id === id ? { ...r, status: "rejected" } : r));
+      setTimeout(fetchRequests, 1000);
+    } catch {
+      toast.error("Failed to reject request");
+      fetchRequests();
+    }
   };
 
   const handleLogout = async () => {
