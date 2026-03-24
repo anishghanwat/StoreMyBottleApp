@@ -133,7 +133,8 @@ export default function ForgotPassword() {
                         {/* Success message */}
                         <h1 className="text-2xl font-black tracking-tight mb-2">Check Your Email</h1>
                         <p className="text-[#7171A0] text-sm mb-8">
-                            If <span className="text-white font-medium">{email}</span> is registered, you'll receive reset instructions shortly.
+                            We've sent password reset instructions to{" "}
+                            <span className="text-white font-medium">{email}</span>
                         </p>
 
                         {/* Instructions */}

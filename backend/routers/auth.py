@@ -506,12 +506,11 @@ def forgot_password(request_data: ForgotPasswordRequest, request: Request, db: S
     # Find user by email
     user = db.query(User).filter(User.email == request_data.email).first()
     
-    # Always return success (don't reveal if email exists)
     if not user:
-        return {
-            "message": "If an account exists with this email, you will receive a password reset link.",
-            "success": True
-        }
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No account found with that email address"
+        )
     
     # Create reset token
     token = create_password_reset_token(db, user.id)
