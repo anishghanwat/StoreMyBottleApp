@@ -19,6 +19,7 @@ export default function Inventory() {
     const [searchQuery, setSearchQuery] = useState("");
     const [avFilter, setAvFilter] = useState<"all" | "available" | "unavailable">("all");
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const stored = localStorage.getItem("bartender");
@@ -37,8 +38,16 @@ export default function Inventory() {
     }, [searchQuery, avFilter, bottles]);
 
     const fetchBottles = async (venueId: string) => {
-        try { setLoading(true); const data = await venueService.getBottles(venueId); setBottles(data.bottles || []); }
-        catch { } finally { setLoading(false); }
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await venueService.getBottles(venueId);
+            setBottles(data.bottles || []);
+        } catch {
+            setError("Failed to load inventory");
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (!bartender) return null;
@@ -101,6 +110,16 @@ export default function Inventory() {
                     <div className="space-y-3">
                         {[1, 2, 3, 4].map(i => <div key={i} className="bar-skeleton h-20 rounded-2xl" />)}
                     </div>
+                ) : error ? (
+                    <div className="text-center py-16">
+                        <p className="text-red-400 text-sm mb-4">{error}</p>
+                        <button
+                            onClick={() => bartender?.venue_id && fetchBottles(bartender.venue_id)}
+                            className="px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold"
+                        >
+                            Retry
+                        </button>
+                    </div>
                 ) : filtered.length === 0 ? (
                     <div className="text-center py-16">
                         <div className="w-14 h-14 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4">
@@ -145,10 +164,10 @@ export default function Inventory() {
                                         <span className="text-xs text-[#6B6B9A]">{bottle.volume_ml}ml</span>
                                         {bottle.stock_count != null && (
                                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${bottle.stock_count === 0
-                                                    ? "bg-red-500/10 border-red-500/20 text-red-400"
-                                                    : bottle.stock_count <= 3
-                                                        ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                                                        : "bg-white/[0.04] border-white/[0.06] text-[#6B6B9A]"
+                                                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                                : bottle.stock_count <= 3
+                                                    ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                                    : "bg-white/[0.04] border-white/[0.06] text-[#6B6B9A]"
                                                 }`}>
                                                 {bottle.stock_count} in stock
                                             </span>
