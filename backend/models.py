@@ -135,6 +135,8 @@ class Bottle(Base):
     image_url = Column(String(1000), nullable=True)
     is_available = Column(Boolean, default=True, nullable=False)
     stock_count = Column(Integer, nullable=True)  # null = untracked; 0 = out of stock
+    category = Column(String(100), nullable=True)   # e.g. "Whisky", "Vodka", "Rum"
+    description = Column(String(1000), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     

@@ -100,6 +100,8 @@ class BottleBase(BaseModel):
     price: Decimal
     volume_ml: int
     image_url: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
 
 
 class BottleCreate(BottleBase):
@@ -151,6 +153,8 @@ class BottleAdminResponse(BaseModel):
     image_url: Optional[str] = None
     is_available: bool
     stock_count: Optional[int] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -167,6 +171,8 @@ class BottleUpdate(BaseModel):
     image_url: Optional[str] = None
     is_available: Optional[bool] = None
     stock_count: Optional[int] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
     
     class Config:
         populate_by_name = True

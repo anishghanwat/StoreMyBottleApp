@@ -185,6 +185,8 @@ def get_bottles(
             image_url=bottle.image_url,
             is_available=bottle.is_available,
             stock_count=bottle.stock_count,
+            category=bottle.category,
+            description=bottle.description,
             created_at=bottle.created_at
         ))
     
@@ -209,6 +211,8 @@ def get_bottle(bottle_id: str, db: Session = Depends(get_db)):
         image_url=bottle.image_url,
         is_available=bottle.is_available,
         stock_count=bottle.stock_count,
+        category=bottle.category,
+        description=bottle.description,
         created_at=bottle.created_at
     )
 
@@ -228,7 +232,9 @@ def create_bottle(bottle: BottleCreate, db: Session = Depends(get_db), current_u
         volume_ml=bottle.volume_ml,
         venue_id=bottle.venue_id,
         image_url=bottle.image_url,
-        is_available=bottle.is_available
+        is_available=bottle.is_available,
+        category=bottle.category,
+        description=bottle.description,
     )
     db.add(db_bottle)
     db.commit()
@@ -287,6 +293,8 @@ def update_bottle(
         image_url=bottle.image_url,
         is_available=bottle.is_available,
         stock_count=bottle.stock_count,
+        category=bottle.category,
+        description=bottle.description,
         created_at=bottle.created_at
     )
 
@@ -2716,3 +2724,4 @@ def delete_system_setting(setting_key: str, db: Session = Depends(get_db)):
     db.commit()
     
     return {"message": "Setting deleted successfully"}
+

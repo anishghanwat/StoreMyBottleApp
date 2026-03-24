@@ -36,6 +36,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 import { adminService } from "@/services/api"
 import { ImageUpload } from "@/components/ui/image-upload"
 import { parseApiError } from "@/utils/parseApiError"
@@ -63,6 +64,8 @@ export function Bottles() {
     price: "",
     ml: "",
     stock_count: "",
+    category: "",
+    description: "",
     image_url: "",
     is_available: true
   })
@@ -102,6 +105,8 @@ export function Bottles() {
       price: "",
       ml: "",
       stock_count: "",
+      category: "",
+      description: "",
       image_url: "",
       is_available: true
     })
@@ -117,6 +122,8 @@ export function Bottles() {
       price: bottle.price.toString(),
       ml: bottle.volume_ml.toString(),
       stock_count: bottle.stock_count != null ? bottle.stock_count.toString() : "",
+      category: bottle.category || "",
+      description: bottle.description || "",
       image_url: bottle.image_url || "",
       is_available: bottle.is_available
     })
@@ -212,6 +219,8 @@ export function Bottles() {
         price: price,
         volume_ml: volume,
         stock_count: stockCount,
+        category: formData.category.trim() || null,
+        description: formData.description.trim() || null,
         image_url: formData.image_url && formData.image_url.trim().length > 0 ? formData.image_url.trim() : null,
         is_available: formData.is_available
       }
@@ -436,9 +445,29 @@ export function Bottles() {
                 className="col-span-3"
               />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="category" className="text-right">Category</Label>
+              <Input
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="e.g. Whisky, Vodka, Rum"
+                className="col-span-3"
+              />
+            </div>
             <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">Image</Label>
-              <div className="col-span-3">
+              <Label htmlFor="description" className="text-right pt-2">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Optional tasting notes or description"
+                className="col-span-3 resize-none"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right pt-2">Image</Label>              <div className="col-span-3">
                 <ImageUpload
                   value={formData.image_url}
                   onChange={(url) => setFormData({ ...formData, image_url: url })}

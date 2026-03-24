@@ -228,6 +228,8 @@ async def startup_event():
                 "ALTER TABLE purchases ADD COLUMN warning_3d_sent BOOLEAN NOT NULL DEFAULT FALSE",
                 "ALTER TABLE bottles ADD COLUMN stock_count INT NULL",
                 "ALTER TABLE redemptions ADD COLUMN remaining_ml_after INT NULL",
+                "ALTER TABLE bottles ADD COLUMN category VARCHAR(100) NULL",
+                "ALTER TABLE bottles ADD COLUMN description VARCHAR(1000) NULL",
                 # push_subscriptions may have been created with wrong column types — recreate if missing
                 """CREATE TABLE IF NOT EXISTS push_subscriptions (
                     id VARCHAR(36) NOT NULL PRIMARY KEY,

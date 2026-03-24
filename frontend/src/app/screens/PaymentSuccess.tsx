@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { CheckCircle2, Loader2, Star } from "lucide-react";
+import { CheckCircle2, Loader2, Star, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Bottle, Venue, Purchase } from "../../types/api.types";
 import { venueService } from "../../services/venue.service";
+import { subscribeToPush, isPushSubscribed } from "../../services/push.service";
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ export default function PaymentSuccess() {
   const [hoverStar, setHoverStar] = useState(0);
   const [selectedStar, setSelectedStar] = useState(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
+  const [pushSubscribing, setPushSubscribing] = useState(false);
 
   useEffect(() => {
     if (!bottle || !venue) {
@@ -34,7 +37,29 @@ export default function PaymentSuccess() {
       await venueService.rateVenue(venue!.id, star);
     } catch { /* silent — rating is non-critical */ }
     setRatingSubmitted(true);
-    setTimeout(() => setShowRating(false), 1200);
+    setTimeout(() => {
+      setShowRating(false);
+      maybeShowPushPrompt();
+    }, 1200);
+  };
+
+  const maybeShowPushPrompt = async () => {
+    if (!('Notification' in window)) return;
+    if (localStorage.getItem('smb_push_dismissed')) return;
+    const already = await isPushSubscribed();
+    if (!already) setShowPushPrompt(true);
+  };
+
+  const handleEnablePush = async () => {
+    setPushSubscribing(true);
+    await subscribeToPush();
+    setPushSubscribing(false);
+    setShowPushPrompt(false);
+  };
+
+  const handleDismissPush = () => {
+    localStorage.setItem('smb_push_dismissed', '1');
+    setShowPushPrompt(false);
   };
 
   if (isRedirecting || !bottle || !venue) return (
@@ -134,7 +159,7 @@ export default function PaymentSuccess() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm px-4 pb-8"
-            onClick={() => setShowRating(false)}
+            onClick={() => { setShowRating(false); maybeShowPushPrompt(); }}
           >
             <motion.div
               initial={{ y: 80, opacity: 0 }}
@@ -170,8 +195,8 @@ export default function PaymentSuccess() {
                       >
                         <Star
                           className={`w-9 h-9 transition-colors duration-150 ${star <= (hoverStar || selectedStar)
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-white/20"
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-white/20"
                             }`}
                           strokeWidth={1.5}
                         />
@@ -179,13 +204,54 @@ export default function PaymentSuccess() {
                     ))}
                   </div>
                   <button
-                    onClick={() => setShowRating(false)}
+                    onClick={() => { setShowRating(false); maybeShowPushPrompt(); }}
                     className="text-[#4A4A6A] text-xs hover:text-[#7171A0] transition-colors"
                   >
                     Skip for now
                   </button>
                 </>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Push notification prompt */}
+      <AnimatePresence>
+        {showPushPrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm px-4 pb-8"
+            onClick={handleDismissPush}
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-[#111118] border border-white/[0.08] rounded-3xl p-6 text-center"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center mx-auto mb-4">
+                <Bell className="w-6 h-6 text-violet-400" strokeWidth={1.5} />
+              </div>
+              <h3 className="font-bold text-white text-lg mb-1">Get expiry reminders</h3>
+              <p className="text-[#7171A0] text-sm mb-6">We'll notify you 7 days and 1 day before your bottle expires so you never lose a drop.</p>
+              <button
+                onClick={handleEnablePush}
+                disabled={pushSubscribing}
+                className="btn-primary w-full py-3.5 rounded-2xl font-bold text-base text-white mb-3 disabled:opacity-60"
+              >
+                {pushSubscribing ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Enable Notifications"}
+              </button>
+              <button
+                onClick={handleDismissPush}
+                className="text-[#4A4A6A] text-xs hover:text-[#7171A0] transition-colors"
+              >
+                Maybe later
+              </button>
             </motion.div>
           </motion.div>
         )}
