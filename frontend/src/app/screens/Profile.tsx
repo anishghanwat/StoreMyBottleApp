@@ -46,14 +46,19 @@ export default function Profile() {
         }
     };
 
+    const nameError = (name: string): string | null => {
+        const trimmed = name.trim();
+        if (trimmed.length < 2) return "Name must be at least 2 characters";
+        if (trimmed.length > 50) return "Name must be 50 characters or less";
+        if (!/^[a-zA-Z\s]+$/.test(trimmed)) return "Name can only contain letters";
+        return null;
+    };
+
     const handleUpdateProfile = async () => {
         const trimmed = editName.trim();
-        if (trimmed.length < 2) {
-            toast.error("Name must be at least 2 characters");
-            return;
-        }
-        if (trimmed.length > 50) {
-            toast.error("Name must be 50 characters or less");
+        const err = nameError(editName);
+        if (err) {
+            toast.error(err);
             return;
         }
         try {
@@ -208,8 +213,8 @@ export default function Profile() {
                                             placeholder="Your Name"
                                             maxLength={50}
                                         />
-                                        {editName.trim().length > 0 && editName.trim().length < 2 && (
-                                            <p className="text-red-400 text-xs mt-1 px-1">Name must be at least 2 characters</p>
+                                        {editName.trim().length > 0 && nameError(editName) && (
+                                            <p className="text-red-400 text-xs mt-1 px-1">{nameError(editName)}</p>
                                         )}
                                     </div>
                                     {/* Email is read-only */}
@@ -220,7 +225,7 @@ export default function Profile() {
                                     <div className="flex gap-2">
                                         <button
                                             onClick={handleUpdateProfile}
-                                            disabled={saving || editName.trim().length < 2}
+                                            disabled={saving || !!nameError(editName)}
                                             className="flex-1 bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white rounded-xl py-2 text-sm font-bold flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                                         >
                                             {saving ? "Saving..." : <><Check className="w-3.5 h-3.5" /> Save</>}

@@ -165,6 +165,14 @@ def signup(request_data: SignupRequest, request: Request, response: Response, db
             detail=error_message
         )
     
+    # Validate name
+    import re
+    name_stripped = request_data.name.strip()
+    if len(name_stripped) < 2 or len(name_stripped) > 50:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Name must be between 2 and 50 characters")
+    if not re.match(r'^[a-zA-Z\s]+$', name_stripped):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Name can only contain letters")
+
     # Server-side age validation (minimum 25 — strictest Indian state threshold)
     from datetime import date as date_type
     today = date_type.today()

@@ -71,7 +71,13 @@ def update_profile(
 ):
     """Update user profile"""
     if request.name:
-        current_user.name = request.name
+        import re
+        name = request.name.strip()
+        if len(name) < 2 or len(name) > 50:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Name must be between 2 and 50 characters")
+        if not re.match(r'^[a-zA-Z\s]+$', name):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Name can only contain letters")
+        current_user.name = name
     
     if request.email and request.email != current_user.email:
         # Check if email is already taken
